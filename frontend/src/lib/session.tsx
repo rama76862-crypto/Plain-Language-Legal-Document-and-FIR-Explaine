@@ -49,7 +49,7 @@ interface SessionContextType extends SessionState {
   setReviewConfirmed: (confirmed: boolean) => void;
   setWarnings: (warnings: string[]) => void;
   resetInactivityTimer: () => void;
-  resetSession: (callServerDelete?: boolean) => Promise<void>;
+  resetSession: (callServerDelete?: boolean) => Promise<boolean>;
   getAbortSignal: () => AbortSignal;
 }
 
@@ -128,6 +128,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const resetSession = useCallback(
     async (callServerDelete: boolean = true) => {
+      let serverDeletionConfirmed = true;
       // 1. Abort any active network requests
       abortControllerRef.current.abort();
       abortControllerRef.current = new AbortController();
@@ -137,7 +138,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         try {
           await deleteDocument(documentId, sessionToken);
         } catch {
-          // Failure ignored during emergency client cleanup
+          serverDeletionConfirmed = false;
         }
       }
 
@@ -160,6 +161,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setWarnings([]);
       setReviewConfirmed(false);
       resetInactivityTimer();
+      return serverDeletionConfirmed;
     },
     [documentId, sessionToken, sourceBlobUrl, resetInactivityTimer]
   );

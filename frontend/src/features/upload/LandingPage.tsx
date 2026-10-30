@@ -8,7 +8,7 @@
  * 5. Section #aid: Legal aid banner with 15100 helpline number
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HealthStatusBar } from './HealthStatusBar';
 import { UploadDropzone } from './UploadDropzone';
@@ -38,7 +38,7 @@ export const LandingPage: React.FC = () => {
   // Submittal & Telemetry State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [isHealthReady, setIsHealthReady] = useState(true);
+  const [isHealthReady, setIsHealthReady] = useState(false);
   const [healthData, setHealthData] = useState<HealthResponse | null>(null);
 
   // IntersectionObserver for .reveal elements matching HTML preview behavior
@@ -58,10 +58,10 @@ export const LandingPage: React.FC = () => {
     return () => io.disconnect();
   }, []);
 
-  const handleHealthChange = (isHealthy: boolean, data: HealthResponse | null) => {
+  const handleHealthChange = useCallback((isHealthy: boolean, data: HealthResponse | null) => {
     setIsHealthReady(isHealthy);
     setHealthData(data);
-  };
+  }, []);
 
   const handleExtractSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

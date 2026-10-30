@@ -64,8 +64,8 @@ class RealMLClient:
         except ApiError:
             return {'available':False, 'classifier_loaded':False, 'generator_loaded':False,
                     'tested_language_matrix':[], 'warnings':['ML readiness unavailable; extraction/review remain usable.'], 'mode':'real'}
-        classifier = data.get('classifier_loaded') is True
-        generator = data.get('generator_loaded') is True
+        classifier = data.get('classifier_loaded', data.get('classifier_ready')) is True
+        generator = data.get('generator_loaded', data.get('generator_ready')) is True
         # Missing affirmative readiness evidence never means ready.
         return {**data, 'available': classifier and generator, 'classifier_loaded':classifier,
                 'generator_loaded':generator, 'tested_language_matrix':data.get('tested_language_matrix', []), 'mode':'real'}

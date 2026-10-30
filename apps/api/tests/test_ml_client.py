@@ -220,6 +220,20 @@ def test_timeout_and_connection_failure_are_finite_and_not_fixture_fallback():
     run(scenario())
 
 
+def test_readiness_accepts_backend2_ready_field_names_without_inventing_language_review():
+    async def scenario():
+        client = RealMLClient(Settings(), httpx.MockTransport(lambda request: httpx.Response(
+            200, json={'classifier_ready': True, 'generator_ready': True,
+                       'tested_languages': {'en': False, 'hi': False, 'pa': False}})))
+        health = await client.health()
+        assert health['available'] is True
+        assert health['classifier_loaded'] is True
+        assert health['generator_loaded'] is True
+        assert health['tested_language_matrix'] == []
+        await client.close()
+    run(scenario())
+
+
 def test_readiness_missing_evidence_not_ready_and_malformed_json_rejected():
     async def scenario():
         client = RealMLClient(Settings(),httpx.MockTransport(lambda request:httpx.Response(200,json={'status':'ok'})))

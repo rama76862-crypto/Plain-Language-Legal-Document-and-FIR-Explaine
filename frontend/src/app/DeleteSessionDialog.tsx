@@ -31,8 +31,10 @@ export const DeleteSessionDialog: React.FC<{
     setShowShred(true);
 
     try {
-      await resetSession(true);
-      showToast(t('privacy.sessionDeletedToast'), 'info');
+      const confirmed = await resetSession(true);
+      showToast(confirmed ? t('privacy.sessionDeletedToast') :
+        'Local session cleared. Server deletion could not be confirmed; temporary files remain subject to server expiry.',
+        confirmed ? 'info' : 'warn');
     } catch {
       showToast('Could not confirm server deletion. Temporary files will be removed on expiry.', 'warn');
     } finally {

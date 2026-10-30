@@ -82,6 +82,7 @@ export const ResultExport: React.FC = () => {
       }
 
       lines.push(`- **Plain-Language Explanation**: ${item.explanation}`);
+      lines.push(`- **Review Status**: ${item.review_status}`);
 
       if (item.evidence && item.evidence.length > 0) {
         item.evidence.forEach((ev) => {

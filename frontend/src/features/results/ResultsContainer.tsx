@@ -71,7 +71,7 @@ export const ResultsContainer: React.FC = () => {
     return () => {
       isCancelled = true;
     };
-  }, [documentId, sessionToken, navigate]);
+  }, [documentId, sessionToken, revision, navigate]);
 
   const handleNavigateEvidence = useCallback(
     (clauseId: string) => {

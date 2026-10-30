@@ -176,7 +176,7 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
                   </div>
                   <div className="text-[11px] font-mono text-mute flex justify-between">
                     <span>Clause 1</span>
-                    <span>{progress.completed_clauses}/{progress.total_clauses} completed</span>
+                    <span>{progress.completed_clauses}/{progress.total_clauses} processed{progress.failed_clauses ? ` · ${progress.failed_clauses} failed` : ''}</span>
                     <span>Clause {progress.total_clauses}</span>
                   </div>
                 </div>

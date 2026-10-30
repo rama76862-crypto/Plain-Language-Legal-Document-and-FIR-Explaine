@@ -75,7 +75,7 @@ export const ReferenceCard: React.FC<ReferenceCardProps> = ({ reference, classNa
       )}
 
       <div className="text-[10px] text-mute flex items-center justify-between pt-1 border-t border-line/60">
-        <span>Verified reference</span>
+        <span>Official source — applicability requires review</span>
         <span>Opens external site</span>
       </div>
     </div>

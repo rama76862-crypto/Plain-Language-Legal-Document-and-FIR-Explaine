@@ -8,6 +8,7 @@
  */
 
 import { config } from './config';
+import { normalizeHealth } from './health';
 import type {
   HealthResponse,
   DocumentCreateResponse,
@@ -102,7 +103,7 @@ export async function getHealth(signal?: AbortSignal): Promise<HealthResponse> {
       },
       signal,
     });
-    return await handleResponse<HealthResponse>(res);
+    return normalizeHealth(await handleResponse<unknown>(res));
   } catch (err) {
     return catchNetworkError(err);
   }

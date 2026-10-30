@@ -61,7 +61,7 @@ export const InactivityModal: React.FC = () => {
               seconds due to inactivity.
             </p>
             <p className="text-xs text-mute">
-              NyayaSarathi does not retain uploaded files or AI explanations. When the timer reaches zero, all data is permanently erased.
+              This is a local inactivity timer. Clearing the session requests server deletion; temporary server data also has its own expiry policy. Exported copies remain on your device.
             </p>
           </div>
         </div>

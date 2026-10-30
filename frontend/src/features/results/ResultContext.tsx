@@ -97,6 +97,10 @@ export const ResultProvider: React.FC<ResultProviderProps> = ({
       setStatus('idle');
       setProgress({ completed_clauses: 0, total_clauses: 0 });
       setError(null);
+      activeKeyRef.current = '';
+      abortControllerRef.current?.abort();
+      setAnalysisId(null);
+      setPendingLanguage(null);
       clearPollTimer();
     }
   }, [revision]);
@@ -340,7 +344,7 @@ export const ResultProvider: React.FC<ResultProviderProps> = ({
         error,
         startAnalysis,
         retryAnalysis,
-        documentType,
+        documentType: result?.document_type ?? documentType,
         analysisId,
       }}
     >

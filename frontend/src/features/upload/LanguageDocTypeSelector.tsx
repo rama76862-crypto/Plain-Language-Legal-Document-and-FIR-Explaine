@@ -37,15 +37,15 @@ export const LanguageDocTypeSelector: React.FC<LanguageDocTypeSelectorProps> = (
 
   const inputLangOptions = [
     { value: 'auto', label: `${t('languages.auto')} (Detect)` },
-    { value: 'en', label: `${t('languages.en')} [Tested]` },
-    { value: 'hi', label: `${t('languages.hi')} [Tested]` },
-    { value: 'pa', label: `${t('languages.pa')} [Tested]` },
+    { value: 'en', label: `${t('languages.en')} [Review required]` },
+    { value: 'hi', label: `${t('languages.hi')} [Experimental]` },
+    { value: 'pa', label: `${t('languages.pa')} [Experimental]` },
   ];
 
   const outputLangOptions = [
-    { value: 'en', label: `${t('languages.en')} [Default · Tested]` },
-    { value: 'hi', label: `${t('languages.hi')} [Tested]` },
-    { value: 'pa', label: `${t('languages.pa')} [Tested]` },
+    { value: 'en', label: `${t('languages.en')} [Default · Review required]` },
+    { value: 'hi', label: `${t('languages.hi')} [Experimental]` },
+    { value: 'pa', label: `${t('languages.pa')} [Experimental]` },
   ];
 
   const docTypeOptions = [

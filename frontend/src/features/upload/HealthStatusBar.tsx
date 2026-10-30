@@ -39,7 +39,7 @@ export const HealthStatusBar: React.FC<HealthStatusBarProps> = ({
     try {
       const data = await getHealth();
       setHealth(data);
-      onHealthStatusChange?.(true, data);
+      onHealthStatusChange?.(data.extraction_ready, data);
     } catch {
       setOffline(true);
       setHealth(null);
@@ -83,8 +83,8 @@ export const HealthStatusBar: React.FC<HealthStatusBarProps> = ({
   return (
     <div className="w-full space-y-2">
       {isPartial && (
-        <Banner variant="warn" title="AI Model Warming Up">
-          Document extraction &amp; review available. AI explanation service is warming up.
+        <Banner variant="warn" title="AI Model Unavailable or Not Ready">
+          Document extraction &amp; review are available. Check the local model service before analysis.
         </Banner>
       )}
 
@@ -98,16 +98,16 @@ export const HealthStatusBar: React.FC<HealthStatusBarProps> = ({
           <div className="flex items-center gap-1 text-mute font-mono">
             <span>OCR:</span>
             <span className="font-bold text-navy">
-              {health?.ocr_languages.join(', ') || 'eng, hin, pan'}
+              {health?.ocr_languages?.join(', ') || 'Not available'}
             </span>
           </div>
         </div>
 
         {/* 3x3 Matrix Trigger / Summary */}
         <div className="flex items-center gap-2">
-          <MonoLabel>TESTED MATRIX:</MonoLabel>
+          <MonoLabel>LANGUAGE REVIEW:</MonoLabel>
           <div className="flex items-center gap-1 font-mono text-[11px] font-bold text-navy bg-bg2 px-2 py-0.5 rounded">
-            <span>EN · HI · PA (9/9 Paths)</span>
+            <span>{config.useFixtures ? 'DEVELOPMENT FIXTURES' : 'EN · HI · PA — review pending'}</span>
           </div>
           <Button variant="ghost" size="sm" onClick={fetchStatus} aria-label="Refresh system health">
             <RefreshCw className="w-3.5 h-3.5 text-mute" />

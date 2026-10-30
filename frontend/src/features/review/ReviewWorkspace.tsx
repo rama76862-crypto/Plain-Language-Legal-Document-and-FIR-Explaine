@@ -74,6 +74,12 @@ export const ReviewWorkspace: React.FC = () => {
       const ext = await getExtraction(documentId, sessionToken);
       setClauses(ext.clauses);
       setRevision(ext.revision);
+      if (ext.input_language === 'en' || ext.input_language === 'hi' || ext.input_language === 'pa') {
+        setInputLanguage(ext.input_language);
+      }
+      if (['agreement', 'fir', 'notice', 'other'].includes(ext.document_type)) {
+        setDocumentType(ext.document_type);
+      }
       if (ext.warnings && ext.warnings.length > 0) {
         setWarnings(ext.warnings);
       }
@@ -85,7 +91,7 @@ export const ReviewWorkspace: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [documentId, sessionToken, setRevision, setWarnings, navigate]);
+  }, [documentId, sessionToken, setRevision, setWarnings, setInputLanguage, setDocumentType, navigate]);
 
   useEffect(() => {
     loadExtraction();

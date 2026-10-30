@@ -1,5 +1,7 @@
 # NyayaLens — urgent pull, integration and evaluation prompt
 
+User addition: the user has now explicitly authorized pulling teammate changes and pushing their preserved work afterward. Review the staged source/docs, exclude private/runtime assets, run relevant checks, commit the integration and push normally to the intended remote branch. Never force-push. Audit the frontend against both role handoffs and record implemented, partial and unverified features before calling it complete. This explicit addition supersedes the earlier no-commit/no-push-unless-instructed wording below for this authorized integration.
+
 Read and execute this prompt in the existing repository. The evaluation is imminent: prioritize one stable, real end-to-end demonstration, then minimal file organization. Do not restart the project or spend the remaining time on architecture changes.
 
 ## 1. Read the current state and preserve Backend 2

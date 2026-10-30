@@ -138,14 +138,12 @@ export const PdfViewerCanvas = React.forwardRef<PdfViewerRef, PdfViewerCanvasPro
 
         if (clause.source_ref.bbox) {
           try {
-            const page = await pdfDoc.getPage(pageNum);
             const [x0, y0, x1, y1] = clause.source_ref.bbox;
 
-            // BBOX conversion: Origin at bottom-left in PDF points
-            // Viewport conversion: [x0, pageHeight - y1, x1 - x0, y1 - y0] scaled
-            const pageHeightPts = page.view[3] - page.view[1];
+            // BE1/PyMuPDF supplies top-left PDF-point coordinates.
             const left = x0 * zoomScale;
-            const top = (pageHeightPts - y1) * zoomScale;
+            // BE1/PyMuPDF uses top-left coordinates, matching the viewer overlay.
+            const top = y0 * zoomScale;
             const width = (x1 - x0) * zoomScale;
             const height = (y1 - y0) * zoomScale;
 

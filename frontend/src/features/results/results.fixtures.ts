@@ -8,5 +8,4 @@ export {
   fixtureRentAgreementResult,
   fixtureFirResult,
   fixtureNoticeResult,
-  fixtureGeneralQuestions,
 } from '../../lib/fixtures';

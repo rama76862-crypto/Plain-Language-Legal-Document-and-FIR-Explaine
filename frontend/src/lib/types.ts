@@ -36,7 +36,7 @@ export type ReviewStatus = 'supported' | 'needs_review';
 
 export type DeadlineStatus = 'explicit' | 'needs_information' | 'needs_review';
 
-export type DetectorType = 'rule' | 'model' | 'classifier';
+export type DetectorType = 'rule' | 'model' | 'classifier' | 'extraction' | 'development_fixture';
 
 export type ExtractionMethod = 'text' | 'ocr';
 
@@ -101,7 +101,7 @@ export interface DocumentSummary {
 export interface SourceRef {
   page_number: number | null; // 1-based for PDF; null for DOCX
   paragraph_index: number | null; // 1-based for DOCX; null for PDF
-  bbox: [number, number, number, number] | null; // [x0, y0, x1, y1] PDF points, origin bottom-left
+  bbox: [number, number, number, number] | null; // [x0, y0, x1, y1] PyMuPDF points, origin top-left
 }
 
 export interface Clause {
@@ -227,6 +227,8 @@ export interface ResultObject {
 export interface AnalysisProgress {
   completed_clauses: number;
   total_clauses: number;
+  stage?: string | null;
+  failed_clauses?: number;
 }
 
 export interface AnalysisStatusResponse {
