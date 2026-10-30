@@ -15,6 +15,7 @@ import type { Clause } from '../../lib/types';
 import { useResult } from './ResultContext';
 import { EvidenceButton } from './EvidenceButton';
 import { GlassCard, Button, Banner, MonoLabel } from '../../design/primitives';
+import { useT } from '../../lib/i18n';
 
 interface AttentionPanelProps {
   onNavigateEvidence: (clauseId: string) => void;
@@ -27,6 +28,7 @@ export const AttentionPanel: React.FC<AttentionPanelProps> = ({
   onGoToClauses,
   clauses = [],
 }) => {
+  const { t } = useT();
   const { result } = useResult();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
@@ -70,7 +72,7 @@ export const AttentionPanel: React.FC<AttentionPanelProps> = ({
           <div className="flex items-center gap-2">
             <Scale className="w-4 h-4 text-blue shrink-0" />
             <span className="font-semibold">
-              An FIR records allegations. It is not a finding of guilt.
+              {t('disclaimers.fir')}
             </span>
           </div>
         </Banner>
@@ -81,8 +83,7 @@ export const AttentionPanel: React.FC<AttentionPanelProps> = ({
           <div className="flex items-center gap-2">
             <FileCheck className="w-4 h-4 text-blue shrink-0" />
             <span>
-              This describes what the document asks for. Decide what to do after reading the whole
-              notice and, if needed, getting legal aid.
+              {t('disclaimers.notice')}
             </span>
           </div>
         </Banner>
@@ -94,14 +95,14 @@ export const AttentionPanel: React.FC<AttentionPanelProps> = ({
           <ShieldAlert className="w-4 h-4 text-amber-600" />
           <h3 className="text-sm font-bold text-navy">
             {documentType === 'fir'
-              ? 'Allegations Recorded in FIR'
+              ? t('attention.firHeader')
               : documentType === 'notice'
-              ? 'Demanded Actions in Notice'
-              : 'Potential concerns found by configured checks'}
+              ? t('attention.noticeHeader')
+              : t('attention.title')}
           </h3>
         </div>
         <p className="text-xs text-mute">
-          These are cues to read carefully, not legal conclusions.
+          {t('attention.sub')}
         </p>
       </div>
 
@@ -117,7 +118,7 @@ export const AttentionPanel: React.FC<AttentionPanelProps> = ({
                 : 'bg-bg2 text-mute hover:text-navy'
             }`}
           >
-            All cues ({attentionItems.length})
+            {t('attention.allCues', { count: attentionItems.length })}
           </button>
           {categories.map(([cat, count]) => (
             <button
@@ -145,15 +146,14 @@ export const AttentionPanel: React.FC<AttentionPanelProps> = ({
           </div>
           <div className="space-y-1">
             <h4 className="text-sm font-bold text-navy">
-              No configured attention cues detected; review all clauses.
+              {t('attention.emptyState')}
             </h4>
             <p className="text-xs text-mute max-w-sm mx-auto">
-              No detected cue is not a clean legal bill of health. Always review every clause in the
-              original text.
+              {t('attention.emptyStateSub')}
             </p>
           </div>
           <Button variant="secondary" size="sm" onClick={onGoToClauses}>
-            Go to all clauses
+            {t('attention.goToClauses')}
           </Button>
         </GlassCard>
       )}
@@ -176,7 +176,7 @@ export const AttentionPanel: React.FC<AttentionPanelProps> = ({
                 <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-amber-500/20">
                   <div className="flex items-center gap-2">
                     <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold uppercase bg-amber-500/20 text-amber-900">
-                      Potential concern: {item.category?.replace(/_/g, ' ') || 'Notice Cue'}
+                      {t('attention.concernPrefix')} {item.category?.replace(/_/g, ' ') || 'Notice Cue'}
                     </span>
                     <MonoLabel>{item.clause_id}</MonoLabel>
                     {pageNum && (
@@ -198,7 +198,7 @@ export const AttentionPanel: React.FC<AttentionPanelProps> = ({
                 {/* Why it matters (Explanation) */}
                 <div className="space-y-1">
                   <span className="text-[11px] font-mono uppercase text-amber-900/80 font-bold">
-                    Why it matters
+                    {t('attention.whyItMatters')}
                   </span>
                   <p className="text-xs text-navy font-medium leading-[1.7] whitespace-pre-line">
                     {item.explanation}
@@ -209,7 +209,7 @@ export const AttentionPanel: React.FC<AttentionPanelProps> = ({
                 {exactQuote && (
                   <div className="space-y-1">
                     <span className="text-[10px] font-mono uppercase text-mute">
-                      Exact quote from document
+                      {t('attention.exactQuote')}
                     </span>
                     <blockquote className="border-l-2 border-amber-600 pl-3 py-1 font-serif text-xs italic text-navy bg-paper/60 rounded-r">
                       "{exactQuote}"
@@ -233,8 +233,8 @@ export const AttentionPanel: React.FC<AttentionPanelProps> = ({
 
                 {/* Footer disclaimer line */}
                 <div className="pt-2 border-t border-amber-500/15 text-[10px] font-mono text-mute flex items-center justify-between">
-                  <span>Information only · Not legal advice</span>
-                  <span>Read full clause</span>
+                  <span>{t('disclaimers.general')}</span>
+                  <span>{t('attention.readFullClause')}</span>
                 </div>
               </GlassCard>
             );

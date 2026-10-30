@@ -15,9 +15,11 @@ import {
   Sparkles,
   Layers,
   ShieldAlert,
+  Scale,
 } from 'lucide-react';
 import type { ResultsWorkspaceProps, OutputLanguage } from '../../lib/types';
 import { ResultProvider, useResult, ResultTab } from './ResultContext';
+import { useT } from '../../lib/i18n';
 import { OverviewSummaryPanel } from './OverviewSummaryPanel';
 import { ClauseExplanationList } from './ClauseExplanationList';
 import { AttentionPanel } from './AttentionPanel';
@@ -31,6 +33,7 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
   revision,
   onNavigateEvidence,
 }) => {
+  const { t } = useT();
   const {
     status,
     progress,
@@ -54,22 +57,27 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
   const datesCount = result?.deadlines.length ?? 0;
 
   const tabs: { id: ResultTab; label: string; icon: React.FC<{ className?: string }>; badge?: number }[] = [
-    { id: 'overview', label: 'Overview', icon: Layers },
-    { id: 'clauses', label: 'Clauses', icon: FileText },
+    { id: 'overview', label: t('tabs.overview'), icon: Layers },
+    { id: 'clauses', label: t('tabs.clauses'), icon: FileText },
     {
       id: 'attention',
-      label: 'Attention',
+      label: t('tabs.attention'),
       icon: ShieldAlert,
       badge: attentionCount > 0 ? attentionCount : undefined,
     },
     {
       id: 'dates',
-      label: 'Dates',
+      label: t('tabs.deadlines'),
       icon: Calendar,
       badge: datesCount > 0 ? datesCount : undefined,
     },
-    { id: 'ask', label: 'Ask', icon: MessageSquare },
-    { id: 'export', label: 'Export', icon: Download },
+    {
+      id: 'legalAid',
+      label: t('tabs.legalAid'),
+      icon: Scale,
+    },
+    { id: 'ask', label: t('tabs.ask'), icon: MessageSquare },
+    { id: 'export', label: t('tabs.export'), icon: Download },
   ];
 
   const languageOptions = [
@@ -87,15 +95,15 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
             <Sparkles className="w-4 h-4" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-navy">Plain-Language Explanation</h2>
+            <h2 className="text-sm font-bold text-navy">{t('results.headerTitle')}</h2>
             <div className="text-[11px] font-mono text-mute">
-              Revision {revision} · Local Processing
+              {t('review.revisionLabel', { rev: revision })} · {t('nav.localProcessing')}
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-mute font-medium">Explain in:</span>
+          <span className="text-xs text-mute font-medium">{t('upload.explainInLabel')}:</span>
           <SegmentedControl
             options={languageOptions}
             value={pendingLanguage || outputLanguage}
@@ -282,6 +290,12 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
                       onNavigateEvidence={onNavigateEvidence}
                     />
                   )}
+                  {activeTab === 'legalAid' && (
+                    <LegalAidDirectoryCard
+                      variant="full"
+                      legalAid={result?.legal_aid}
+                    />
+                  )}
                   {activeTab === 'ask' && (
                     <QuestionPanel
                       onNavigateEvidence={onNavigateEvidence}
@@ -292,10 +306,16 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
               </AnimatePresence>
             </div>
 
-            {/* Persistent Legal Aid Footer Strip */}
-            <div className="pt-6 border-t border-line">
-              <LegalAidDirectoryCard variant="compact" legalAid={result?.legal_aid} />
-            </div>
+            {/* Persistent Legal Aid Footer Strip (hidden when on legalAid tab) */}
+            {activeTab !== 'legalAid' && (
+              <div className="pt-6 border-t border-line">
+                <LegalAidDirectoryCard
+                  variant="compact"
+                  legalAid={result?.legal_aid}
+                  onOpenFull={() => setActiveTab('legalAid')}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>

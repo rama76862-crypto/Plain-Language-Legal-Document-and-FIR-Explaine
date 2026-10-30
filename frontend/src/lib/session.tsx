@@ -25,6 +25,7 @@ interface SessionState {
   selectedClauseId: string | null;
   sourceBlobUrl: string | null;
   inactivityRemainingSeconds: number;
+  serverExpiresAt: string | null;
   warnings: string[];
   reviewConfirmed: boolean;
 }
@@ -38,6 +39,7 @@ interface SessionContextType extends SessionState {
     inputLanguage: Language;
     outputLanguage: OutputLanguage;
     documentType: DocumentType;
+    expiresAt?: string | null;
   }) => void;
   setDocumentStatus: (status: DocumentStatus) => void;
   setRevision: (revision: number) => void;
@@ -48,6 +50,7 @@ interface SessionContextType extends SessionState {
   setInputLanguage: (inputLang: Language) => void;
   setReviewConfirmed: (confirmed: boolean) => void;
   setWarnings: (warnings: string[]) => void;
+  setServerExpiresAt: (expiresAt: string | null) => void;
   resetInactivityTimer: () => void;
   resetSession: (callServerDelete?: boolean) => Promise<boolean>;
   getAbortSignal: () => AbortSignal;
@@ -66,6 +69,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [documentType, setDocumentType] = useState<DocumentType>('agreement');
   const [selectedClauseId, setSelectedClauseId] = useState<string | null>(null);
   const [sourceBlobUrl, setSourceBlobUrlState] = useState<string | null>(null);
+  const [serverExpiresAt, setServerExpiresAtState] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [reviewConfirmed, setReviewConfirmed] = useState<boolean>(false);
 
@@ -81,6 +85,14 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const resetInactivityTimer = useCallback(() => {
     setInactivityRemainingSeconds(config.inactivityTimeoutMinutes * 60);
+  }, []);
+
+  const setServerExpiresAt = useCallback((expiresAt: string | null) => {
+    setServerExpiresAtState(expiresAt);
+    if (expiresAt) {
+      const serverSecs = Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000));
+      setInactivityRemainingSeconds(serverSecs);
+    }
   }, []);
 
   const setSourceBlobUrl = useCallback((newUrl: string | null) => {
@@ -101,6 +113,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       inputLanguage: Language;
       outputLanguage: OutputLanguage;
       documentType: DocumentType;
+      expiresAt?: string | null;
     }) => {
       setDocumentId(params.documentId);
       setSessionToken(params.sessionToken);
@@ -113,9 +126,13 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setReviewConfirmed(false);
       setWarnings([]);
       setSelectedClauseId(null);
-      resetInactivityTimer();
+      if (params.expiresAt) {
+        setServerExpiresAt(params.expiresAt);
+      } else {
+        resetInactivityTimer();
+      }
     },
-    [resetInactivityTimer]
+    [resetInactivityTimer, setServerExpiresAt]
   );
 
   const setRevision = useCallback((rev: number) => {
@@ -158,6 +175,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setDocumentType('agreement');
       setSelectedClauseId(null);
       setSourceBlobUrlState(null);
+      setServerExpiresAtState(null);
       setWarnings([]);
       setReviewConfirmed(false);
       resetInactivityTimer();
@@ -166,12 +184,22 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     [documentId, sessionToken, sourceBlobUrl, resetInactivityTimer]
   );
 
-  // Inactivity countdown ticker
+  // Inactivity countdown ticker synchronized with server expires_at
   useEffect(() => {
     if (!documentId) return;
 
     const interval = setInterval(() => {
       setInactivityRemainingSeconds((prev) => {
+        if (serverExpiresAt) {
+          const serverSecs = Math.max(0, Math.floor((new Date(serverExpiresAt).getTime() - Date.now()) / 1000));
+          if (serverSecs <= 1) {
+            clearInterval(interval);
+            resetSession(true);
+            return 0;
+          }
+          return serverSecs;
+        }
+
         if (prev <= 1) {
           clearInterval(interval);
           resetSession(true);
@@ -182,11 +210,11 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [documentId, resetSession]);
+  }, [documentId, serverExpiresAt, resetSession]);
 
-  // Global user interaction listener to reset inactivity timer
+  // Only reset local timer on activity if no authoritative server expiry is bound
   useEffect(() => {
-    if (!documentId) return;
+    if (!documentId || serverExpiresAt) return;
 
     const onUserActivity = () => {
       resetInactivityTimer();
@@ -194,14 +222,12 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     window.addEventListener('pointerdown', onUserActivity);
     window.addEventListener('keydown', onUserActivity);
-    window.addEventListener('scroll', onUserActivity);
 
     return () => {
       window.removeEventListener('pointerdown', onUserActivity);
       window.removeEventListener('keydown', onUserActivity);
-      window.removeEventListener('scroll', onUserActivity);
     };
-  }, [documentId, resetInactivityTimer]);
+  }, [documentId, serverExpiresAt, resetInactivityTimer]);
 
   // Cleanup Blob URLs on unmount
   useEffect(() => {
@@ -226,6 +252,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         selectedClauseId,
         sourceBlobUrl,
         inactivityRemainingSeconds,
+        serverExpiresAt,
         warnings,
         reviewConfirmed,
         startSession,
@@ -238,6 +265,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setInputLanguage,
         setReviewConfirmed,
         setWarnings,
+        setServerExpiresAt,
         resetInactivityTimer,
         resetSession,
         getAbortSignal,

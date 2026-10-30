@@ -85,6 +85,7 @@ export interface DocumentCreateResponse {
   session_token: string;
   status: DocumentStatus;
   revision: number;
+  expires_at?: string;
 }
 
 export interface DocumentSummary {
@@ -96,6 +97,8 @@ export interface DocumentSummary {
   input_language: Language;
   warnings: string[];
   extraction_ready: boolean;
+  reviewed_revision?: number | null;
+  expires_at?: string;
 }
 
 export interface SourceRef {

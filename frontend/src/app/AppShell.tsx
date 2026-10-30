@@ -23,7 +23,7 @@ import { isWebGLAvailable } from '../design/webglUtils';
 import { ShieldCheck, Clock, ExternalLink } from 'lucide-react';
 
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { documentId, inactivityRemainingSeconds } = useSession();
+  const { documentId, inactivityRemainingSeconds, serverExpiresAt } = useSession();
   const { t, uiLanguage, setUiLanguage } = useT();
   const location = useLocation();
 
@@ -122,7 +122,13 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
           {/* Inactivity Timer Chip (only when session exists) */}
           {documentId && (
-            <Tooltip content={t('nav.inactivityTooltip')}>
+            <Tooltip
+              content={
+                serverExpiresAt
+                  ? t('nav.serverRetentionTooltip')
+                  : t('nav.inactivityTooltip')
+              }
+            >
               <div
                 tabIndex={0}
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-pill bg-paper border border-line text-xs font-mono text-mute shadow-sm"

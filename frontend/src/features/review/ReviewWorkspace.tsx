@@ -16,7 +16,8 @@ import { config } from '../../lib/config';
 import { fixtureRentAgreementExtraction } from '../../lib/fixtures';
 import type { Clause, PatchRequest } from '../../lib/types';
 import { ErrorConflictOverlay } from '../../app/ErrorConflictOverlay';
-import { Skeleton } from '../../design/primitives';
+import { Skeleton, SegmentedControl } from '../../design/primitives';
+import { useT } from '../../lib/i18n';
 
 export const ReviewWorkspace: React.FC = () => {
   const {
@@ -40,6 +41,7 @@ export const ReviewWorkspace: React.FC = () => {
     resetSession,
   } = useSession();
 
+  const { t } = useT();
   const navigate = useNavigate();
   const sourceViewerRef = useRef<SourceDocumentViewerRef | null>(null);
 
@@ -47,6 +49,8 @@ export const ReviewWorkspace: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [conflictOpen, setConflictOpen] = useState<boolean>(false);
+  const [saveError, setSaveError] = useState<{ title: string; message: string; retryable?: boolean } | null>(null);
+  const [mobileTab, setMobileTab] = useState<'source' | 'review'>('review');
   const [conflictError, setConflictError] = useState<{ message: string; code: string }>({
     message: '',
     code: '',
@@ -56,7 +60,7 @@ export const ReviewWorkspace: React.FC = () => {
   const loadExtraction = useCallback(async () => {
     setLoading(true);
 
-    if (config.useFixtures) {
+    if (config.useFixtures || documentId?.startsWith('doc_fixture_')) {
       setClauses(fixtureRentAgreementExtraction.clauses);
       if (fixtureRentAgreementExtraction.warnings) {
         setWarnings(fixtureRentAgreementExtraction.warnings);
@@ -100,12 +104,16 @@ export const ReviewWorkspace: React.FC = () => {
   const handleSelectClause = (clauseId: string) => {
     selectClause(clauseId);
     sourceViewerRef.current?.scrollToClause(clauseId);
+    if (window.innerWidth < 1024) {
+      setMobileTab('source');
+    }
   };
 
   const handleSubmitReview = async (patch: PatchRequest) => {
     setIsSubmitting(true);
+    setSaveError(null);
 
-    if (config.useFixtures) {
+    if (config.useFixtures || documentId?.startsWith('doc_fixture_')) {
       setTimeout(() => {
         // Increment revision if corrections exist
         if (patch.corrections.length > 0) {
@@ -130,16 +138,28 @@ export const ReviewWorkspace: React.FC = () => {
         if (err.status === 409 || err.code === 'REVISION_CONFLICT') {
           setConflictError({
             code: 'REVISION_CONFLICT',
-            message: 'The document was modified in another session. Your view is outdated.',
+            message: t('errors.REVISION_CONFLICT'),
           });
           setConflictOpen(true);
         } else if (err.status === 404) {
           setConflictError({
             code: 'NOT_FOUND',
-            message: 'Document session expired.',
+            message: t('errors.NOT_FOUND'),
           });
           setConflictOpen(true);
+        } else {
+          setSaveError({
+            title: t('review.saveErrorTitle'),
+            message: err.message || 'Server rejected the corrections. Please verify and retry.',
+            retryable: true,
+          });
         }
+      } else {
+        setSaveError({
+          title: t('review.saveErrorTitle'),
+          message: err instanceof Error ? err.message : 'Network error occurred while saving corrections.',
+          retryable: true,
+        });
       }
     } finally {
       setIsSubmitting(false);
@@ -161,36 +181,51 @@ export const ReviewWorkspace: React.FC = () => {
   }
 
   return (
-    <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 h-[calc(100vh-8.5rem)] overflow-hidden">
-      {/* Left Pane: Source Document Viewer (5 cols) */}
-      <div className="lg:col-span-5 h-full overflow-hidden">
-        <SourceDocumentViewer
-          ref={sourceViewerRef}
-          filename={filename}
-          blobUrl={sourceBlobUrl}
-          clauses={clauses}
-          activeClauseId={selectedClauseId}
+    <div className="flex-1 flex flex-col h-[calc(100vh-8.5rem)] overflow-hidden">
+      {/* Mobile Tab Toggle (< lg) */}
+      <div className="lg:hidden p-3 bg-paper border-b border-line flex justify-center">
+        <SegmentedControl
+          value={mobileTab}
+          onChange={(val) => setMobileTab(val as 'source' | 'review')}
+          options={[
+            { value: 'source', label: t('review.sourcePaneTitle') },
+            { value: 'review', label: t('tabs.clauses') },
+          ]}
         />
       </div>
 
-      {/* Right Pane: Extraction Review & Correction (7 cols) */}
-      <div className="lg:col-span-7 h-full overflow-hidden border-l border-line">
-        <ExtractionReviewList
-          clauses={clauses}
-          revision={revision}
-          warnings={warnings}
-          filename={filename}
-          inputLanguage={inputLanguage}
-          outputLanguage={outputLanguage}
-          documentType={documentType}
-          selectedClauseId={selectedClauseId}
-          isSubmitting={isSubmitting}
-          onSelectClause={handleSelectClause}
-          onSubmitReview={handleSubmitReview}
-          onChangeInputLanguage={setInputLanguage}
-          onChangeOutputLanguage={setOutputLanguage}
-          onChangeDocumentType={setDocumentType}
-        />
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 h-full overflow-hidden">
+        {/* Left Pane: Source Document Viewer (5 cols) */}
+        <div className={`lg:col-span-5 h-full overflow-hidden ${mobileTab === 'source' ? 'block' : 'hidden lg:block'}`}>
+          <SourceDocumentViewer
+            ref={sourceViewerRef}
+            filename={filename}
+            blobUrl={sourceBlobUrl}
+            clauses={clauses}
+            activeClauseId={selectedClauseId}
+          />
+        </div>
+
+        {/* Right Pane: Extraction Review & Correction (7 cols) */}
+        <div className={`lg:col-span-7 h-full overflow-hidden border-l border-line ${mobileTab === 'review' ? 'block' : 'hidden lg:block'}`}>
+          <ExtractionReviewList
+            clauses={clauses}
+            revision={revision}
+            warnings={warnings}
+            filename={filename}
+            inputLanguage={inputLanguage}
+            outputLanguage={outputLanguage}
+            documentType={documentType}
+            selectedClauseId={selectedClauseId}
+            isSubmitting={isSubmitting}
+            saveError={saveError}
+            onSelectClause={handleSelectClause}
+            onSubmitReview={handleSubmitReview}
+            onChangeInputLanguage={setInputLanguage}
+            onChangeOutputLanguage={setOutputLanguage}
+            onChangeDocumentType={setDocumentType}
+          />
+        </div>
       </div>
 
       {/* Revision Conflict Overlay */}

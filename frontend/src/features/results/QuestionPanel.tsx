@@ -27,15 +27,7 @@ import { config } from '../../lib/config';
 import { EvidenceButton } from './EvidenceButton';
 import { ReferenceCard } from './ReferenceCard';
 import { GlassCard, Button, Banner } from '../../design/primitives';
-
-interface QuestionHistoryEntry {
-  id: string;
-  question: string;
-  clientRequestId: string;
-  answer: QuestionAnswer | null;
-  error?: { code: string; message: string; retryable: boolean };
-  timestamp: number;
-}
+import { useT } from '../../lib/i18n';
 
 interface QuestionPanelProps {
   onNavigateEvidence: (clauseId: string) => void;
@@ -45,12 +37,12 @@ interface QuestionPanelProps {
 export const QuestionPanel: React.FC<QuestionPanelProps> = ({
   onNavigateEvidence,
 }) => {
-  const { status, result, outputLanguage, analysisId, documentType } = useResult();
-  const { documentId, sessionToken, revision } = useSession();
+  const { t } = useT();
+  const { status, result, outputLanguage, analysisId, documentType, qaHistory, addQaHistory } = useResult();
+  const { documentId, sessionToken } = useSession();
 
   const [questionText, setQuestionText] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [history, setHistory] = useState<QuestionHistoryEntry[]>([]);
   const [lastError, setLastError] = useState<{
     code: string;
     message: string;
@@ -62,18 +54,6 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Clear conversation history on revision change or language change
-  const currentLangRef = useRef(outputLanguage);
-  const currentRevRef = useRef(revision);
-  useEffect(() => {
-    if (currentLangRef.current !== outputLanguage || currentRevRef.current !== revision) {
-      currentLangRef.current = outputLanguage;
-      currentRevRef.current = revision;
-      setHistory([]);
-      setLastError(null);
-    }
-  }, [outputLanguage, revision]);
-
   // Clean up on unmount
   useEffect(() => {
     return () => {
@@ -84,7 +64,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
   // Scroll to bottom on new answer
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [history, isSubmitting]);
+  }, [qaHistory, isSubmitting]);
 
   // Suggested questions
   const suggestedQuestions =
@@ -174,19 +154,12 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
             };
           }
 
-          setHistory((prev) => {
-            const next = [
-              ...prev,
-              {
-                id: reqId,
-                question: q,
-                clientRequestId: reqId,
-                answer: mockAnswer,
-                timestamp: Date.now(),
-              },
-            ];
-            // Enforce memory-only 20 items cap
-            return next.slice(-20);
+          addQaHistory({
+            id: reqId,
+            question: q,
+            clientRequestId: reqId,
+            answer: mockAnswer,
+            timestamp: Date.now(),
           });
 
           setIsSubmitting(false);
@@ -212,18 +185,12 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
           abortControllerRef.current.signal
         );
 
-        setHistory((prev) => {
-          const next = [
-            ...prev,
-            {
-              id: reqId,
-              question: q,
-              clientRequestId: reqId,
-              answer: resp,
-              timestamp: Date.now(),
-            },
-          ];
-          return next.slice(-20);
+        addQaHistory({
+          id: reqId,
+          question: q,
+          clientRequestId: reqId,
+          answer: resp,
+          timestamp: Date.now(),
         });
 
         setIsSubmitting(false);
@@ -292,9 +259,9 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
           <HelpCircle className="w-6 h-6" />
         </div>
         <div className="space-y-1">
-          <h3 className="text-base font-bold text-navy">Ask Questions About Document</h3>
+          <h3 className="text-base font-bold text-navy">{t('qa.title')}</h3>
           <p className="text-xs text-mute max-w-sm mx-auto">
-            Ask questions after the explanation is ready.
+            {t('qa.sub')}
           </p>
         </div>
       </GlassCard>
@@ -309,18 +276,18 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
       <div className="text-xs text-mute flex items-center justify-between pb-2 border-b border-line">
         <div className="flex items-center gap-1.5">
           <Sparkles className="w-3.5 h-3.5 text-blue" />
-          <span>Answers are strictly grounded in your document text.</span>
+          <span>{t('qa.sub')}</span>
         </div>
         <span className="font-mono text-[11px] text-mute">
-          History: {history.length}/20 (In-Memory)
+          History: {qaHistory.length}/20 (In-Memory)
         </span>
       </div>
 
       {/* Suggested Questions */}
-      {history.length === 0 && (
+      {qaHistory.length === 0 && (
         <div className="space-y-2">
           <span className="text-[11px] font-mono uppercase text-mute font-semibold">
-            Suggested questions:
+            {t('qa.suggestedTitle')}
           </span>
           <div className="flex flex-wrap gap-2">
             {suggestedQuestions.map((sq, idx) => (
@@ -339,7 +306,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
 
       {/* Conversation Thread */}
       <div className="space-y-4 min-h-[160px]">
-        {history.map((entry) => (
+        {qaHistory.map((entry) => (
           <div key={entry.id} className="space-y-3">
             {/* User Question */}
             <div className="flex justify-end">
@@ -378,7 +345,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
                     <div className="p-2.5 rounded bg-blue/5 border border-blue/20 text-xs text-navy flex items-start gap-2">
                       <Info className="w-4 h-4 text-blue shrink-0 mt-0.5" />
                       <span>
-                        The document does not provide sufficient evidence to answer this question.
+                        {t('qa.insufficientEvidence')}
                       </span>
                     </div>
                   )}
@@ -421,7 +388,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
 
                   {/* Answer Disclaimer */}
                   <div className="pt-2 border-t border-line/40 text-[10px] font-mono text-mute flex items-center justify-between">
-                    <span>Information only · Not legal advice</span>
+                    <span>{t('disclaimers.general')}</span>
                     <span>Clause-grounded</span>
                   </div>
                 </GlassCard>
@@ -437,7 +404,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-xs text-mute font-mono flex items-center gap-2">
                   <RotateCw className="w-3.5 h-3.5 animate-spin text-blue" />
-                  Searching document clauses…
+                  {t('qa.askingButton')}
                 </span>
                 <button
                   type="button"
@@ -445,7 +412,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
                   className="text-xs text-mute hover:text-navy flex items-center gap-1 font-mono"
                 >
                   <XCircle className="w-3.5 h-3.5" />
-                  Cancel
+                  {t('privacy.cancel')}
                 </button>
               </div>
               <div className="space-y-2">
@@ -457,7 +424,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
         )}
 
         <div ref={messagesEndRef} aria-live="polite" className="sr-only">
-          {history.length > 0 ? 'Answer ready' : ''}
+          {qaHistory.length > 0 ? 'Answer ready' : ''}
         </div>
       </div>
 
@@ -496,14 +463,14 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
                   handleSendQuestion();
                 }
               }}
-              placeholder={`Ask a question in ${outputLanguage.toUpperCase()} about this document…`}
+              placeholder={t('qa.placeholder')}
               disabled={isSubmitting}
               className="w-full p-3 pr-24 text-xs rounded-lg border border-line bg-paper text-navy focus:outline-hidden focus:ring-2 focus:ring-blue resize-none leading-relaxed"
             />
 
             <div className="absolute right-2 bottom-3 flex items-center gap-2">
               <span className="text-[10px] font-mono text-mute">
-                {questionText.trim().length}/500
+                {t('qa.charCount', { count: questionText.trim().length })}
               </span>
               <Button
                 type="submit"
@@ -517,14 +484,14 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
                 ) : (
                   <Send className="w-3.5 h-3.5" />
                 )}
-                <span>Send</span>
+                <span>{t('qa.askButton')}</span>
               </Button>
             </div>
           </div>
 
           {/* Legal Advice Guard Persistent Notice */}
           <div className="flex items-center justify-between text-[11px] text-mute">
-            <span>Answers explain the document. They are not legal advice.</span>
+            <span>{t('disclaimers.answersNotAdvice')}</span>
             <span className="font-mono text-[10px]">Enter to send · Shift+Enter newline</span>
           </div>
         </form>

@@ -14,6 +14,7 @@ import { DocxParagraphViewer, DocxViewerRef } from './DocxParagraphViewer';
 import { EvidenceBeam } from '../../design/scenes/EvidenceBeam';
 import { MonoLabel, Button } from '../../design/primitives';
 import { FileText, ZoomIn, ZoomOut, Maximize2, ChevronLeft, ChevronRight, Quote } from 'lucide-react';
+import { useT } from '../../lib/i18n';
 
 export interface SourceDocumentViewerRef {
   scrollToClause: (clauseId: string) => void;
@@ -38,6 +39,7 @@ export const SourceDocumentViewer = forwardRef<SourceDocumentViewerRef, SourceDo
     },
     ref
   ) => {
+    const { t } = useT();
     const pdfRef = useRef<PdfViewerRef | null>(null);
     const docxRef = useRef<DocxViewerRef | null>(null);
 
@@ -85,7 +87,7 @@ export const SourceDocumentViewer = forwardRef<SourceDocumentViewerRef, SourceDo
             <FileText className="w-4 h-4 text-blue shrink-0" aria-hidden="true" />
             <div className="flex flex-col truncate">
               <span className="text-xs font-bold text-navy truncate">{filename}</span>
-              <MonoLabel>ORIGINAL DOCUMENT</MonoLabel>
+              <MonoLabel>{t('source.originalDocument')}</MonoLabel>
             </div>
           </div>
 
@@ -99,7 +101,7 @@ export const SourceDocumentViewer = forwardRef<SourceDocumentViewerRef, SourceDo
                     onClick={handlePrevPage}
                     disabled={currentPage <= 1}
                     className="hover:text-ink disabled:opacity-40"
-                    aria-label="Previous page"
+                    aria-label={t('source.prevPage')}
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
                   </button>
@@ -111,20 +113,20 @@ export const SourceDocumentViewer = forwardRef<SourceDocumentViewerRef, SourceDo
                     onClick={handleNextPage}
                     disabled={currentPage >= totalPages}
                     className="hover:text-ink disabled:opacity-40"
-                    aria-label="Next page"
+                    aria-label={t('source.nextPage')}
                   >
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
                 <div className="flex items-center gap-0.5 bg-bg2 rounded p-0.5">
-                  <Button variant="ghost" size="sm" onClick={handleZoomOut} aria-label="Zoom out">
+                  <Button variant="ghost" size="sm" onClick={handleZoomOut} aria-label={t('source.zoomOut')}>
                     <ZoomOut className="w-3.5 h-3.5 text-mute" />
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={handleResetZoom} aria-label="Reset zoom">
+                  <Button variant="ghost" size="sm" onClick={handleResetZoom} aria-label={t('source.resetZoom')}>
                     <Maximize2 className="w-3.5 h-3.5 text-mute" />
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={handleZoomIn} aria-label="Zoom in">
+                  <Button variant="ghost" size="sm" onClick={handleZoomIn} aria-label={t('source.zoomIn')}>
                     <ZoomIn className="w-3.5 h-3.5 text-mute" />
                   </Button>
                 </div>
@@ -132,7 +134,7 @@ export const SourceDocumentViewer = forwardRef<SourceDocumentViewerRef, SourceDo
             )}
 
             <div className="px-2 py-0.5 rounded-pill bg-paper border border-line text-[10px] font-mono text-mute">
-              Local memory
+              {t('source.localMemory')}
             </div>
           </div>
         </div>
@@ -154,9 +156,15 @@ export const SourceDocumentViewer = forwardRef<SourceDocumentViewerRef, SourceDo
               onPageCountChange={setTotalPages}
               onCurrentPageChange={setCurrentPage}
             />
+          ) : clauses.length > 0 ? (
+            <DocxParagraphViewer
+              ref={docxRef}
+              clauses={clauses}
+              activeClause={activeClause}
+            />
           ) : (
             <div className="flex items-center justify-center h-full text-xs text-mute font-mono">
-              Source file loading...
+              {t('source.loading')}
             </div>
           )}
 
@@ -168,7 +176,7 @@ export const SourceDocumentViewer = forwardRef<SourceDocumentViewerRef, SourceDo
                   <Quote className="w-3 h-3 text-blue" />
                   Clause {activeClause.clause_id} (Page {activeClause.source_ref.page_number || 1})
                 </span>
-                <span>Page-level citation</span>
+                <span>{t('source.pageCitation')}</span>
               </div>
               <p className="line-clamp-3 text-ink italic font-serif">
                 "{activeClause.reviewed_text}"

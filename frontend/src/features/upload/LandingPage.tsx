@@ -152,9 +152,9 @@ export const LandingPage: React.FC = () => {
 
             {/* Trust Assurance Row */}
             <div className="trust">
-              <span>Punjabi · Hindi · English</span>
-              <span>Deleted when you leave</span>
-              <span>DLSA / NALSA links</span>
+              <span>{t('landing.trust1')}</span>
+              <span>{t('landing.trust2')}</span>
+              <span>{t('landing.trust3')}</span>
             </div>
 
             {/* UPLOAD CONSOLE (Glass Card) */}
@@ -165,7 +165,7 @@ export const LandingPage: React.FC = () => {
                   <UploadDropzone
                     selectedFile={selectedFile}
                     onFileSelect={setSelectedFile}
-                    disabled={isSubmitting || !isHealthReady}
+                    disabled={isSubmitting}
                   />
 
                   {/* Independent Language & DocType Controls */}
@@ -200,8 +200,35 @@ export const LandingPage: React.FC = () => {
                     disabled={!selectedFile || !isHealthReady || isSubmitting}
                     isLoading={isSubmitting}
                   >
-                    {isSubmitting ? t('upload.extractingButton') : t('upload.extractButton')}
+                    {isSubmitting
+                      ? t('upload.extractingButton')
+                      : !isHealthReady && selectedFile
+                      ? 'Connecting to local engine…'
+                      : t('upload.extractButton')}
                   </Button>
+
+                  {/* Quick Try Sample Option */}
+                  <div className="flex items-center justify-center gap-1.5 pt-1 text-xs text-mute">
+                    <span>Want to test immediately?</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        startSession({
+                          documentId: 'doc_fixture_rent_01',
+                          sessionToken: 'opaque_fixture_token',
+                          revision: 1,
+                          filename: 'Sample_Rent_Agreement.pdf',
+                          inputLanguage: 'en',
+                          outputLanguage: outputLang,
+                          documentType: 'agreement',
+                        });
+                        navigate('/workspace?step=extracting');
+                      }}
+                      className="text-blue font-semibold hover:underline cursor-pointer"
+                    >
+                      Try sample document (Demo) &rarr;
+                    </button>
+                  </div>
 
                   {/* Consent & Privacy Notice Line */}
                   <p className="text-[11px] text-mute leading-normal text-center pt-1">
@@ -229,11 +256,10 @@ export const LandingPage: React.FC = () => {
       <section id="docs" className="py-16 px-4 sm:px-6 max-w-6xl mx-auto space-y-8">
         <div className="space-y-2">
           <h2 className="reveal text-2xl sm:text-3xl font-extrabold text-navy tracking-tight">
-            Built for the judge’s five documents
+            {t('landing.docTypesTitle')}
           </h2>
           <p className="lead reveal text-mute text-base max-w-2xl">
-            Each document type has its own view and checks. Concerns are labelled “potential” —
-            never a safety score.
+            {t('landing.docTypesSub')}
           </p>
         </div>
 
@@ -242,7 +268,7 @@ export const LandingPage: React.FC = () => {
             className="reveal"
             index="01"
             icon="🏠"
-            title="Rent agreement"
+            title={t('docTypes.agreement')}
             description="Penalties, lock-in, auto-renewal"
           />
           <TiltCard
@@ -263,14 +289,14 @@ export const LandingPage: React.FC = () => {
             className="reveal"
             index="04"
             icon="📨"
-            title="Court notice"
+            title={t('docTypes.notice')}
             description="Hearing dates, action demanded"
           />
           <TiltCard
             className="reveal"
             index="05"
             icon="🚔"
-            title="FIR copy"
+            title={t('docTypes.fir')}
             description="Allegations recorded, who said what"
           />
         </div>
@@ -281,11 +307,10 @@ export const LandingPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
           <div className="reveal space-y-4">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-navy tracking-tight">
-              Your document never leaves the moment
+              {t('landing.privacyTitle')}
             </h2>
             <p className="text-mute text-base leading-relaxed">
-              Processed temporarily, held in memory only, wiped with one tap. No accounts, no
-              tracking, no stored copies without your consent.
+              {t('landing.privacySub')}
             </p>
             <div className="pt-2">
               <a href="#upload-console" className="btn p btn-sweep font-bold inline-block">
@@ -305,11 +330,10 @@ export const LandingPage: React.FC = () => {
         <div className="aid reveal">
           <div className="space-y-2">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Need a lawyer you can’t afford?
+              {t('landing.legalAidTitle')}
             </h2>
             <p className="text-sm text-white/90 leading-relaxed max-w-lg">
-              District Legal Services Authorities (DLSA) and NALSA offer free legal aid to eligible
-              people. Find your nearest DLSA from here.
+              {t('landing.legalAidSub')}
             </p>
             <div className="pt-2">
               <a

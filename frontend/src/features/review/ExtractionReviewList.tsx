@@ -24,6 +24,7 @@ interface ExtractionReviewListProps {
   documentType: DocumentType;
   selectedClauseId?: string | null;
   isSubmitting?: boolean;
+  saveError?: { title: string; message: string; retryable?: boolean } | null;
   onSelectClause: (clauseId: string) => void;
   onSubmitReview: (patch: PatchRequest) => void;
   onChangeInputLanguage: (lang: Language) => void;
@@ -40,6 +41,7 @@ export const ExtractionReviewList: React.FC<ExtractionReviewListProps> = ({
   documentType,
   selectedClauseId,
   isSubmitting = false,
+  saveError = null,
   onSelectClause,
   onSubmitReview,
   onChangeInputLanguage,
@@ -159,11 +161,29 @@ export const ExtractionReviewList: React.FC<ExtractionReviewListProps> = ({
         </div>
       </div>
 
+      {/* Save / Network Error Banner */}
+      {saveError && (
+        <Banner
+          variant="error"
+          title={saveError.title}
+          action={
+            saveError.retryable
+              ? {
+                  label: t('review.saveErrorRetry') || 'Retry saving',
+                  onClick: handleConfirmSubmit,
+                }
+              : undefined
+          }
+        >
+          {saveError.message}
+        </Banner>
+      )}
+
       {/* Review Warning Banners */}
       {warnings.length > 0 && (
         <div className="space-y-2">
           {warnings.map((warn, idx) => (
-            <Banner key={idx} variant="warn" title="Extraction Notice">
+            <Banner key={idx} variant="warn" title={t('review.extractionNotice')}>
               {warn}
             </Banner>
           ))}
@@ -203,8 +223,8 @@ export const ExtractionReviewList: React.FC<ExtractionReviewListProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span className="text-xs font-mono text-mute">
             {Object.keys(corrections).length > 0
-              ? `${Object.keys(corrections).length} corrections pending submittal`
-              : 'All clauses match extraction'}
+              ? t('review.pendingCorrections', { count: Object.keys(corrections).length })
+              : t('review.allMatchExtraction')}
           </span>
 
           <Button

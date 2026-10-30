@@ -2,27 +2,31 @@
  * LegalAidDirectoryCard Component (C-14)
  * Provides verified pathways to free government legal aid:
  * - Official NALSA (National Legal Services Authority) & DLSA directory links
- * - Toll-free Legal Aid Helpline: 15100
- * - Statutory notice: Eligibility decided by authorities
+ * - Toll-free Legal Aid Helpline: 15100 (clickable with tel:15100)
+ * - Statutory notice: Eligibility decided by authorities under Legal Services Authorities Act, 1987
  * - Strict outbound labeling: "Opens an official external site; internet needed"
  */
 
 import React from 'react';
-import { ExternalLink, Phone, ShieldCheck, Scale, Globe } from 'lucide-react';
+import { ExternalLink, Phone, ShieldCheck, Scale, Globe, Building2, Users } from 'lucide-react';
 import type { LegalAidLink } from '../../lib/types';
 import { GlassCard } from '../../design/primitives';
+import { useT } from '../../lib/i18n';
 
 interface LegalAidDirectoryCardProps {
   legalAid?: LegalAidLink[];
   variant?: 'full' | 'compact';
   className?: string;
+  onOpenFull?: () => void;
 }
 
 export const LegalAidDirectoryCard: React.FC<LegalAidDirectoryCardProps> = ({
   legalAid = [],
   variant = 'full',
   className = '',
+  onOpenFull,
 }) => {
+  const { t } = useT();
   const defaultAid: LegalAidLink[] = [
     {
       title: 'National Legal Services Authority (NALSA) - Online Legal Aid Application',
@@ -31,6 +35,10 @@ export const LegalAidDirectoryCard: React.FC<LegalAidDirectoryCardProps> = ({
     {
       title: 'State & District Legal Services Authorities (SLSA / DLSA Directory)',
       url: 'https://nalsa.gov.in/state-legal-services-authorities',
+    },
+    {
+      title: 'Tele-Law Service (Department of Justice) - Free Legal Advice',
+      url: 'https://www.tele-law.in/',
     },
   ];
 
@@ -43,71 +51,132 @@ export const LegalAidDirectoryCard: React.FC<LegalAidDirectoryCardProps> = ({
       >
         <div className="flex items-center gap-2">
           <Scale className="w-4 h-4 text-cyan shrink-0" />
-          <span className="font-semibold text-navy">Need help? Free legal aid is available.</span>
+          <span className="font-semibold text-navy">{t('legalAid.needHelp')}</span>
           <span className="text-mute hidden sm:inline">
-            Call NALSA helpline: <strong className="text-navy font-mono">15100</strong>
+            {t('legalAid.callHelpline')}
           </span>
         </div>
 
-        <a
-          href="https://nalsa.gov.in/legal-aid/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded bg-cyan/15 text-cyan hover:bg-cyan/25 transition-colors"
-          aria-label="National Legal Services Authority (Opens an official external site; internet needed)"
-        >
-          <span>NALSA Portal</span>
-          <ExternalLink className="w-3 h-3" />
-        </a>
+        <div className="flex items-center gap-2">
+          {onOpenFull && (
+            <button
+              type="button"
+              onClick={onOpenFull}
+              className="px-2.5 py-1 text-[11px] font-semibold rounded bg-blue/10 text-blue hover:bg-blue/20 transition-colors"
+            >
+              Free Legal Aid (NALSA/DLSA) &rarr;
+            </button>
+          )}
+          <a
+            href="https://nalsa.gov.in/legal-aid/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded bg-cyan/15 text-cyan hover:bg-cyan/25 transition-colors"
+            aria-label={`National Legal Services Authority (${t('legalAid.internetNeeded')})`}
+          >
+            <span>NALSA Portal</span>
+            <ExternalLink className="w-3 h-3" />
+          </a>
+        </div>
       </div>
     );
   }
 
   return (
-    <GlassCard className={`p-6 border-cyan/30 bg-paper space-y-4 shadow-card ${className}`}>
+    <GlassCard className={`p-6 border-cyan/30 bg-paper space-y-5 shadow-card ${className}`}>
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 text-[10px] font-mono font-bold uppercase rounded bg-cyan/10 text-cyan">
-              Public Legal Assistance
+              {t('legalAid.publicAssistance')}
             </span>
-            <span className="text-xs font-mono text-mute">Government of India</span>
+            <span className="text-xs font-mono text-mute">{t('legalAid.govIndia')}</span>
           </div>
-          <h4 className="text-base font-bold text-navy flex items-center gap-2">
+          <h4 className="text-lg font-bold text-navy flex items-center gap-2">
             <Scale className="w-5 h-5 text-cyan shrink-0" />
-            Free Legal Aid & Representation
+            Free Legal Aid (NALSA / DLSA)
           </h4>
+          <p className="text-xs text-mute">
+            Under the Legal Services Authorities Act, 1987, free legal aid is a statutory right for eligible citizens.
+          </p>
         </div>
 
-        {/* Helpline Pill */}
+        {/* Helpline Click-to-call Pill */}
         <div className="flex flex-col items-end shrink-0">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-navy text-white text-xs font-mono font-bold shadow-xs">
-            <Phone className="w-3.5 h-3.5 text-cyan shrink-0" />
+          <a
+            href="tel:15100"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-md bg-navy text-white text-xs font-mono font-bold shadow-xs hover:bg-navy/90 hover:ring-2 hover:ring-cyan/50 transition-all"
+            title="Call Toll-free Legal Aid Helpline 15100"
+          >
+            <Phone className="w-4 h-4 text-cyan shrink-0 animate-pulse" />
             <span>15100</span>
-          </div>
-          <span className="text-[10px] text-mute mt-1 font-mono">Toll-free NALSA helpline</span>
+          </a>
+          <span className="text-[10px] text-mute mt-1 font-mono">{t('legalAid.tollFree')}</span>
         </div>
       </div>
 
       {/* Official Legal Explanatory Copy */}
       <div className="p-3.5 rounded-lg bg-bg2/60 border border-line text-xs text-navy/90 leading-relaxed space-y-2">
-        <p>
-          Free legal aid is available through <strong>District Legal Services Authorities (DLSA)</strong>{' '}
-          and <strong>NALSA</strong> under the Legal Services Authorities Act, 1987 for eligible people,
-          including women, children, members of SC/ST, and persons with annual income below prescribed ceilings.
+        <p className="font-semibold text-navy">
+          {t('disclaimers.legalAidNotice')}
         </p>
         <p className="text-[11px] text-mute italic">
-          Eligibility for free legal aid is decided by the respective legal services authority.
+          {t('legalAid.eligibilityNote')}
         </p>
+      </div>
+
+      {/* Legal Aid Hierarchy Cards (NALSA vs DLSA) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+        <div className="p-3.5 rounded-lg border border-line bg-bg2/40 space-y-2">
+          <div className="flex items-center gap-2 text-xs font-bold text-navy">
+            <Building2 className="w-4 h-4 text-blue" />
+            <span>District Legal Services Authority (DLSA)</span>
+          </div>
+          <p className="text-xs text-mute leading-relaxed">
+            Located in every District Court across India. Provides free defense lawyers, legal advice, and representation for trial and district courts.
+          </p>
+          <div className="text-[11px] font-mono text-blue font-semibold">
+            Visit the District Court Complex in your district
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-lg border border-line bg-bg2/40 space-y-2">
+          <div className="flex items-center gap-2 text-xs font-bold text-navy">
+            <Scale className="w-4 h-4 text-cyan" />
+            <span>National Legal Services Authority (NALSA)</span>
+          </div>
+          <p className="text-xs text-mute leading-relaxed">
+            Apex body providing policy, nationwide coordination, and Supreme Court Legal Services Committee for High Court and Supreme Court matters.
+          </p>
+          <div className="text-[11px] font-mono text-cyan font-semibold">
+            Apply online via official NALSA portal 24x7
+          </div>
+        </div>
+      </div>
+
+      {/* Who Qualifies (Section 12 Summary) */}
+      <div className="p-3.5 rounded-lg border border-line bg-paper space-y-2">
+        <div className="flex items-center gap-2 text-xs font-bold text-navy">
+          <Users className="w-4 h-4 text-blue" />
+          <span>Who is Eligible for Free Legal Aid (Section 12)?</span>
+        </div>
+        <ul className="text-xs text-mute grid grid-cols-1 sm:grid-cols-2 gap-1.5 list-disc list-inside">
+          <li>Women and children</li>
+          <li>Members of SC or ST communities</li>
+          <li>Victims of human trafficking or forced labor</li>
+          <li>Persons with disability or mental illness</li>
+          <li>Undertrial prisoners and persons in custody</li>
+          <li>Persons with annual income below state limit</li>
+        </ul>
       </div>
 
       {/* Directory Links */}
       <div className="space-y-2 pt-1">
         <span className="text-[11px] font-mono uppercase text-mute font-semibold">
-          Official Government Portals
+          {t('legalAid.portalsHeader')}
         </span>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           {links.map((link, idx) => (
             <a
               key={idx}
@@ -115,7 +184,7 @@ export const LegalAidDirectoryCard: React.FC<LegalAidDirectoryCardProps> = ({
               target="_blank"
               rel="noopener noreferrer"
               className="p-3 rounded-md border border-line bg-paper hover:bg-bg2/40 hover:border-cyan/50 transition-all flex items-center justify-between text-xs text-navy group"
-              aria-label={`${link.title} (Opens an official external site; internet needed)`}
+              aria-label={`${link.title} (${t('legalAid.internetNeeded')})`}
             >
               <div className="flex items-center gap-2 truncate pr-2">
                 <Globe className="w-3.5 h-3.5 text-cyan shrink-0" />
@@ -131,9 +200,9 @@ export const LegalAidDirectoryCard: React.FC<LegalAidDirectoryCardProps> = ({
       <div className="pt-2 border-t border-line/60 flex items-center justify-between text-[10px] font-mono text-mute">
         <span className="flex items-center gap-1">
           <ShieldCheck className="w-3 h-3 text-ok" />
-          Official external government resources
+          {t('legalAid.externalResources')}
         </span>
-        <span>Internet connection needed</span>
+        <span>{t('legalAid.internetNeeded')}</span>
       </div>
     </GlassCard>
   );

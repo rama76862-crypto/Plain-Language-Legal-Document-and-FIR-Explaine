@@ -10,6 +10,7 @@ import type {
   AnalysisStatus,
   AnalysisProgress,
   OutputLanguage,
+  QuestionAnswer,
 } from '../../lib/types';
 import { createAnalysis, getAnalysis, ApiClientError } from '../../lib/api';
 import { config } from '../../lib/config';
@@ -19,7 +20,16 @@ import {
   fixtureNoticeResult,
 } from '../../lib/fixtures';
 
-export type ResultTab = 'overview' | 'clauses' | 'attention' | 'dates' | 'ask' | 'export';
+export type ResultTab = 'overview' | 'clauses' | 'attention' | 'dates' | 'legalAid' | 'ask' | 'export';
+
+export interface QuestionHistoryEntry {
+  id: string;
+  question: string;
+  clientRequestId: string;
+  answer: QuestionAnswer | null;
+  error?: { code: string; message: string; retryable: boolean };
+  timestamp: number;
+}
 
 interface ResultError {
   code: string;
@@ -43,6 +53,10 @@ interface ResultContextValue {
   retryAnalysis: () => Promise<void>;
   documentType: string;
   analysisId: string | null;
+  qaHistory: QuestionHistoryEntry[];
+  addQaHistory: (entry: QuestionHistoryEntry) => void;
+  updateQaHistory: (id: string, update: Partial<QuestionHistoryEntry>) => void;
+  clearQaHistory: () => void;
 }
 
 const ResultContext = createContext<ResultContextValue | null>(null);
@@ -74,6 +88,27 @@ export const ResultProvider: React.FC<ResultProviderProps> = ({
   const [activeTab, setActiveTab] = useState<ResultTab>('overview');
   const [error, setError] = useState<ResultError | null>(null);
   const [analysisId, setAnalysisId] = useState<string | null>(null);
+  const [qaHistory, setQaHistory] = useState<QuestionHistoryEntry[]>([]);
+
+  const addQaHistory = useCallback((entry: QuestionHistoryEntry) => {
+    setQaHistory((prev) => {
+      const updated = [...prev, entry];
+      if (updated.length > 20) {
+        return updated.slice(updated.length - 20);
+      }
+      return updated;
+    });
+  }, []);
+
+  const updateQaHistory = useCallback((id: string, update: Partial<QuestionHistoryEntry>) => {
+    setQaHistory((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, ...update } : item))
+    );
+  }, []);
+
+  const clearQaHistory = useCallback(() => {
+    setQaHistory([]);
+  }, []);
 
   // Key tracking to ignore stale responses
   const activeKeyRef = useRef<string>('');
@@ -101,6 +136,7 @@ export const ResultProvider: React.FC<ResultProviderProps> = ({
       abortControllerRef.current?.abort();
       setAnalysisId(null);
       setPendingLanguage(null);
+      setQaHistory([]);
       clearPollTimer();
     }
   }, [revision]);
@@ -201,7 +237,7 @@ export const ResultProvider: React.FC<ResultProviderProps> = ({
       setError(null);
 
       // Handle fixture mode
-      if (config.useFixtures) {
+      if (config.useFixtures || documentId?.startsWith('doc_fixture_')) {
         setStatus('running');
         setProgress({ completed_clauses: 3, total_clauses: 7 });
         setPendingLanguage(lang !== outputLanguage ? lang : null);
@@ -328,6 +364,15 @@ export const ResultProvider: React.FC<ResultProviderProps> = ({
   const isAnalyzing = status === 'queued' || status === 'running';
   const isDimmedLoading = pendingLanguage !== null;
 
+  // Auto-start analysis on mount when arriving from review confirmation
+  const hasAutoStarted = useRef(false);
+  useEffect(() => {
+    if (status === 'idle' && !hasAutoStarted.current && documentId && sessionToken) {
+      hasAutoStarted.current = true;
+      startAnalysis();
+    }
+  }, [status, startAnalysis, documentId, sessionToken]);
+
   return (
     <ResultContext.Provider
       value={{
@@ -346,6 +391,10 @@ export const ResultProvider: React.FC<ResultProviderProps> = ({
         retryAnalysis,
         documentType: result?.document_type ?? documentType,
         analysisId,
+        qaHistory,
+        addQaHistory,
+        updateQaHistory,
+        clearQaHistory,
       }}
     >
       {children}

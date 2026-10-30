@@ -42,7 +42,7 @@ export const ResultsContainer: React.FC = () => {
     let isCancelled = false;
 
     async function load() {
-      if (config.useFixtures) {
+      if (config.useFixtures || documentId?.startsWith('doc_fixture_')) {
         setClauses(fixtureRentAgreementExtraction.clauses);
         setLoadingClauses(false);
         return;

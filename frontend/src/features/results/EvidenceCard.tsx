@@ -26,6 +26,7 @@ import type { ResultItem, Clause, Reference, OutputLanguage } from '../../lib/ty
 import { EvidenceButton } from './EvidenceButton';
 import { ReferenceCard } from './ReferenceCard';
 import { MonoLabel } from '../../design/primitives';
+import { useT } from '../../lib/i18n';
 
 interface EvidenceCardProps {
   item: ResultItem;
@@ -46,6 +47,7 @@ export const EvidenceCard: React.FC<EvidenceCardProps> = ({
   isActive = false,
   className = '',
 }) => {
+  const { t } = useT();
   const isNeedsReview = item.review_status === 'needs_review';
   const [showOriginal, setShowOriginal] = useState<boolean>(isNeedsReview);
   const [showTechDetails, setShowTechDetails] = useState<boolean>(false);
@@ -127,21 +129,21 @@ export const EvidenceCard: React.FC<EvidenceCardProps> = ({
           {item.kind === 'allegation' ? (
             <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-blue/10 text-blue">
               <Scale className="w-3 h-3" />
-              Allegation recorded in FIR
+              {t('results.allegationTag')}
             </span>
           ) : item.kind === 'notice_action' ? (
             <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-blue/10 text-blue">
               <FileCheck className="w-3 h-3" />
-              Action demanded by document
+              {t('results.actionTag')}
             </span>
           ) : item.kind === 'attention' ? (
             <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-amber-500/10 text-amber-800">
               <ShieldAlert className="w-3 h-3" />
-              Potential Concern: {categoryLabel}
+              {t('results.concernTag', { category: categoryLabel || '' })}
             </span>
           ) : (
             <span className="text-[11px] font-mono font-medium text-mute uppercase">
-              Standard Explanation
+              {t('results.standardTag')}
             </span>
           )}
         </div>
@@ -152,7 +154,7 @@ export const EvidenceCard: React.FC<EvidenceCardProps> = ({
         <div className="flex items-start gap-2 p-2.5 rounded bg-amber-500/10 border border-amber-500/20 text-xs text-amber-900">
           <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
           <span>
-            Translation-assisted / Low confidence: Please verify against the original text.
+            {t('results.verifyWarning')}
           </span>
         </div>
       )}
@@ -162,14 +164,14 @@ export const EvidenceCard: React.FC<EvidenceCardProps> = ({
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-mono uppercase text-mute font-medium">
-              Original Text ({clause?.extraction_method === 'ocr' ? 'OCR' : 'Document'})
+              {t('results.originalTextHeader', { method: clause?.extraction_method === 'ocr' ? 'OCR' : 'Document' })}
             </span>
             <button
               type="button"
               onClick={() => setShowOriginal(!showOriginal)}
               className="text-[11px] font-semibold text-blue hover:underline flex items-center gap-0.5"
             >
-              <span>{showOriginal ? 'Collapse' : 'Show full original'}</span>
+              <span>{showOriginal ? t('results.collapseOriginal') : t('results.showOriginal')}</span>
               {showOriginal ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             </button>
           </div>
@@ -197,7 +199,7 @@ export const EvidenceCard: React.FC<EvidenceCardProps> = ({
       {/* 3. Plain Language Explanation */}
       <div className="space-y-1">
         <span className="text-[11px] font-mono uppercase text-blue font-semibold">
-          Explanation in {langNames[outputLanguage]}
+          {t('results.explanationInLang', { lang: langNames[outputLanguage] })}
         </span>
         <p className="text-sm font-medium text-navy leading-[1.7] whitespace-pre-line">
           {item.explanation}
@@ -233,7 +235,7 @@ export const EvidenceCard: React.FC<EvidenceCardProps> = ({
       {resolvedReferences.length > 0 && (
         <div className="space-y-2 pt-2 border-t border-line">
           <span className="text-[11px] font-mono uppercase text-mute font-semibold">
-            Verified Statutory References ({resolvedReferences.length})
+            {t('results.statutoryReferences', { count: resolvedReferences.length })}
           </span>
           <div className="space-y-2">
             {resolvedReferences.map((ref) => (
@@ -246,7 +248,7 @@ export const EvidenceCard: React.FC<EvidenceCardProps> = ({
       {/* Unresolved reference warning (if any) */}
       {unresolvedRefIds.length > 0 && (
         <div className="text-[10px] font-mono text-mute pt-1">
-          Reference unavailable: {unresolvedRefIds.join(', ')}
+          {t('results.referenceUnavailable', { ids: unresolvedRefIds.join(', ') })}
         </div>
       )}
 
@@ -258,20 +260,20 @@ export const EvidenceCard: React.FC<EvidenceCardProps> = ({
           className="text-[11px] font-mono text-mute hover:text-navy flex items-center gap-1"
         >
           <Cpu className="w-3 h-3 text-blue" />
-          <span>Technical details</span>
+          <span>{t('results.technicalDetails')}</span>
           {showTechDetails ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
         </button>
 
         {showTechDetails && (
           <div className="mt-2 p-2.5 rounded bg-bg2/40 border border-line text-[11px] font-mono space-y-1">
-            <div>Detector engine: <strong className="text-navy">{item.detector}</strong></div>
+            <div>{t('results.detectorEngine')} <strong className="text-navy">{item.detector}</strong></div>
             {item.model_score !== null && item.model_score !== undefined && (
               <div>
-                Model score for this category: <strong className="text-navy">{item.model_score}</strong>{' '}
-                <span className="text-mute">(not a probability of legal risk)</span>
+                {t('results.modelScore')} <strong className="text-navy">{item.model_score}</strong>{' '}
+                <span className="text-mute">{t('results.notRiskScore')}</span>
               </div>
             )}
-            <div>Clause status: <strong className="text-navy">{item.review_status}</strong></div>
+            <div>{t('results.clauseStatus')} <strong className="text-navy">{item.review_status}</strong></div>
           </div>
         )}
       </div>
