@@ -1,0 +1,124 @@
+{
+  "document_id": "doc_example",
+  "analysis_id": "a_example",
+  "document_revision": 1,
+  "input_language": "hi",
+  "output_language": "en",
+  "document_type": "other",
+  "coverage": {
+    "analysed": 4,
+    "total": 4
+  },
+  "items": [
+    {
+      "item_id": "i1",
+      "clause_id": "c1",
+      "kind": "explanation",
+      "category": null,
+      "explanation": "SYNTHETIC UI EXAMPLE — not a model finding.",
+      "evidence": [
+        {
+          "clause_id": "c1",
+          "quote": "Payment is due on 30 November 2026."
+        }
+      ],
+      "reference_ids": [],
+      "review_status": "supported",
+      "detector": "fixture",
+      "model_score": null,
+      "limitations": [
+        "Development example only."
+      ]
+    },
+    {
+      "item_id": "i2",
+      "clause_id": "c2",
+      "kind": "attention",
+      "category": "automatic_renewal",
+      "explanation": "SYNTHETIC UI EXAMPLE — not a model finding.",
+      "evidence": [
+        {
+          "clause_id": "c2",
+          "quote": "This agreement renews automatically."
+        }
+      ],
+      "reference_ids": [],
+      "review_status": "supported",
+      "detector": "fixture",
+      "model_score": null,
+      "limitations": [
+        "Development example only."
+      ]
+    },
+    {
+      "item_id": "i3",
+      "clause_id": "c3",
+      "kind": "allegation",
+      "category": null,
+      "explanation": "SYNTHETIC UI EXAMPLE — not a model finding.",
+      "evidence": [
+        {
+          "clause_id": "c3",
+          "quote": "शिकायतकर्ता ने घटना का आरोप लगाया।"
+        }
+      ],
+      "reference_ids": [],
+      "review_status": "supported",
+      "detector": "fixture",
+      "model_score": null,
+      "limitations": [
+        "Development example only."
+      ]
+    },
+    {
+      "item_id": "i4",
+      "clause_id": "c4",
+      "kind": "notice_action",
+      "category": null,
+      "explanation": "SYNTHETIC UI EXAMPLE — not a model finding.",
+      "evidence": [
+        {
+          "clause_id": "c4",
+          "quote": "Respond within 15 days of receipt."
+        }
+      ],
+      "reference_ids": [],
+      "review_status": "supported",
+      "detector": "fixture",
+      "model_score": null,
+      "limitations": [
+        "Development example only."
+      ]
+    }
+  ],
+  "deadlines": [
+    {
+      "deadline_id": "d1",
+      "clause_id": "c4",
+      "source_quote": "Respond within 15 days of receipt.",
+      "display_text": "15 days after receipt",
+      "anchor": "receipt",
+      "resolved_date": null,
+      "status": "needs_information",
+      "missing_information": [
+        "receipt_date"
+      ]
+    }
+  ],
+  "warnings": [
+    "SYNTHETIC DEVELOPMENT EXAMPLE",
+    "Mixed-language extraction requires review."
+  ],
+  "legal_aid": [
+    {
+      "title": "NALSA legal aid",
+      "url": "https://nalsa.gov.in/legal-aid/"
+    }
+  ],
+  "provenance": {
+    "classifier_version": "not-run-fixture",
+    "generator": "development-fixture",
+    "rules_version": "not-run"
+  },
+  "references": []
+}

@@ -1,0 +1,10 @@
+.venv-api/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+work/runtime/
+apps/api/.env
+models/
+tools/ocr/
+work/demo-results/
+work/verification/
