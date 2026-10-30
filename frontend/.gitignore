@@ -1,0 +1,13 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Production build outputs
+dist
+dist-ssr
+*.local
+
+# Editor and OS
+.DS_Store
+Thumbs.db
