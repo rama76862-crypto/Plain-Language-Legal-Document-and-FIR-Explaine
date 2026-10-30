@@ -1,0 +1,64 @@
+{
+  "fixture_id": "synthetic-eval-agreement-ordinary-en-v1",
+  "fixture_label": "SYNTHETIC MODEL-FREE EVALUATION FIXTURE",
+  "synthetic": true,
+  "independent_of_training": true,
+  "human_semantic_review": "pending",
+  "fluent_review": "not_claimed",
+  "document_id": "synthetic-eval-doc-agreement-ordinary",
+  "analysis_id": "synthetic-eval-analysis-agreement-ordinary",
+  "document_revision": 1,
+  "document_type": "agreement",
+  "source_language": "en",
+  "output_language": "en",
+  "official_references": [],
+  "clauses": [
+    {
+      "clause_id": "agreement-fee-1",
+      "reviewed_text": "The synthetic monthly service fee is ₹1,500 and is due on the fifth day of each month.",
+      "expected": {
+        "status": "complete",
+        "route": ["agreement_classifier", "agreement_rules", "document_retrieval", "generator"],
+        "classifier": "called",
+        "attention_categories": [],
+        "evidence_substrings": ["₹1,500", "fifth day of each month"],
+        "failure_status": null,
+        "human_review_required": ["Confirm that the explanation does not add an unstated payment consequence."]
+      }
+    },
+    {
+      "clause_id": "agreement-cross-reference-2",
+      "reviewed_text": "The cancellation steps in Clause 4 apply to the monthly service fee described in Clause 1.",
+      "expected": {
+        "status": "complete",
+        "route": ["agreement_classifier", "agreement_rules", "document_retrieval", "generator"],
+        "classifier": "called",
+        "attention_categories": [],
+        "evidence_substrings": ["Clause 4", "Clause 1"],
+        "failure_status": null,
+        "human_review_required": ["Check whether the cross-reference resolves to the intended clause in a complete document."]
+      }
+    },
+    {
+      "clause_id": "agreement-liability-exception-3",
+      "reviewed_text": "The provider's total liability is limited to ₹25,000, except for intentional misconduct.",
+      "expected": {
+        "status": "complete",
+        "route": ["agreement_classifier", "agreement_rules", "document_retrieval", "generator"],
+        "classifier": "called",
+        "attention_categories": [],
+        "evidence_substrings": ["₹25,000", "except for intentional misconduct"],
+        "failure_status": null,
+        "human_review_required": ["Check that the exception is not omitted or paraphrased too broadly."]
+      }
+    }
+  ],
+  "unsupported_questions": [
+    {
+      "question": "What is the weather on Jupiter?",
+      "expected_status": "insufficient_evidence",
+      "expected_evidence": [],
+      "expected_generator_calls_added": 0
+    }
+  ]
+}

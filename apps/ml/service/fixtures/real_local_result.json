@@ -1,0 +1,160 @@
+{
+  "fixture_id": "synthetic-be2-service-smoke-001",
+  "fixture_label": "synthetic reviewed agreement clause",
+  "classifier_label": "unilateral_change",
+  "generator_artifact": "bartowski/Qwen_Qwen3-4B-Instruct-2507-GGUF@ae44f08e1392f39c0e474af10c3ff8355c8b6688;sha256=2fde00ce69dd4899c70d020845e2638353015bba0fdf161b3eb965f2bca4464e;Qwen/Qwen3-4B-Instruct-2507@cdbee75f17c01a7cc42f958dc650907174af0554;llama.cpp-b12000@68d20b884c3878217de79eade0a249efde96ab38",
+  "service_status": "needs_review",
+  "coverage": {
+    "analysed": 1,
+    "total": 1
+  },
+  "evidence_validated": true,
+  "analysis_id_echoed": true,
+  "health_checks_during_poll": 8,
+  "health_max_latency_ms": 748.8,
+  "observed_stages": [
+    "generating",
+    "needs_review"
+  ],
+  "deletion_tombstone_http_status": 410,
+  "actual_local_result": {
+    "document_id": "synthetic-reviewed-agreement-001",
+    "analysis_id": "synthetic-be2-service-smoke-001",
+    "document_revision": 1,
+    "input_language": "en",
+    "output_language": "en",
+    "document_type": "agreement",
+    "coverage": {
+      "analysed": 1,
+      "total": 1
+    },
+    "items": [
+      {
+        "item_id": "synthetic-be2-service-smoke-001:clause-change-001:w1:summary",
+        "clause_id": "clause-change-001",
+        "kind": "explanation",
+        "category": "plain_language_explanation",
+        "explanation": "The provider can update the terms of the agreement at any time, with no need to inform the customer. If the customer continues to use the service after the change, they are considered to have accepted the new terms.",
+        "evidence": [
+          {
+            "clause_id": "clause-change-001",
+            "quote": "The provider may change these terms at any time without prior notice. Continued use after a change means the customer accepts the new terms."
+          }
+        ],
+        "reference_ids": [],
+        "review_status": "needs_review",
+        "detector": "model",
+        "model_score": null,
+        "limitations": [
+          "The clause does not specify how the changes are communicated, what types of changes are covered, or whether there are any limitations on the provider's ability to change terms.",
+          "It also does not state whether the customer has any right to object or seek compensation for changes that materially affect their rights.",
+          "semantic_entailment_not_independently_verified"
+        ]
+      },
+      {
+        "item_id": "synthetic-be2-service-smoke-001:clause-change-001:w1:attention:unilateral_change",
+        "clause_id": "clause-change-001",
+        "kind": "attention",
+        "category": "unilateral_change",
+        "explanation": "The provider may change the terms at any time without prior notice, and continued use after a change is deemed acceptance of the new terms.",
+        "evidence": [
+          {
+            "clause_id": "clause-change-001",
+            "quote": "The provider may change these terms at any time without prior notice. Continued use after a change means the customer accepts the new terms."
+          }
+        ],
+        "reference_ids": [],
+        "review_status": "needs_review",
+        "detector": "classifier",
+        "model_score": 0.9473349205098978,
+        "limitations": [
+          "The clause does not specify how the changes are communicated, what types of changes are covered, or whether there are any limitations on the provider's ability to change terms.",
+          "It also does not state whether the customer has any right to object or seek compensation for changes that materially affect their rights.",
+          "semantic_entailment_not_independently_verified"
+        ]
+      },
+      {
+        "item_id": "synthetic-be2-service-smoke-001:clause-change-001:w1:fact:term_update:1",
+        "clause_id": "clause-change-001",
+        "kind": "explanation",
+        "category": "term_update",
+        "explanation": "The provider may change the terms at any time",
+        "evidence": [
+          {
+            "clause_id": "clause-change-001",
+            "quote": "The provider may change these terms at any time without prior notice. Continued use after a change means the customer accepts the new terms."
+          }
+        ],
+        "reference_ids": [],
+        "review_status": "needs_review",
+        "detector": "extraction",
+        "model_score": null,
+        "limitations": [
+          "The clause does not specify how the changes are communicated, what types of changes are covered, or whether there are any limitations on the provider's ability to change terms.",
+          "It also does not state whether the customer has any right to object or seek compensation for changes that materially affect their rights.",
+          "semantic_entailment_not_independently_verified"
+        ]
+      },
+      {
+        "item_id": "synthetic-be2-service-smoke-001:clause-change-001:w1:fact:notice_requirement:1",
+        "clause_id": "clause-change-001",
+        "kind": "explanation",
+        "category": "notice_requirement",
+        "explanation": "No prior notice is required",
+        "evidence": [
+          {
+            "clause_id": "clause-change-001",
+            "quote": "The provider may change these terms at any time without prior notice. Continued use after a change means the customer accepts the new terms."
+          }
+        ],
+        "reference_ids": [],
+        "review_status": "needs_review",
+        "detector": "extraction",
+        "model_score": null,
+        "limitations": [
+          "The clause does not specify how the changes are communicated, what types of changes are covered, or whether there are any limitations on the provider's ability to change terms.",
+          "It also does not state whether the customer has any right to object or seek compensation for changes that materially affect their rights.",
+          "semantic_entailment_not_independently_verified"
+        ]
+      },
+      {
+        "item_id": "synthetic-be2-service-smoke-001:clause-change-001:w1:fact:acceptance:1",
+        "clause_id": "clause-change-001",
+        "kind": "explanation",
+        "category": "acceptance",
+        "explanation": "Continued use of the service after a change constitutes acceptance of the new terms",
+        "evidence": [
+          {
+            "clause_id": "clause-change-001",
+            "quote": "The provider may change these terms at any time without prior notice. Continued use after a change means the customer accepts the new terms."
+          }
+        ],
+        "reference_ids": [],
+        "review_status": "needs_review",
+        "detector": "extraction",
+        "model_score": null,
+        "limitations": [
+          "The clause does not specify how the changes are communicated, what types of changes are covered, or whether there are any limitations on the provider's ability to change terms.",
+          "It also does not state whether the customer has any right to object or seek compensation for changes that materially affect their rights.",
+          "semantic_entailment_not_independently_verified"
+        ]
+      }
+    ],
+    "deadlines": [],
+    "warnings": [
+      "Generated explanations passed schema and source-evidence checks, but semantic entailment has not been independently reviewed."
+    ],
+    "legal_aid": [
+      {
+        "title": "NALSA legal aid",
+        "url": "https://nalsa.gov.in/legal-aid/"
+      }
+    ],
+    "provenance": {
+      "classifier_version": "lexglue-unfair-tos-word-char-ovr-v1-9a97f9b36d27",
+      "generator": "Qwen3-4B-Instruct-2507-Q4_K_M",
+      "rules_version": "v1"
+    },
+    "references": []
+  }
+}

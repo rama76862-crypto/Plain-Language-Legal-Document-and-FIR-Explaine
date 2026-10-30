@@ -1,0 +1,58 @@
+{
+  "fixture_id": "synthetic-eval-notice-en-v1",
+  "fixture_label": "SYNTHETIC MODEL-FREE EVALUATION FIXTURE",
+  "synthetic": true,
+  "independent_of_training": true,
+  "human_semantic_review": "pending",
+  "fluent_review": "not_claimed",
+  "document_id": "synthetic-eval-doc-notice-en",
+  "analysis_id": "synthetic-eval-analysis-notice-en",
+  "document_revision": 1,
+  "document_type": "notice",
+  "source_language": "en",
+  "output_language": "en",
+  "official_references": [],
+  "clauses": [
+    {
+      "clause_id": "notice-response-period-1",
+      "reviewed_text": "This fictional notice requests a written reply within 15 days of receipt. The receipt date is not stated in this reviewed text.",
+      "expected": {
+        "status": "complete",
+        "route": ["notice_extraction", "document_retrieval", "deadline_literal_extraction", "generator"],
+        "classifier": "not_called",
+        "attention_categories": [],
+        "evidence_substrings": ["written reply", "within 15 days of receipt"],
+        "failure_status": null,
+        "deadline": {
+          "source_quote": "within 15 days of receipt",
+          "anchor": "receipt",
+          "resolved_date": null,
+          "status": "needs_information",
+          "missing_information": ["receipt_date"]
+        },
+        "human_review_required": ["Do not infer a calendar deadline without the date of receipt.", "Check whether the stated request creates any obligation; the fixture does not establish one."]
+      }
+    },
+    {
+      "clause_id": "notice-amount-date-2",
+      "reviewed_text": "The fictional notice mentions ₹3,200 and a requested response date of 15/03/2025. It does not say whether payment has already been made.",
+      "expected": {
+        "status": "complete",
+        "route": ["notice_extraction", "document_retrieval", "generator"],
+        "classifier": "not_called",
+        "attention_categories": [],
+        "evidence_substrings": ["₹3,200", "15/03/2025", "does not say whether payment has already been made"],
+        "failure_status": null,
+        "human_review_required": ["Preserve the amount and date literally; do not infer that payment is owed or unpaid."]
+      }
+    }
+  ],
+  "unsupported_questions": [
+    {
+      "question": "What is the weather on Jupiter?",
+      "expected_status": "insufficient_evidence",
+      "expected_evidence": [],
+      "expected_generator_calls_added": 0
+    }
+  ]
+}

@@ -1,5 +1,80 @@
 # BE1 — Public API, extraction, sessions, jobs and integration
 
+## Integration addendum — complete feature map (30 October 2026)
+
+This section is repeated identically in all four role handoffs so a teammate does not need the originating chat. It clarifies the existing scope; it does not claim features are implemented or expand the public API without agreement. Read the entire role file, including the shared Contract v1. These are development specifications, not a live completion report: inspect the actual repository and implementation evidence for current status.
+
+### Backend feature -> frontend responsibility
+
+| Backend behavior / output | Owner producing it | Frontend owner and required presentation |
+|---|---|---|
+| PDF/DOCX upload and file/size validation | BE1 | FE1: upload, limits, readable rejection and retry |
+| Text extraction and selective scanned-PDF OCR | BE1 | FE1: extracting state, extracted text, OCR warning/review |
+| Input-language/type detection and manual correction | BE1; BE2 consumes reviewed values | FE1: independent input-language and document-type selectors; uncertainty must be visible |
+| Reviewed clauses and revision conflicts | BE1 | FE1: correction/confirm flow and conflict recovery; FE2: discard stale results |
+| Original file, page/paragraph locations and optional boxes | BE1 | FE1: source viewer/navigation; FE2: evidence buttons invoke FE1 callback |
+| Analyse every clause, including ordinary clauses | BE2, exposed through BE1 | FE2: complete clause-by-clause view, analysed/total coverage, missing/failed warnings |
+| Agreement topic/attention classification | BE2 | FE2: potential-concern category, explanation, exact evidence; no legal-safety verdict |
+| Automatic-renewal/penalty and other reviewed rules | BE2 | FE2: same attention cards; identify rule vs classifier in optional technical detail |
+| Stated payments, amounts and obligations | BE2 | FE2: expose these in the relevant clause explanation/evidence; do not invent a new mandatory top-level amounts/obligations API |
+| FIR parties, dates, sections and allegations | BE2 | FE2: FIR-specific content using allegation items; allegations remain allegations |
+| Notice issuer/recipient and demanded action | BE2 | FE2: notice-action items and source-linked explanation, without personalized legal advice |
+| Exact dates and unresolved relative periods | BE2 | FE2: deadline cards; missing receipt date stays unresolved; no frontend deadline calculator |
+| Source language independent from answer language | BE1 + BE2 | FE1: selection/state; FE2: request matching output and reject stale-language responses |
+| Local English-pivot translation for Hindi/Punjabi | BE2 | FE1/FE2: original text remains evidence; disclose translation-assisted path and needs-review limitations |
+| Reviewed language capabilities and unsupported paths | BE2 -> BE1 | FE1: tested/experimental/unavailable labels from backend evidence; FE2: warnings/refusal, no false successful translation |
+| Original-clause citations and evidence validation | BE2, enforced by BE1 | FE2: exact quotes and source actions; FE1 navigates to original page/paragraph |
+| Filtered official reference retrieval | BE2 | FE2: title/section/version/excerpt/link when references exist; state unverified/missing instead of inventing authority |
+| Document-grounded follow-up questions | BE2 through BE1 | FE2: questions, loading/busy/timeout state, answer evidence and insufficient-evidence response |
+| Queued/running/partial/review/failed result states | BE2 -> BE1 | FE2: actual job state, partial findings, retry/review action |
+| Real clause-level processing progress | BE2 -> BE1 | FE2: progress bar from real counts; FE1: extracting/indeterminate state when counts unavailable |
+| Readiness and recoverable service errors | BE2 + BE1 | FE1: service status; FE2: model unavailable/busy/timeout errors without replacing them with mock results |
+| Temporary sessions, expiry and deletion | BE1 propagates cleanup to BE2 | FE1: consent/retention notice and Delete; FE2: clear results/questions and stop polling |
+| Official legal-aid information | Reviewed backend data | FE2: NALSA/DLSA information only when verified; label external links; no entitlement guarantee |
+| Local explanation export | No new backend endpoint required | FE2: explicit Markdown/print export with evidence, limitations and provenance |
+| Dataset preparation, model training and evaluation | BE2 | INTERNAL ONLY: terminal bars, artifacts, metrics and PROGRESS.md; no public training dashboard required |
+| GPU queue, local model runtime and temporary indexes | BE2; BE1 integration | INTERNAL ONLY: expose useful status/errors; browser never calls raw model/private ML ports |
+
+Potential classifier cue categories include limitation of liability, unilateral termination/change, content removal, contract by using, choice of law, jurisdiction and arbitration. These may appear as attention topics, not automatic findings of illegality. The category field is a string: FE2 should provide readable labels for known categories plus a safe fallback for unknown/new categories, rather than crash or drop the finding.
+
+### Progress and readiness details to implement consistently
+
+- Public status remains Contract v1: analysis queued/running/complete/needs_review/failed; document status uses its separately listed values. Do not copy private route paths into browser code.
+- Required analysis progress fields remain completed_clauses and total_clauses. The current BE2 typed contract also defines optional stage and failed_clauses. BE1 should preserve these optional fields when provided; FE2 must also work when they are absent.
+- completed_clauses counts processed clauses, including failed attempts in the current BE2 contract. failed_clauses is a subset. Thus 8/8 processed with 2 failed is NOT eight successful explanations. FE2 must show both processing completion and result coverage/warnings. Stage names are readable status text, not a closed enum the UI may assume.
+- Percentage is computed only when total_clauses > 0. Otherwise show an indeterminate state. Do not estimate progress from elapsed time. A 100% processed bar must not override needs_review/failed status.
+- After a timeout, show the error and a controlled retry. Backend owners must prove another job can run. Do not automatically duplicate analysis/question jobs.
+- Health capability/readiness fields were described conceptually, not frozen as an exact JSON object. BE1 owns publishing one concrete health fixture agreed with BE2; FE1 consumes it through its API client. Missing readiness data means unknown, not ready. Missing fluent-review evidence must not become a tested-language badge.
+- Expiry countdowns require a real server expiry timestamp/remaining-time field. Until BE1 publishes one, show the disclosed retention policy, not a fabricated ticking deadline.
+- Translation checks/pivot mappings are private implementation data unless intentionally exposed. The existing warnings, limitations and review_status carry user-facing problems; do not add a mandatory response field unilaterally.
+
+### Resolve these integration ambiguities once, before connecting real services
+
+1. BE1 publishes a public extraction response fixture and PATCH response with revision semantics. FE1's explicit Confirm action can PATCH an empty corrections array with confirmed language/type; BE1 records review confirmation. A genuine change invalidates cached findings. Do not add an unannounced review endpoint.
+2. BE1 supplies analysis_id, document_id and document_revision to BE2. BE2 echoes them, rejects conflicting ID reuse and runs the asynchronous private job API. The earlier synchronous-response wording in the BE1 role is superseded by this asynchronous approach.
+3. Public question requests carry analysis_id; BE1 derives document_id/revision from the authenticated current session and forwards them to the private question API. Browsers do not invent private-session metadata.
+4. Every reference_id must resolve to a supplied reference record. For analysis this is result.references. The current QuestionAnswer shape has IDs but no references array, so v1 questions may cite only official references already supplied with the selected analysis (plus document clauses). If BE2 needs a newly retrieved official source, agree and document an optional answer.references field with BE1/FE2 before using it; otherwise omit that reference and report the limitation.
+5. A language change starts/loads the same reviewed revision in the selected output language. Source text does not change. FE2 ignores late responses for the old language. BE1 deletes all associated jobs/translation caches on document deletion, not just the most recent language result.
+6. Python 3.11 was the original preference, not a hard requirement. A verified isolated Python 3.12 environment is acceptable when 3.11 is unavailable and the required dependencies/tests pass. Backend services need compatible JSON contracts, not identical Python installations.
+
+FE1 and BE1 own the shared public fixtures and schemas. Put agreed examples in contracts/ when ready: extraction, analysis-start, queued/running/partial/completed analysis, question, health and error. FE2 can meanwhile derive visibly labelled fixtures from this file's shared contract. Examples must exercise all four item kinds, optional references/progress fields, null DOCX pages, an unresolved deadline, an unsupported language, a revision conflict and a model-busy state. Do not silently alter existing implementation to match a new fixture: coordinate the compatibility change.
+
+### Required versus deferred scope
+
+Required product targets: upload/review; clause explanations with evidence; potential attention flags; dates/deadline uncertainty; agreement/FIR/notice routing; tested en/hi/pa input/output paths; legal-aid links; temporary processing/deletion. Target-language success must be demonstrated, not assumed. Grounded questions and explicit export are agreed additional features; keep them after the primary analysis path works.
+
+Deferred unless explicitly reprioritized: enforceable legal-deadline calculations, arbitrary languages/scripts, handwriting, automatic legal decisions, full Indian-law coverage, automatic court/complaint filing, public training dashboard, cloud accounts, cloud vector database and large-LLM fine-tuning. No risk/safety percentage is part of v1.
+
+### End-to-end acceptance handoff
+
+Use the same five labelled/redacted demo documents across all owners: ordinary agreement; agreement with planted attention clauses; notice with missing receipt-date anchor; fictional/redacted FIR; scanned page. Add a fluent-reviewed Hindi and Punjabi sample and preserve original evidence when output language differs.
+
+Check upload -> extraction review -> real local analysis -> clause/source navigation -> selected-language output -> unresolved-deadline display -> grounded/unsupported questions -> export -> delete. Also check busy, timeout, partial failure and stale revision/language results. A static screen or mocked request passing does not establish that integration works.
+
+Tell teammates when this addendum is updated. Implementation bugs and agreed contract changes must be recorded in the repository; don't rely on details available only in a chat.
+
+---
+
 You own the public backend, document lifecycle and assembly of BE2's intelligence into a reliable service. Give this entire file to your coding assistant. The GPU owner BE2 builds the separate private ML service. Do not implement a second classifier or download giant models in your package.
 
 ## Files you own

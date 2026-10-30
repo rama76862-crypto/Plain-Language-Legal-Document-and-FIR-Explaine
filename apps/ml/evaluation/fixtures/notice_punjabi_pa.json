@@ -1,0 +1,38 @@
+{
+  "fixture_id": "synthetic-eval-notice-pa-v1",
+  "fixture_label": "SYNTHETIC MODEL-FREE EVALUATION FIXTURE",
+  "synthetic": true,
+  "independent_of_training": true,
+  "human_semantic_review": "pending",
+  "fluent_review": "not_performed",
+  "document_id": "synthetic-eval-doc-notice-pa",
+  "analysis_id": "synthetic-eval-analysis-notice-pa",
+  "document_revision": 1,
+  "document_type": "notice",
+  "source_language": "pa",
+  "output_language": "en",
+  "official_references": [],
+  "clauses": [
+    {
+      "clause_id": "notice-pa-period-1",
+      "reviewed_text": "ਕਿਰਪਾ ਕਰਕੇ ₹12,500 ਦੀ ਰਕਮ ਦਾ ਜ਼ਿਕਰ ਵੇਖਦੇ ਹੋਏ ਪ੍ਰਾਪਤੀ ਤੋਂ 15 ਦਿਨਾਂ ਦੇ ਅੰਦਰ ਜਵਾਬ ਦਿਓ। ਪ੍ਰਾਪਤੀ ਦੀ ਤਾਰੀਖ ਇਸ ਸਮੀਖਿਆ ਕੀਤੇ ਪਾਠ ਵਿੱਚ ਨਹੀਂ ਦਿੱਤੀ ਗਈ ਹੈ।",
+      "expected": {
+        "status": "needs_review",
+        "route": ["local_translation_attempt", "notice_literal_deadline_extraction", "needs_review_fallback", "final_validation_evidence_check"],
+        "classifier": "not_called_without_fluent_review",
+        "attention_categories": [],
+        "evidence_substrings": ["₹12,500", "ਪ੍ਰਾਪਤੀ ਤੋਂ 15 ਦਿਨਾਂ ਦੇ ਅੰਦਰ"],
+        "failure_status": "translation_uncertain",
+        "deadline": {
+          "source_quote": "ਪ੍ਰਾਪਤੀ ਤੋਂ 15 ਦਿਨਾਂ ਦੇ ਅੰਦਰ",
+          "anchor": "receipt",
+          "resolved_date": null,
+          "status": "needs_information",
+          "missing_information": ["receipt_date"]
+        },
+        "human_review_required": ["A fluent Punjabi reviewer must check the source and any translation before English-based classification or explanation.", "Keep the original-script amount, dates, negation, and allegation wording intact."]
+      }
+    }
+  ],
+  "unsupported_questions": []
+}

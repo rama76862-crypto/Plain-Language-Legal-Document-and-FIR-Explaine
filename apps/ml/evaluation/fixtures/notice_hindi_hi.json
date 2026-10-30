@@ -1,0 +1,38 @@
+{
+  "fixture_id": "synthetic-eval-notice-hi-v1",
+  "fixture_label": "SYNTHETIC MODEL-FREE EVALUATION FIXTURE",
+  "synthetic": true,
+  "independent_of_training": true,
+  "human_semantic_review": "pending",
+  "fluent_review": "not_performed",
+  "document_id": "synthetic-eval-doc-notice-hi",
+  "analysis_id": "synthetic-eval-analysis-notice-hi",
+  "document_revision": 1,
+  "document_type": "notice",
+  "source_language": "hi",
+  "output_language": "en",
+  "official_references": [],
+  "clauses": [
+    {
+      "clause_id": "notice-hi-period-1",
+      "reviewed_text": "कृपया ₹१२,५०० की राशि का उल्लेख देखते हुए प्राप्ति के १५ दिनों के भीतर जवाब दें। प्राप्ति की तारीख इस समीक्षित पाठ में नहीं दी गई है।",
+      "expected": {
+        "status": "needs_review",
+        "route": ["local_translation_attempt", "notice_literal_deadline_extraction", "needs_review_fallback", "final_validation_evidence_check"],
+        "classifier": "not_called_without_fluent_review",
+        "attention_categories": [],
+        "evidence_substrings": ["₹१२,५००", "प्राप्ति के १५ दिनों के भीतर"],
+        "failure_status": "translation_uncertain",
+        "deadline": {
+          "source_quote": "प्राप्ति के १५ दिनों के भीतर",
+          "anchor": "receipt",
+          "resolved_date": null,
+          "status": "needs_information",
+          "missing_information": ["receipt_date"]
+        },
+        "human_review_required": ["A fluent Hindi reviewer must check the source and any translation before English-based classification or explanation.", "Keep the original-script amount, dates, negation, and allegation wording intact."]
+      }
+    }
+  ],
+  "unsupported_questions": []
+}

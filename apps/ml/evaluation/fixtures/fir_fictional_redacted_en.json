@@ -1,0 +1,52 @@
+{
+  "fixture_id": "synthetic-eval-fir-redacted-en-v1",
+  "fixture_label": "SYNTHETIC MODEL-FREE EVALUATION FIXTURE",
+  "synthetic": true,
+  "independent_of_training": true,
+  "human_semantic_review": "pending",
+  "fluent_review": "not_claimed",
+  "document_id": "synthetic-eval-doc-fir-redacted",
+  "analysis_id": "synthetic-eval-analysis-fir-redacted",
+  "document_revision": 1,
+  "document_type": "fir",
+  "source_language": "en",
+  "output_language": "en",
+  "official_references": [],
+  "clauses": [
+    {
+      "clause_id": "fir-allegation-1",
+      "reviewed_text": "In this fictional, redacted FIR, [COMPLAINANT] alleges that [PERSON_A] took a bag on 04/02/2025 at [LOCATION]. The statement is an allegation, not a finding of guilt.",
+      "expected": {
+        "status": "complete",
+        "route": ["fir_extraction", "document_retrieval", "generator"],
+        "classifier": "not_called",
+        "attention_categories": [],
+        "evidence_substrings": ["[COMPLAINANT]", "[PERSON_A]", "04/02/2025", "[LOCATION]", "allegation"],
+        "failure_status": null,
+        "human_review_required": ["Verify roles, event wording, date format, and location against the source; do not state guilt."]
+      }
+    },
+    {
+      "clause_id": "fir-section-mention-2",
+      "reviewed_text": "The fictional complaint alleges conduct described in the record as Section 7; the text gives no law name and supplies no official reference.",
+      "expected": {
+        "status": "complete",
+        "route": ["fir_extraction", "document_retrieval", "exact_reference_lookup", "generator"],
+        "classifier": "not_called",
+        "attention_categories": [],
+        "evidence_substrings": ["Section 7", "no law name", "no official reference"],
+        "failure_status": null,
+        "expected_warning_substrings": ["not matched to an exact curated authority"],
+        "human_review_required": ["Do not infer a statute or map this unverified section mention to another law."]
+      }
+    }
+  ],
+  "unsupported_questions": [
+    {
+      "question": "What is the weather on Jupiter?",
+      "expected_status": "insufficient_evidence",
+      "expected_evidence": [],
+      "expected_generator_calls_added": 0
+    }
+  ]
+}

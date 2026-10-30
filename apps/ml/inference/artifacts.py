@@ -1,0 +1,32 @@
+"""Pinned identity for the local generator and its runtime artifacts."""
+
+MODEL_NAME = "Qwen3-4B-Instruct-2507-Q4_K_M"
+MODEL_FILENAME = "Qwen_Qwen3-4B-Instruct-2507-Q4_K_M.gguf"
+MODEL_SIZE_BYTES = 2_497_280_736
+MODEL_SHA256 = "2fde00ce69dd4899c70d020845e2638353015bba0fdf161b3eb965f2bca4464e"
+MODEL_REPO = "bartowski/Qwen_Qwen3-4B-Instruct-2507-GGUF"
+MODEL_REPO_REVISION = "ae44f08e1392f39c0e474af10c3ff8355c8b6688"
+UPSTREAM_MODEL_REPO = "Qwen/Qwen3-4B-Instruct-2507"
+UPSTREAM_MODEL_REVISION = "cdbee75f17c01a7cc42f958dc650907174af0554"
+MODEL_LICENSE = "Apache-2.0 (upstream Qwen/Qwen3-4B-Instruct-2507 license)"
+
+LLAMA_VERSION = "b12000"
+LLAMA_COMMIT = "68d20b884c3878217de79eade0a249efde96ab38"
+LLAMA_BINARY_FILENAME = "llama-b12000-bin-win-cuda-13.4-x64.zip"
+LLAMA_BINARY_SIZE_BYTES = 165_138_646
+LLAMA_BINARY_SHA256 = "b46f897c9f45e8d83a08dd88724307dde1f672c96652608062be3e08374ac3d5"
+LLAMA_CUDA_FILENAME = "cudart-llama-bin-win-cuda-13.4-x64.zip"
+LLAMA_CUDA_SIZE_BYTES = 423_535_356
+LLAMA_CUDA_SHA256 = "738f8c251ac22b70c3ae6f83a10cf222725df0395246a2cf58f32bdb85fbe668"
+
+LLAMA_RELEASE_URL = "https://github.com/ggml-org/llama.cpp/releases/download/b12000"
+MODEL_RESOLVE_URL = (
+    "https://huggingface.co/"
+    f"{MODEL_REPO}/resolve/{MODEL_REPO_REVISION}/{MODEL_FILENAME}?download=true"
+)
+
+MODEL_VERSION = (
+    f"{MODEL_REPO}@{MODEL_REPO_REVISION};sha256={MODEL_SHA256};"
+    f"{UPSTREAM_MODEL_REPO}@{UPSTREAM_MODEL_REVISION};"
+    f"llama.cpp-{LLAMA_VERSION}@{LLAMA_COMMIT}"
+)
