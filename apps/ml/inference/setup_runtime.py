@@ -314,7 +314,14 @@ def _safe_extract(archive_path: Path, destination: Path) -> None:
             target = (destination / Path(*normalized.parts)).resolve()
             if target != root and root not in target.parents:
                 raise RuntimeError(f"runtime archive path escaped destination: {member.filename}")
-        archive.extractall(destination)
+        for member in archive.infolist():
+            target=destination / Path(*PurePosixPath(member.filename).parts)
+            if not member.is_dir() and target.is_file() and target.stat().st_size==member.file_size:
+                # Repeated setup must not overwrite DLLs held by a live model.
+                with target.open('rb') as installed, archive.open(member) as bundled:
+                    if hashlib.file_digest(installed,'sha256').digest()==hashlib.file_digest(bundled,'sha256').digest():
+                        continue
+            archive.extract(member,destination)
 
 
 def _download_runtime() -> None:

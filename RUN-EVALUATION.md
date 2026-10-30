@@ -1,5 +1,7 @@
 # Run NyayaLens for evaluation
 
+> Current startup: use TEAM-SETUP.md. New laptops run Setup.cmd, then Start.cmd. Frontend fixture modes are removed and app-local OCR is installed by setup. The older integration notes below are historical; use FULL-FEATURE-VERIFICATION.md for acceptance limits.
+
 Run commands from the repository root. Use existing services when already running; do not launch duplicates. This records the integration handoff, not a claim of independently validated legal explanations.
 
 ## Working local URLs from the reported integration

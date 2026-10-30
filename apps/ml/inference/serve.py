@@ -15,8 +15,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8080)
-    parser.add_argument("--ctx-size", type=int, default=4096)
-    parser.add_argument("--gpu-layers", type=int, default=99)
+    parser.add_argument("--ctx-size", type=int, default=int(os.environ.get("LLAMA_CTX_SIZE","4096")))
+    parser.add_argument("--gpu-layers", type=int, default=int(os.environ.get("LLAMA_GPU_LAYERS","99")))
     parser.add_argument("--executable", type=Path, default=os.environ.get("LLAMA_SERVER"), help="Explicit official llama-server binary for another platform")
     args = parser.parse_args()
     if args.host not in {"127.0.0.1", "localhost", "::1"}:

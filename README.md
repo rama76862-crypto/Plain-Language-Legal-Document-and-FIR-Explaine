@@ -4,6 +4,10 @@ Local plain-language legal document and FIR explainer for CTBF-AI-09. English, H
 
 Read FULL-FEATURE-VERIFICATION.md for current checks and unresolved accuracy gates. Role handoffs are specifications; historical audit files are not current acceptance evidence.
 
+## First setup on teammates' Windows laptops
+
+Read TEAM-SETUP.md. With Python 3.12, Node and NVIDIA drivers installed, run `Setup.cmd` once, then `Start.cmd`. Setup installs the ignored model assets and both Python environments; Git clone alone is insufficient. Use your own HF account for gated translation models.
+
 ## Start on the configured GPU laptop
 
 ~~~powershell
