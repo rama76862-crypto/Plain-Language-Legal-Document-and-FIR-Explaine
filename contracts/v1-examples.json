@@ -1,0 +1,628 @@
+{
+  "fixture_notice": "SYNTHETIC DEVELOPMENT EXAMPLES — not model results",
+  "upload_accepted": {
+    "document_id": "doc_example",
+    "session_token": "EXAMPLE_ONLY_NOT_A_REAL_TOKEN",
+    "status": "extracting",
+    "revision": 1
+  },
+  "document_metadata": {
+    "document_id": "doc_example",
+    "status": "awaiting_review",
+    "revision": 1,
+    "filename": "synthetic-example.docx",
+    "document_type": "other",
+    "input_language": "unknown",
+    "warnings": [
+      "Confirm language/type and review extraction."
+    ],
+    "extraction_ready": true,
+    "reviewed_revision": null,
+    "expires_at": "2026-10-30T12:30:00Z",
+    "progress": {
+      "stage": "extracting",
+      "completed_paragraphs": 4,
+      "total_paragraphs": 4
+    }
+  },
+  "extraction_awaiting_review": {
+    "document_id": "doc_example",
+    "revision": 1,
+    "reviewed_revision": null,
+    "clauses": [
+      {
+        "clause_id": "c1",
+        "source_text": "Payment is due on 30 November 2026.",
+        "reviewed_text": "Payment is due on 30 November 2026.",
+        "source_ref": {
+          "page_number": null,
+          "paragraph_index": 1,
+          "bbox": null
+        },
+        "extraction_method": "docx",
+        "review_required": false
+      },
+      {
+        "clause_id": "c2",
+        "source_text": "This agreement renews automatically.",
+        "reviewed_text": "This agreement renews automatically.",
+        "source_ref": {
+          "page_number": null,
+          "paragraph_index": 2,
+          "bbox": null
+        },
+        "extraction_method": "docx",
+        "review_required": false
+      },
+      {
+        "clause_id": "c3",
+        "source_text": "शिकायतकर्ता ने घटना का आरोप लगाया।",
+        "reviewed_text": "शिकायतकर्ता ने घटना का आरोप लगाया।",
+        "source_ref": {
+          "page_number": null,
+          "paragraph_index": 3,
+          "bbox": null
+        },
+        "extraction_method": "docx",
+        "review_required": false
+      },
+      {
+        "clause_id": "c4",
+        "source_text": "Respond within 15 days of receipt.",
+        "reviewed_text": "Respond within 15 days of receipt.",
+        "source_ref": {
+          "page_number": null,
+          "paragraph_index": 4,
+          "bbox": null
+        },
+        "extraction_method": "docx",
+        "review_required": true
+      }
+    ],
+    "warnings": [
+      "Confirm language/type and review extraction."
+    ],
+    "input_language": "unknown",
+    "document_type": "other",
+    "progress": {
+      "stage": "extracting",
+      "completed_paragraphs": 4,
+      "total_paragraphs": 4
+    }
+  },
+  "reviewed_patch_response": {
+    "document_id": "doc_example",
+    "revision": 1,
+    "reviewed_revision": 1,
+    "status": "awaiting_review",
+    "changed": false
+  },
+  "analysis_accepted": {
+    "analysis_id": "a_example",
+    "status": "queued",
+    "document_revision": 1
+  },
+  "analysis_snapshots": {
+    "queued": {
+      "analysis_id": "a_example",
+      "document_revision": 1,
+      "output_language": "en",
+      "status": "queued",
+      "progress": {
+        "completed_clauses": 0,
+        "total_clauses": 4
+      },
+      "result": null,
+      "warnings": [
+        "SYNTHETIC DEVELOPMENT EXAMPLE"
+      ]
+    },
+    "running": {
+      "analysis_id": "a_example",
+      "document_revision": 1,
+      "output_language": "en",
+      "status": "running",
+      "progress": {
+        "completed_clauses": 0,
+        "total_clauses": 4
+      },
+      "result": null,
+      "warnings": [
+        "SYNTHETIC DEVELOPMENT EXAMPLE"
+      ]
+    },
+    "complete": {
+      "analysis_id": "a_example",
+      "document_revision": 1,
+      "output_language": "en",
+      "status": "complete",
+      "progress": {
+        "completed_clauses": 4,
+        "total_clauses": 4
+      },
+      "result": {
+        "document_id": "doc_example",
+        "analysis_id": "a_example",
+        "document_revision": 1,
+        "input_language": "hi",
+        "output_language": "en",
+        "document_type": "other",
+        "coverage": {
+          "analysed": 4,
+          "total": 4
+        },
+        "items": [
+          {
+            "item_id": "i1",
+            "clause_id": "c1",
+            "kind": "explanation",
+            "category": null,
+            "explanation": "SYNTHETIC UI EXAMPLE — not a model finding.",
+            "evidence": [
+              {
+                "clause_id": "c1",
+                "quote": "Payment is due on 30 November 2026."
+              }
+            ],
+            "reference_ids": [],
+            "review_status": "supported",
+            "detector": "fixture",
+            "model_score": null,
+            "limitations": [
+              "Development example only."
+            ]
+          },
+          {
+            "item_id": "i2",
+            "clause_id": "c2",
+            "kind": "attention",
+            "category": "automatic_renewal",
+            "explanation": "SYNTHETIC UI EXAMPLE — not a model finding.",
+            "evidence": [
+              {
+                "clause_id": "c2",
+                "quote": "This agreement renews automatically."
+              }
+            ],
+            "reference_ids": [],
+            "review_status": "supported",
+            "detector": "fixture",
+            "model_score": null,
+            "limitations": [
+              "Development example only."
+            ]
+          },
+          {
+            "item_id": "i3",
+            "clause_id": "c3",
+            "kind": "allegation",
+            "category": null,
+            "explanation": "SYNTHETIC UI EXAMPLE — not a model finding.",
+            "evidence": [
+              {
+                "clause_id": "c3",
+                "quote": "शिकायतकर्ता ने घटना का आरोप लगाया।"
+              }
+            ],
+            "reference_ids": [],
+            "review_status": "supported",
+            "detector": "fixture",
+            "model_score": null,
+            "limitations": [
+              "Development example only."
+            ]
+          },
+          {
+            "item_id": "i4",
+            "clause_id": "c4",
+            "kind": "notice_action",
+            "category": null,
+            "explanation": "SYNTHETIC UI EXAMPLE — not a model finding.",
+            "evidence": [
+              {
+                "clause_id": "c4",
+                "quote": "Respond within 15 days of receipt."
+              }
+            ],
+            "reference_ids": [],
+            "review_status": "supported",
+            "detector": "fixture",
+            "model_score": null,
+            "limitations": [
+              "Development example only."
+            ]
+          }
+        ],
+        "deadlines": [
+          {
+            "deadline_id": "d1",
+            "clause_id": "c4",
+            "source_quote": "Respond within 15 days of receipt.",
+            "display_text": "15 days after receipt",
+            "anchor": "receipt",
+            "resolved_date": null,
+            "status": "needs_information",
+            "missing_information": [
+              "receipt_date"
+            ]
+          }
+        ],
+        "warnings": [
+          "SYNTHETIC DEVELOPMENT EXAMPLE",
+          "Mixed-language extraction requires review."
+        ],
+        "legal_aid": [
+          {
+            "title": "NALSA legal aid",
+            "url": "https://nalsa.gov.in/legal-aid/"
+          }
+        ],
+        "provenance": {
+          "classifier_version": "not-run-fixture",
+          "generator": "development-fixture",
+          "rules_version": "not-run"
+        },
+        "references": []
+      },
+      "warnings": [
+        "SYNTHETIC DEVELOPMENT EXAMPLE"
+      ]
+    },
+    "needs_review": {
+      "analysis_id": "a_example",
+      "document_revision": 1,
+      "output_language": "en",
+      "status": "needs_review",
+      "progress": {
+        "completed_clauses": 4,
+        "total_clauses": 4,
+        "failed_clauses": [
+          "c4"
+        ]
+      },
+      "result": {
+        "document_id": "doc_example",
+        "analysis_id": "a_example",
+        "document_revision": 1,
+        "input_language": "hi",
+        "output_language": "en",
+        "document_type": "other",
+        "coverage": {
+          "analysed": 3,
+          "total": 4
+        },
+        "items": [
+          {
+            "item_id": "i1",
+            "clause_id": "c1",
+            "kind": "explanation",
+            "category": null,
+            "explanation": "SYNTHETIC UI EXAMPLE — not a model finding.",
+            "evidence": [
+              {
+                "clause_id": "c1",
+                "quote": "Payment is due on 30 November 2026."
+              }
+            ],
+            "reference_ids": [],
+            "review_status": "supported",
+            "detector": "fixture",
+            "model_score": null,
+            "limitations": [
+              "Development example only."
+            ]
+          },
+          {
+            "item_id": "i2",
+            "clause_id": "c2",
+            "kind": "attention",
+            "category": "automatic_renewal",
+            "explanation": "SYNTHETIC UI EXAMPLE — not a model finding.",
+            "evidence": [
+              {
+                "clause_id": "c2",
+                "quote": "This agreement renews automatically."
+              }
+            ],
+            "reference_ids": [],
+            "review_status": "supported",
+            "detector": "fixture",
+            "model_score": null,
+            "limitations": [
+              "Development example only."
+            ]
+          },
+          {
+            "item_id": "i3",
+            "clause_id": "c3",
+            "kind": "allegation",
+            "category": null,
+            "explanation": "SYNTHETIC UI EXAMPLE — not a model finding.",
+            "evidence": [
+              {
+                "clause_id": "c3",
+                "quote": "शिकायतकर्ता ने घटना का आरोप लगाया।"
+              }
+            ],
+            "reference_ids": [],
+            "review_status": "supported",
+            "detector": "fixture",
+            "model_score": null,
+            "limitations": [
+              "Development example only."
+            ]
+          }
+        ],
+        "deadlines": [
+          {
+            "deadline_id": "d1",
+            "clause_id": "c4",
+            "source_quote": "Respond within 15 days of receipt.",
+            "display_text": "15 days after receipt",
+            "anchor": "receipt",
+            "resolved_date": null,
+            "status": "needs_information",
+            "missing_information": [
+              "receipt_date"
+            ]
+          }
+        ],
+        "warnings": [
+          "SYNTHETIC DEVELOPMENT EXAMPLE",
+          "Mixed-language extraction requires review."
+        ],
+        "legal_aid": [
+          {
+            "title": "NALSA legal aid",
+            "url": "https://nalsa.gov.in/legal-aid/"
+          }
+        ],
+        "provenance": {
+          "classifier_version": "not-run-fixture",
+          "generator": "development-fixture",
+          "rules_version": "not-run"
+        },
+        "references": [],
+        "failed_clauses": [
+          "c4"
+        ]
+      },
+      "warnings": [
+        "SYNTHETIC DEVELOPMENT EXAMPLE"
+      ]
+    },
+    "failed": {
+      "analysis_id": "a_example",
+      "document_revision": 1,
+      "output_language": "en",
+      "status": "failed",
+      "progress": {
+        "completed_clauses": 0,
+        "total_clauses": 4
+      },
+      "result": null,
+      "warnings": [
+        "SYNTHETIC DEVELOPMENT EXAMPLE"
+      ]
+    },
+    "partial": {
+      "analysis_id": "a_example",
+      "document_revision": 1,
+      "output_language": "en",
+      "status": "running",
+      "progress": {
+        "completed_clauses": 2,
+        "total_clauses": 4
+      },
+      "result": {
+        "document_id": "doc_example",
+        "analysis_id": "a_example",
+        "document_revision": 1,
+        "input_language": "hi",
+        "output_language": "en",
+        "document_type": "other",
+        "coverage": {
+          "analysed": 2,
+          "total": 4
+        },
+        "items": [
+          {
+            "item_id": "i1",
+            "clause_id": "c1",
+            "kind": "explanation",
+            "category": null,
+            "explanation": "SYNTHETIC UI EXAMPLE — not a model finding.",
+            "evidence": [
+              {
+                "clause_id": "c1",
+                "quote": "Payment is due on 30 November 2026."
+              }
+            ],
+            "reference_ids": [],
+            "review_status": "supported",
+            "detector": "fixture",
+            "model_score": null,
+            "limitations": [
+              "Development example only."
+            ]
+          },
+          {
+            "item_id": "i2",
+            "clause_id": "c2",
+            "kind": "attention",
+            "category": "automatic_renewal",
+            "explanation": "SYNTHETIC UI EXAMPLE — not a model finding.",
+            "evidence": [
+              {
+                "clause_id": "c2",
+                "quote": "This agreement renews automatically."
+              }
+            ],
+            "reference_ids": [],
+            "review_status": "supported",
+            "detector": "fixture",
+            "model_score": null,
+            "limitations": [
+              "Development example only."
+            ]
+          }
+        ],
+        "deadlines": [
+          {
+            "deadline_id": "d1",
+            "clause_id": "c4",
+            "source_quote": "Respond within 15 days of receipt.",
+            "display_text": "15 days after receipt",
+            "anchor": "receipt",
+            "resolved_date": null,
+            "status": "needs_information",
+            "missing_information": [
+              "receipt_date"
+            ]
+          }
+        ],
+        "warnings": [
+          "SYNTHETIC DEVELOPMENT EXAMPLE",
+          "Mixed-language extraction requires review."
+        ],
+        "legal_aid": [
+          {
+            "title": "NALSA legal aid",
+            "url": "https://nalsa.gov.in/legal-aid/"
+          }
+        ],
+        "provenance": {
+          "classifier_version": "not-run-fixture",
+          "generator": "development-fixture",
+          "rules_version": "not-run"
+        },
+        "references": []
+      },
+      "warnings": [
+        "SYNTHETIC DEVELOPMENT EXAMPLE"
+      ]
+    }
+  },
+  "grounded_answer": {
+    "answer": "SYNTHETIC EXAMPLE: the source states a relative period.",
+    "evidence": [
+      {
+        "clause_id": "c4",
+        "quote": "Respond within 15 days of receipt."
+      }
+    ],
+    "reference_ids": [],
+    "review_status": "supported",
+    "limitations": [
+      "Receipt date unknown.",
+      "Development example."
+    ]
+  },
+  "insufficient_evidence_answer": {
+    "answer": "Insufficient evidence in this document.",
+    "evidence": [],
+    "reference_ids": [],
+    "review_status": "needs_review",
+    "limitations": [
+      "Development example; no legal advice."
+    ]
+  },
+  "health": {
+    "status": "degraded",
+    "mode": "real",
+    "extraction": {
+      "ready": true,
+      "pdf": true,
+      "docx": true,
+      "ocr": {
+        "available": false,
+        "languages": []
+      },
+      "isolation": {
+        "mode": "subprocess",
+        "timeout_seconds": 120,
+        "memory_mb": 768
+      }
+    },
+    "ml": {
+      "available": false,
+      "classifier_ready": null,
+      "generator_ready": null,
+      "language_paths": []
+    },
+    "cleanup": {
+      "pending": 0,
+      "exhausted": 0,
+      "local": {
+        "pending": 0,
+        "exhausted": 0
+      }
+    }
+  },
+  "optional_reference_example": {
+    "reference_id": "ref_example",
+    "title": "NALSA official legal-aid information",
+    "url": "https://nalsa.gov.in/legal-aid/",
+    "section": null,
+    "version": "example-metadata-only",
+    "excerpt": "SYNTHETIC reference display example; not a fetched quotation."
+  },
+  "errors": {
+    "REVISION_CONFLICT": {
+      "error": {
+        "code": "REVISION_CONFLICT",
+        "message": "Reload the current revision.",
+        "retryable": false
+      },
+      "request_id": "req_example"
+    },
+    "MODEL_BUSY": {
+      "error": {
+        "code": "MODEL_BUSY",
+        "message": "Local model queue is full; retry explicitly.",
+        "retryable": true
+      },
+      "request_id": "req_example"
+    },
+    "MODEL_UNAVAILABLE": {
+      "error": {
+        "code": "MODEL_UNAVAILABLE",
+        "message": "Local ML service unavailable.",
+        "retryable": true
+      },
+      "request_id": "req_example"
+    },
+    "MODEL_TIMEOUT": {
+      "error": {
+        "code": "MODEL_TIMEOUT",
+        "message": "Local model timed out.",
+        "retryable": true
+      },
+      "request_id": "req_example"
+    },
+    "UNSUPPORTED_LANGUAGE": {
+      "error": {
+        "code": "UNSUPPORTED_LANGUAGE",
+        "message": "Language path is unverified or unsupported.",
+        "retryable": false
+      },
+      "request_id": "req_example"
+    },
+    "VALIDATION_ERROR": {
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Request fields are invalid.",
+        "retryable": false
+      },
+      "request_id": "req_example"
+    },
+    "EXTRACTION_TIMEOUT": {
+      "error": {
+        "code": "EXTRACTION_TIMEOUT",
+        "message": "Local extraction exceeded its time limit; use a shorter document.",
+        "retryable": true
+      },
+      "request_id": "req_example"
+    }
+  }
+}

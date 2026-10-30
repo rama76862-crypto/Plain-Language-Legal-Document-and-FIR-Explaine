@@ -1,0 +1,320 @@
+/**
+ * ResultsWorkspace Component (C-07)
+ * Primary workspace for document explanations, attention cues, deadlines, Q&A, and export.
+ * Follows exact ResultsWorkspaceProps contract.
+ */
+
+import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  FileText,
+  Calendar,
+  MessageSquare,
+  Download,
+  RotateCw,
+  Sparkles,
+  Layers,
+  ShieldAlert,
+} from 'lucide-react';
+import type { ResultsWorkspaceProps, OutputLanguage } from '../../lib/types';
+import { ResultProvider, useResult, ResultTab } from './ResultContext';
+import { OverviewSummaryPanel } from './OverviewSummaryPanel';
+import { ClauseExplanationList } from './ClauseExplanationList';
+import { AttentionPanel } from './AttentionPanel';
+import { DeadlinePanel } from './DeadlinePanel';
+import { QuestionPanel } from './QuestionPanel';
+import { ResultExport } from './ResultExport';
+import { LegalAidDirectoryCard } from './LegalAidDirectoryCard';
+import { GlassCard, Button, Banner, SegmentedControl } from '../../design/primitives';
+
+const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
+  revision,
+  onNavigateEvidence,
+}) => {
+  const {
+    status,
+    progress,
+    result,
+    activeTab,
+    setActiveTab,
+    outputLanguage,
+    changeOutputLanguage,
+    isAnalyzing,
+    isDimmedLoading,
+    pendingLanguage,
+    error,
+    startAnalysis,
+    retryAnalysis,
+  } = useResult();
+
+  const attentionCount = result?.items.filter(
+    (i) => i.kind === 'attention' || i.kind === 'allegation' || i.kind === 'notice_action'
+  ).length ?? 0;
+
+  const datesCount = result?.deadlines.length ?? 0;
+
+  const tabs: { id: ResultTab; label: string; icon: React.FC<{ className?: string }>; badge?: number }[] = [
+    { id: 'overview', label: 'Overview', icon: Layers },
+    { id: 'clauses', label: 'Clauses', icon: FileText },
+    {
+      id: 'attention',
+      label: 'Attention',
+      icon: ShieldAlert,
+      badge: attentionCount > 0 ? attentionCount : undefined,
+    },
+    {
+      id: 'dates',
+      label: 'Dates',
+      icon: Calendar,
+      badge: datesCount > 0 ? datesCount : undefined,
+    },
+    { id: 'ask', label: 'Ask', icon: MessageSquare },
+    { id: 'export', label: 'Export', icon: Download },
+  ];
+
+  const languageOptions = [
+    { value: 'en', label: 'English' },
+    { value: 'hi', label: 'हिन्दी' },
+    { value: 'pa', label: 'ਪੰਜਾਬੀ' },
+  ];
+
+  return (
+    <div className="h-full flex flex-col bg-paper/60 backdrop-blur-sm overflow-hidden">
+      {/* Top Bar: Title & Output Language Selector */}
+      <div className="px-6 py-3 border-b border-line bg-paper/80 flex flex-wrap items-center justify-between gap-4 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-7 h-7 rounded bg-blue/10 flex items-center justify-center text-blue">
+            <Sparkles className="w-4 h-4" />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-navy">Plain-Language Explanation</h2>
+            <div className="text-[11px] font-mono text-mute">
+              Revision {revision} · Local Processing
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-mute font-medium">Explain in:</span>
+          <SegmentedControl
+            options={languageOptions}
+            value={pendingLanguage || outputLanguage}
+            onChange={(val) => changeOutputLanguage(val as OutputLanguage)}
+          />
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 overflow-y-auto p-6 relative">
+        {/* State 1: Idle (Not yet started) */}
+        {status === 'idle' && (
+          <div className="max-w-md mx-auto py-12 text-center space-y-4">
+            <GlassCard className="p-8 space-y-4">
+              <div className="w-12 h-12 rounded-full bg-blue/10 text-blue flex items-center justify-center mx-auto">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-navy">Ready to Explain Document</h3>
+                <p className="text-xs text-mute leading-relaxed">
+                  Click below to generate plain-language explanations, attention cues, and timelines in{' '}
+                  <strong className="text-navy uppercase">{outputLanguage}</strong>.
+                </p>
+              </div>
+              <Button
+                variant="primary"
+                size="md"
+                className="w-full"
+                onClick={() => startAnalysis()}
+              >
+                Analyse document
+              </Button>
+              <p className="text-[11px] text-mute font-mono">
+                Runs on your local machine · No cloud tracking
+              </p>
+            </GlassCard>
+          </div>
+        )}
+
+        {/* State 2: Queued or Running */}
+        {isAnalyzing && (
+          <div className="max-w-md mx-auto py-12 space-y-6">
+            <GlassCard className="p-8 text-center space-y-5">
+              <div className="flex items-center justify-center">
+                <RotateCw className="w-8 h-8 text-blue animate-spin" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-navy">
+                  {status === 'queued'
+                    ? 'Preparing local explanation models…'
+                    : `Analysing clause ${progress.completed_clauses} of ${progress.total_clauses}…`}
+                </h3>
+                <p className="text-xs text-mute font-mono">
+                  Evaluating legal cues and definitions
+                </p>
+              </div>
+
+              {/* Real Segmented Progress Rail (No fake percentage) */}
+              {progress.total_clauses > 0 && (
+                <div className="space-y-2">
+                  <div className="flex gap-1 h-2 rounded overflow-hidden bg-bg2 p-0.5 border border-line">
+                    {Array.from({ length: progress.total_clauses }).map((_, idx) => {
+                      const isComplete = idx < progress.completed_clauses;
+                      const isCurrent = idx === progress.completed_clauses;
+                      return (
+                        <div
+                          key={idx}
+                          className={`flex-1 h-full rounded-xs transition-colors duration-200 ${
+                            isComplete
+                              ? 'bg-ok'
+                              : isCurrent
+                              ? 'bg-blue animate-pulse'
+                              : 'bg-line/40'
+                          }`}
+                        />
+                      );
+                    })}
+                  </div>
+                  <div className="text-[11px] font-mono text-mute flex justify-between">
+                    <span>Clause 1</span>
+                    <span>{progress.completed_clauses}/{progress.total_clauses} completed</span>
+                    <span>Clause {progress.total_clauses}</span>
+                  </div>
+                </div>
+              )}
+            </GlassCard>
+          </div>
+        )}
+
+        {/* State 3: Error Banner */}
+        {error && (
+          <div className="mb-6">
+            <Banner
+              variant="error"
+              title="Analysis Error"
+              action={
+                error.retryable
+                  ? { label: 'Retry Analysis', onClick: retryAnalysis }
+                  : undefined
+              }
+            >
+              {error.message}
+            </Banner>
+          </div>
+        )}
+
+        {/* State 4: Complete or Needs Review */}
+        {(status === 'complete' || status === 'needs_review') && result && (
+          <div className="space-y-6">
+            {/* Needs Review Amber Banner */}
+            {status === 'needs_review' && (
+              <Banner variant="warn" title="Needs Review">
+                Usable partial results — some clauses or translations require manual verification.
+              </Banner>
+            )}
+
+            {/* Dimmed Loading Overlay for Language Switch */}
+            {isDimmedLoading && (
+              <div className="absolute inset-0 bg-paper/60 backdrop-blur-xs flex items-center justify-center z-20">
+                <div className="p-4 rounded-lg bg-navy text-white shadow-card flex items-center gap-3 text-xs font-mono">
+                  <RotateCw className="w-4 h-4 animate-spin text-cyan" />
+                  <span>Loading {pendingLanguage?.toUpperCase()} explanation…</span>
+                </div>
+              </div>
+            )}
+
+            {/* Navigation Tabs Bar */}
+            <div className="flex items-center gap-1 border-b border-line pb-1">
+              {tabs.map((tab) => {
+                const isSelected = activeTab === tab.id;
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`relative px-3.5 py-2 text-xs font-semibold rounded-t-md transition-colors flex items-center gap-1.5 ${
+                      isSelected
+                        ? 'text-blue font-bold border-b-2 border-blue'
+                        : 'text-mute hover:text-navy hover:bg-bg2/40'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{tab.label}</span>
+                    {tab.badge !== undefined && (
+                      <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full bg-blue/10 text-blue">
+                        {tab.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Active Tab Panel */}
+            <div className="pt-2">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  {activeTab === 'overview' && (
+                    <OverviewSummaryPanel
+                      onNavigateEvidence={onNavigateEvidence}
+                      onGoToClauses={() => setActiveTab('clauses')}
+                    />
+                  )}
+                  {activeTab === 'clauses' && (
+                    <ClauseExplanationList
+                      onNavigateEvidence={onNavigateEvidence}
+                    />
+                  )}
+                  {activeTab === 'attention' && (
+                    <AttentionPanel
+                      onNavigateEvidence={onNavigateEvidence}
+                      onGoToClauses={() => setActiveTab('clauses')}
+                    />
+                  )}
+                  {activeTab === 'dates' && (
+                    <DeadlinePanel
+                      onNavigateEvidence={onNavigateEvidence}
+                    />
+                  )}
+                  {activeTab === 'ask' && (
+                    <QuestionPanel
+                      onNavigateEvidence={onNavigateEvidence}
+                    />
+                  )}
+                  {activeTab === 'export' && <ResultExport />}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {/* Persistent Legal Aid Footer Strip */}
+            <div className="pt-6 border-t border-line">
+              <LegalAidDirectoryCard variant="compact" legalAid={result?.legal_aid} />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export const ResultsWorkspace: React.FC<ResultsWorkspaceProps> = (props) => {
+  return (
+    <ResultProvider
+      documentId={props.documentId}
+      sessionToken={props.sessionToken}
+      revision={props.revision}
+      initialOutputLanguage={props.outputLanguage}
+      onDeleted={props.onDeleted}
+    >
+      <ResultsWorkspaceInner {...props} />
+    </ResultProvider>
+  );
+};
+
+export default ResultsWorkspace;

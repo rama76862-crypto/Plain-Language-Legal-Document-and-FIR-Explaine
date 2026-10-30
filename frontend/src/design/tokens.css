@@ -1,0 +1,718 @@
+@import "@fontsource/plus-jakarta-sans/400.css";
+@import "@fontsource/plus-jakarta-sans/600.css";
+@import "@fontsource/plus-jakarta-sans/800.css";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/600.css";
+@import "@fontsource/noto-sans-devanagari/400.css";
+@import "@fontsource/noto-sans-devanagari/600.css";
+@import "@fontsource/noto-sans-devanagari/700.css";
+@import "@fontsource/noto-sans-gurmukhi/400.css";
+@import "@fontsource/noto-sans-gurmukhi/600.css";
+@import "@fontsource/noto-sans-gurmukhi/700.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --bg: #f5f8ff;
+  --bg2: #eaf0fc;
+  --paper: #ffffff;
+  --ink: #0e1a3d;
+  --mut: #586489;
+  --mute: #586489;
+  --card: rgba(255, 255, 255, 0.74);
+  --line: rgba(14, 26, 61, 0.10);
+
+  --navy: #14306b;
+  --blue: #2f6bff;
+  --red: #e5484d;
+  --amber: #f0a020;
+  --cyan: #07b3d1;
+  --green: #12a26a;
+
+  --concern: #e5484d;
+  --concern-bg: #ffe9ea;
+  --concern-ink: #a3262b;
+
+  --caution: #f0a020;
+  --caution-bg: #fff2d9;
+  --caution-ink: #8a5a00;
+
+  --deadline: #07b3d1;
+  --deadline-bg: #dcf6fb;
+  --deadline-ink: #0a6e82;
+
+  --ok: #12a26a;
+  --ok-bg: #dff5ea;
+  --ok-ink: #0b6b46;
+
+  --radius-lg: 22px;
+  --radius-md: 14px;
+  --radius-pill: 999px;
+
+  --sh: 0 18px 50px -18px rgba(20, 48, 107, 0.35);
+  --shadow-card: 0 18px 50px -18px rgba(20, 48, 107, 0.35);
+  --shadow-pop: 0 30px 60px -20px rgba(47, 107, 255, 0.45);
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 90px;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--ink);
+  font-family: "Plus Jakarta Sans", "Noto Sans Devanagari", "Noto Sans Gurmukhi", system-ui, sans-serif;
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Indic text line height enhancement */
+:lang(hi), .font-devanagari {
+  line-height: 1.7;
+}
+
+:lang(pa), .font-gurmukhi {
+  line-height: 1.7;
+}
+
+/* Focus-visible ring */
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+/* Glass card utility */
+.glass-card {
+  background: var(--card);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--line);
+  box-shadow: var(--sh);
+}
+
+/* =========================================================================
+   Live Background Blobs & Animations
+   ========================================================================= */
+#bg {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.blob {
+  position: fixed;
+  z-index: -3;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.55;
+  animation: drift 22s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+.b1 {
+  width: 46vw;
+  height: 46vw;
+  left: -10vw;
+  top: -12vw;
+  background: #bcd3ff;
+}
+
+.b2 {
+  width: 38vw;
+  height: 38vw;
+  right: -8vw;
+  top: 20vh;
+  background: #c9f1f7;
+  animation-delay: -8s;
+}
+
+.b3 {
+  width: 42vw;
+  height: 42vw;
+  left: 25vw;
+  bottom: -18vw;
+  background: #ffe3c2;
+  animation-delay: -14s;
+}
+
+@keyframes drift {
+  to {
+    transform: translate(6vw, 5vh) scale(1.15);
+  }
+}
+
+/* =========================================================================
+   Hero 3D Stage & Scene
+   ========================================================================= */
+.stage {
+  perspective: 1300px;
+  height: 520px;
+  display: grid;
+  place-items: center;
+}
+
+.scene {
+  position: relative;
+  width: 340px;
+  height: 440px;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--rx, 8deg)) rotateY(var(--ry, -16deg));
+  transition: transform 0.15s ease-out;
+  animation: float 7s ease-in-out infinite;
+}
+
+@keyframes float {
+  50% {
+    translate: 0 -14px;
+  }
+}
+
+.sheet {
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid var(--line);
+  box-shadow: var(--sh);
+}
+
+.s0 {
+  transform: translateZ(-70px) rotate(5deg);
+  background: #e4ecff;
+}
+
+.s1 {
+  transform: translateZ(-35px) rotate(-3deg);
+  background: #f0f5ff;
+}
+
+.s2 {
+  transform: translateZ(0);
+  padding: 26px 24px;
+  overflow: hidden;
+}
+
+.s2 h4 {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: var(--mut);
+  margin-bottom: 14px;
+}
+
+.ln {
+  height: 9px;
+  border-radius: 5px;
+  background: #e7ecf7;
+  margin: 11px 0;
+}
+
+.hl {
+  position: relative;
+  padding: 8px 10px;
+  margin: 12px -8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.hl.r {
+  background: #ffe9ea;
+  color: #a3262b;
+}
+
+.hl.a {
+  background: #fff2d9;
+  color: #8a5a00;
+}
+
+.hl.c {
+  background: #dcf6fb;
+  color: #0a6e82;
+}
+
+.beam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(transparent, rgba(47, 107, 255, 0.22), transparent);
+  animation: scan 4.5s ease-in-out infinite;
+}
+
+@keyframes scan {
+  0% {
+    top: -60px;
+  }
+  100% {
+    top: 100%;
+  }
+}
+
+.chip {
+  position: absolute;
+  padding: 9px 14px;
+  border-radius: 14px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 14px 30px -10px rgba(14, 26, 61, 0.4);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+  animation: bob 5s ease-in-out infinite;
+}
+
+.chip.r {
+  left: -70px;
+  top: 90px;
+  transform: translateZ(110px);
+  color: var(--red);
+}
+
+.chip.a {
+  right: -60px;
+  top: 190px;
+  transform: translateZ(150px);
+  color: #9a6400;
+  animation-delay: -1.5s;
+}
+
+.chip.c {
+  left: -30px;
+  bottom: 50px;
+  transform: translateZ(130px);
+  color: #0a7d93;
+  animation-delay: -3s;
+}
+
+@keyframes bob {
+  50% {
+    translate: 0 -12px;
+  }
+}
+
+.shield {
+  position: absolute;
+  right: -26px;
+  top: -24px;
+  width: 84px;
+  height: 84px;
+  border-radius: 24px;
+  transform: translateZ(180px) rotate(8deg);
+  display: grid;
+  place-items: center;
+  font-size: 38px;
+  background: linear-gradient(135deg, #fff, #dbe7ff);
+  box-shadow: 0 20px 40px -12px var(--blue);
+  animation: bob 4s ease-in-out infinite;
+}
+
+/* =========================================================================
+   Clause Inspector Component Styles
+   ========================================================================= */
+.insp {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  perspective: 1400px;
+}
+
+.pane {
+  background: var(--card);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 20px;
+  box-shadow: var(--sh);
+}
+
+.pane h3 {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--mut);
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.cl {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 14px;
+  padding: 12px 14px;
+  margin: 8px 0;
+  border-radius: 14px;
+  border: 1.5px solid transparent;
+  background: #fff;
+  cursor: pointer;
+  transition: 0.3s;
+  color: var(--ink);
+}
+
+.cl:hover {
+  transform: translateX(6px) translateZ(10px);
+  border-color: #c9d8ff;
+}
+
+.cl.on {
+  border-color: var(--blue);
+  box-shadow: 0 10px 24px -12px var(--blue);
+  transform: translateX(10px);
+}
+
+.cl em {
+  font-style: normal;
+  font-weight: 800;
+  color: var(--mut);
+  margin-right: 8px;
+  font-size: 12px;
+}
+
+.tag {
+  display: inline-block;
+  padding: 4px 11px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+  margin: 0 6px 10px 0;
+}
+
+.t-r {
+  background: #ffe9ea;
+  color: #a3262b;
+}
+
+.t-a {
+  background: #fff2d9;
+  color: #8a5a00;
+}
+
+.t-c {
+  background: #dcf6fb;
+  color: #0a6e82;
+}
+
+.t-g {
+  background: #dff5ea;
+  color: #0b6b46;
+}
+
+#ex {
+  font-size: 19px;
+  line-height: 1.6;
+  min-height: 96px;
+  animation: pop 0.45s;
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) rotateX(-12deg);
+  }
+}
+
+.ev {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #eef3ff;
+  font-size: 13px;
+  color: var(--mut);
+}
+
+.cov {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--mut);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bar {
+  flex: 1;
+  height: 8px;
+  border-radius: 5px;
+  background: #e4eaf8;
+  overflow: hidden;
+}
+
+.bar i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, var(--blue), var(--cyan));
+  transform-origin: left;
+  animation: grow 1.6s;
+}
+
+@keyframes grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* =========================================================================
+   3D Tilt Cards
+   ========================================================================= */
+.tilt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 16px;
+  perspective: 1200px;
+}
+
+.tilt {
+  background: var(--card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 22px;
+  box-shadow: var(--sh);
+  transform-style: preserve-3d;
+  transition: transform 0.2s ease-out, box-shadow 0.3s;
+  position: relative;
+}
+
+.tilt:hover {
+  box-shadow: 0 30px 60px -20px rgba(47, 107, 255, 0.45);
+}
+
+.tilt .ic {
+  font-size: 34px;
+  display: block;
+  transform: translateZ(40px);
+  margin-bottom: 8px;
+  width: fit-content;
+  animation: bob 5s ease-in-out infinite;
+}
+
+.tilt h4 {
+  transform: translateZ(24px);
+  font-size: 16px;
+}
+
+.tilt p {
+  font-size: 13px;
+  color: var(--mut);
+  margin-top: 4px;
+}
+
+.tilt .n {
+  position: absolute;
+  right: 16px;
+  top: 12px;
+  font-weight: 800;
+  color: #d5def5;
+  font-size: 26px;
+}
+
+/* =========================================================================
+   3D Spinning Privacy Cube
+   ========================================================================= */
+.cubewrap {
+  perspective: 900px;
+  height: 300px;
+  display: grid;
+  place-items: center;
+}
+
+.cube {
+  width: 190px;
+  height: 190px;
+  position: relative;
+  transform-style: preserve-3d;
+  animation: spin 16s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotateX(-18deg) rotateY(360deg);
+  }
+}
+
+.cube div {
+  position: absolute;
+  inset: 0;
+  border-radius: 22px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 16px;
+  font-weight: 700;
+  font-size: 15px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1.5px solid #c9d8ff;
+  box-shadow: inset 0 0 40px rgba(47, 107, 255, 0.14);
+  backdrop-filter: blur(6px);
+}
+
+.cube div b {
+  display: block;
+  font-size: 40px;
+}
+
+.cube div:nth-child(1) {
+  transform: translateZ(95px);
+}
+
+.cube div:nth-child(2) {
+  transform: rotateY(90deg) translateZ(95px);
+}
+
+.cube div:nth-child(3) {
+  transform: rotateY(180deg) translateZ(95px);
+}
+
+.cube div:nth-child(4) {
+  transform: rotateY(-90deg) translateZ(95px);
+}
+
+/* =========================================================================
+   Legal Aid Banner
+   ========================================================================= */
+.aid {
+  background: linear-gradient(135deg, var(--navy), #2a58d6);
+  color: #fff;
+  border-radius: 26px;
+  padding: 34px;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 20px;
+  align-items: center;
+  box-shadow: 0 30px 70px -26px var(--navy);
+  position: relative;
+  overflow: hidden;
+}
+
+.aid::before {
+  content: "";
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  right: -80px;
+  top: -120px;
+  border-radius: 50%;
+  background: radial-gradient(#7fb0ff66, transparent 70%);
+  animation: drift 9s infinite alternate;
+}
+
+.aid p {
+  opacity: 0.85;
+  margin-top: 8px;
+}
+
+.aid .num {
+  font-size: 54px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-align: center;
+}
+
+.aid .num small {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.8;
+  letter-spacing: 0;
+}
+
+.aid a {
+  color: #fff;
+  font-weight: 700;
+}
+
+/* =========================================================================
+   Buttons & Header Specifics
+   ========================================================================= */
+.btn-sweep {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-sweep::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.45) 50%, transparent 70%);
+  transform: translateX(-120%);
+  animation: sweep 3.5s infinite;
+}
+
+@keyframes sweep {
+  to {
+    transform: translateX(120%);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(18, 162, 106, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgba(18, 162, 106, 0);
+  }
+}
+
+@keyframes shine {
+  to {
+    background-position: 200%;
+  }
+}
+
+@media (max-width: 860px) {
+  .insp, .aid {
+    grid-template-columns: 1fr;
+  }
+  .stage {
+    height: 460px;
+    transform: scale(0.82);
+  }
+  .chip.r {
+    left: -20px;
+  }
+  .chip.a {
+    right: -10px;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Print Stylesheet */
+@media print {
+  header, footer, nav, [role="tablist"], button, .no-print, canvas, .blob {
+    display: none !important;
+  }
+  body, main {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .glass-card {
+    background: #ffffff !important;
+    box-shadow: none !important;
+    border: 1px solid #e0e0e0 !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  @page {
+    margin: 1.5cm;
+  }
+}
