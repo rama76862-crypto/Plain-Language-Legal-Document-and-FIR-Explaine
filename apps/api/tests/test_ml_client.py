@@ -1,6 +1,7 @@
 """Local adapter contracts only: MockTransport never proves a real model works."""
 import asyncio
 from copy import deepcopy
+import json
 import httpx
 import pytest
 from apps.api.config import Settings
@@ -29,7 +30,7 @@ def snapshot():
         warnings=[], legal_aid=[{'title':'NALSA','url':'https://nalsa.gov.in/legal-aid/'}],
         provenance={'classifier_version':'synthetic','generator':'mock-http','rules_version':'v1'})
     return {'analysis_id':'a_test','document_revision':2,'output_language':'en','status':'complete',
-        'progress':{'completed_clauses':1,'total_clauses':1,'stage':'validated'},'result':result,'warnings':[]}
+        'progress':{'completed_clauses':1,'total_clauses':1,'stage':'validated','failed_clauses':0},'result':result,'warnings':[]}
 
 
 def run(coroutine):
@@ -76,7 +77,7 @@ def test_partial_result_coverage_warnings_and_failed_ids_survive():
     request = payload()
     request['clauses'].append({'clause_id':'c2','reviewed_text':'Another synthetic clause.'})
     data.update(status='needs_review',failed_clauses=[{'clause_id':'c2','reason':'translation'}])
-    data['progress'].update(completed_clauses=2,total_clauses=2)
+    data['progress'].update(completed_clauses=2,total_clauses=2,failed_clauses=1)
     data['result']['coverage']['total'] = 2
     data['result']['warnings'] = ['Translation failed for c2.']
     validated = validate_snapshot(data,request)
@@ -90,7 +91,7 @@ def test_terminal_missing_clauses_require_exact_failed_ids_not_only_warnings():
     request['clauses'].extend([{'clause_id':'c2','reviewed_text':'Synthetic two.'},
                               {'clause_id':'c3','reviewed_text':'Synthetic three.'}])
     data.update(status='needs_review',warnings=['A generic partial warning.'])
-    data['progress'].update(completed_clauses=3,total_clauses=3)
+    data['progress'].update(completed_clauses=3,total_clauses=3,failed_clauses=2)
     data['result']['coverage']['total'] = 3
     for failed in ([], ['c2']):
         data['failed_clauses'] = failed
@@ -103,6 +104,7 @@ def test_terminal_missing_clauses_require_exact_failed_ids_not_only_warnings():
 def test_failed_supported_overlap_and_inconsistent_count_rejected():
     data = snapshot()
     data.update(status='needs_review',failed_clauses=['c1'])
+    data['progress']['failed_clauses'] = 1
     data['result']['coverage']['analysed'] = 0
     with pytest.raises(ApiError):
         validate_snapshot(data,payload())
@@ -111,6 +113,27 @@ def test_failed_supported_overlap_and_inconsistent_count_rejected():
     data['result']['coverage']['analysed'] = 1
     with pytest.raises(ApiError):
         validate_snapshot(data,payload())
+
+
+def test_be2_progress_failure_count_reconciles_with_result_failure_ids():
+    data = snapshot()
+    request = payload()
+    request['clauses'].append({'clause_id':'c2','reviewed_text':'Another synthetic clause.'})
+    data.update(status='needs_review')
+    data['progress'].update(completed_clauses=2,total_clauses=2,failed_clauses=1)
+    data['result']['coverage'].update(analysed=1,total=2)
+    data['result']['failed_clauses']=[{'clause_id':'c2','reason':'translation_uncertain'}]
+    validated = validate_snapshot(data,request)
+    assert validated['result']['failed_clauses'][0]['clause_id'] == 'c2'
+    assert validated['progress']['failed_clauses'] == 1
+
+    data['progress']['failed_clauses'] = 0
+    with pytest.raises(ApiError):
+        validate_snapshot(data,request)
+
+    data['progress']['failed_clauses'] = -1
+    with pytest.raises(ApiError):
+        validate_snapshot(data,request)
 
 
 def test_needs_review_without_content_accounts_for_all_clauses():
@@ -149,6 +172,33 @@ def test_question_evidence_and_reference_scope():
     assert validate_answer(answer,payload(),snapshot()['result'])['review_status'] == 'needs_review'
 
 
+def test_reference_accepts_null_version_but_requires_metadata_and_official_url():
+    data = snapshot()
+    data['result']['references'] = [{
+        'reference_id':'synthetic-reference',
+        'title':'Synthetic test reference',
+        'url':'https://fixture.gov.in/reference',
+        'section':'synthetic locator',
+        'version':None,
+        'excerpt':'Synthetic test excerpt.',
+        'jurisdiction':'IN',
+    }]
+    validated = validate_snapshot(data,payload())
+    assert validated['result']['references'][0]['version'] is None
+
+    missing_required_metadata = deepcopy(data)
+    del missing_required_metadata['result']['references'][0]['title']
+    with pytest.raises(ApiError) as error:
+        validate_snapshot(missing_required_metadata,payload())
+    assert error.value.code == 'INVALID_MODEL_OUTPUT'
+
+    untrusted_url = deepcopy(data)
+    untrusted_url['result']['references'][0]['url'] = 'https://unreviewed.example/reference'
+    with pytest.raises(ApiError) as error:
+        validate_snapshot(untrusted_url,payload())
+    assert error.value.code == 'INVALID_MODEL_OUTPUT'
+
+
 def test_private_http_paths_payload_auth_and_delete():
     async def scenario():
         requests = []
@@ -170,6 +220,39 @@ def test_private_http_paths_payload_auth_and_delete():
         await client.close()
         assert len(requests) == 4
         assert all('session_token' not in request.content.decode() for request in requests)
+    run(scenario())
+
+
+def test_private_question_sends_only_backend2_question_contract_fields():
+    async def scenario():
+        requests = []
+
+        def handler(request):
+            body = json.loads(request.content)
+            requests.append(body)
+            return httpx.Response(200, json={'answer':'Synthetic private answer'})
+
+        client = RealMLClient(Settings(), httpx.MockTransport(handler))
+        question_payload = {
+            **payload(),
+            'question':'Synthetic question',
+            'client_request_id':'question-1',
+        }
+        response = await client.question(question_payload)
+        await client.close()
+
+        assert response['answer'] == 'Synthetic private answer'
+        assert requests == [{
+            'document_id':'doc_test',
+            'analysis_id':'a_test',
+            'document_revision':2,
+            'question':'Synthetic question',
+            'output_language':'en',
+            'client_request_id':'question-1',
+        }]
+        # The caller's reviewed clauses remain available for BE1 answer validation.
+        assert question_payload['clauses'][0]['reviewed_text'] == 'प्राप्ति के 15 दिन के भीतर उत्तर दें।'
+
     run(scenario())
 
 
@@ -229,8 +312,35 @@ def test_readiness_accepts_backend2_ready_field_names_without_inventing_language
         assert health['available'] is True
         assert health['classifier_loaded'] is True
         assert health['generator_loaded'] is True
+        assert health['tested_languages'] == {'en': False, 'hi': False, 'pa': False}
+        # Source-language flags do not identify tested input/output pairs.
         assert health['tested_language_matrix'] == []
         await client.close()
+    run(scenario())
+
+
+def test_readiness_preserves_only_explicit_pairwise_paths_and_downgrades_bad_status():
+    async def scenario():
+        client = RealMLClient(Settings(), httpx.MockTransport(lambda request: httpx.Response(
+            200, json={
+                'classifier_ready':True,
+                'generator_ready':True,
+                'tested_languages':{'en':True,'hi':False,'pa':'yes'},
+                'tested_language_matrix':[
+                    {'input_language':'en','output_language':'hi','status':'tested'},
+                    {'input_language':'hi','output_language':'pa','status':True},
+                    {'input_language':'invalid','output_language':'pa','status':'tested'},
+                    'malformed-entry',
+                ],
+            })))
+        health = await client.health()
+        assert health['tested_languages'] == {'en':True,'hi':False,'pa':'yes'}
+        assert health['tested_language_matrix'] == [
+            {'input_language':'en','output_language':'hi','status':'tested'},
+            {'input_language':'hi','output_language':'pa','status':'unknown'},
+        ]
+        await client.close()
+
     run(scenario())
 
 

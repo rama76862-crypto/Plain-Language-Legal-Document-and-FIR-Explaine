@@ -11,6 +11,34 @@ ERRORS = {
     'NOT_FOUND': (404, False), 'REVISION_CONFLICT': (409, False),
     'ANALYSIS_NOT_READY': (409, True), 'UNSUPPORTED_LANGUAGE': (422, False),
 }
+_QUESTION_FIELDS = (
+    'document_id', 'analysis_id', 'document_revision', 'question',
+    'output_language', 'client_request_id',
+)
+_INPUT_LANGUAGES = {'en', 'hi', 'pa', 'unknown'}
+_OUTPUT_LANGUAGES = {'en', 'hi', 'pa'}
+_LANGUAGE_PATH_STATUSES = {'tested', 'experimental', 'unsupported', 'unknown'}
+
+
+def _tested_language_matrix(data):
+    """Keep only explicit pairwise language paths; source-only flags are not a matrix."""
+    matrix = data.get('tested_language_matrix')
+    if not isinstance(matrix, list):
+        return []
+
+    paths = []
+    for path in matrix:
+        if not isinstance(path, dict):
+            continue
+        if path.get('input_language') not in _INPUT_LANGUAGES:
+            continue
+        if path.get('output_language') not in _OUTPUT_LANGUAGES:
+            continue
+        status = path.get('status')
+        if status not in _LANGUAGE_PATH_STATUSES:
+            status = 'unknown'
+        paths.append({**path, 'status': status})
+    return paths
 
 
 class RealMLClient:
@@ -68,7 +96,7 @@ class RealMLClient:
         generator = data.get('generator_loaded', data.get('generator_ready')) is True
         # Missing affirmative readiness evidence never means ready.
         return {**data, 'available': classifier and generator, 'classifier_loaded':classifier,
-                'generator_loaded':generator, 'tested_language_matrix':data.get('tested_language_matrix', []), 'mode':'real'}
+                'generator_loaded':generator, 'tested_language_matrix':_tested_language_matrix(data), 'mode':'real'}
 
     async def start(self, payload):
         result = await self._request('POST', '/internal/analyse', payload=payload, statuses=(202,))
@@ -86,7 +114,10 @@ class RealMLClient:
         return await self._request('GET', '/internal/jobs/' + quote(analysis_id, safe=''))
 
     async def question(self, payload):
-        return await self._request('POST', '/internal/question', payload=payload)
+        # BE1 keeps reviewed clauses in its server-side question context; BE2's
+        # strict QuestionRequest accepts only these six bound request fields.
+        request = {key: payload[key] for key in _QUESTION_FIELDS}
+        return await self._request('POST', '/internal/question', payload=request)
 
     async def delete(self, analysis_id):
         try:

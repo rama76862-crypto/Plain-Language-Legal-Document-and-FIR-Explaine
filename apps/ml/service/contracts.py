@@ -93,6 +93,11 @@ class ReferenceRecord(StrictModel):
     excerpt: str = Field(min_length=1)
 
 
+class FailedClause(StrictModel):
+    clause_id: str = Field(min_length=1)
+    reason: str = Field(min_length=1)
+
+
 class Coverage(StrictModel):
     analysed: int = Field(ge=0)
     total: int = Field(ge=0)
@@ -124,6 +129,9 @@ class AnalysisResult(StrictModel):
     legal_aid: list[dict[str, str]] = Field(default_factory=list)
     provenance: Provenance = Field(default_factory=Provenance)
     references: list[ReferenceRecord] = Field(default_factory=list)
+    # Additive Contract v1 metadata: identify clauses counted as failed in
+    # AnalysisProgress.failed_clauses so BE1 can validate partial coverage.
+    failed_clauses: list[FailedClause] = Field(default_factory=list)
 
 
 class AnalysisProgress(StrictModel):
@@ -155,7 +163,7 @@ class QuestionRequest(StrictModel):
     document_id: str = Field(min_length=1)
     analysis_id: str = Field(min_length=1)
     document_revision: int = Field(ge=1)
-    question: str = Field(min_length=1, max_length=2000)
+    question: str = Field(min_length=1, max_length=4000)
     output_language: Language
     client_request_id: str = Field(min_length=1)
 
@@ -236,8 +244,12 @@ class ServiceError(StrictModel):
     request_id: str
 
 
-def insufficient_evidence_answer(output_language: Language) -> QuestionAnswer:
-    """Return a deterministic, honest response when no grounded answer exists."""
+def insufficient_evidence_answer(
+    output_language: Language,
+    *,
+    limitation: str = "insufficient_evidence",
+) -> QuestionAnswer:
+    """Return a deterministic, honest response with a machine-readable reason."""
     messages = {
         "en": "The reviewed document and verified references do not contain enough information to answer this question.",
         "hi": "समीक्षित दस्तावेज़ और सत्यापित संदर्भों में इस प्रश्न का उत्तर देने के लिए पर्याप्त जानकारी नहीं है।",
@@ -247,6 +259,6 @@ def insufficient_evidence_answer(output_language: Language) -> QuestionAnswer:
     return QuestionAnswer(
         answer=messages[output_language],
         review_status="needs_review",
-        limitations=["insufficient_evidence"],
+        limitations=[limitation],
     )
 

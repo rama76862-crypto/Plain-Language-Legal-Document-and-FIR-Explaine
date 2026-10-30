@@ -82,6 +82,11 @@ async def extract_isolated(path: Path,kind: str,input_language: str,settings: Se
                            *,command=None,on_started=None):
     """Spawn one bounded parser; test-only command injection never comes from HTTP."""
     env=dict(os.environ); env.pop('ML_SERVICE_TOKEN',None); env['PYTHONIOENCODING']='utf-8'; env['PYTHONNOUSERSITE']='1'
+    # Native parser imports may load NumPy/OpenBLAS. Unbounded BLAS threads can
+    # exceed the worker's memory cap before parsing starts, especially on hosts
+    # that advertise many logical CPUs. Parsing is single-worker by design.
+    for variable in ('OPENBLAS_NUM_THREADS','OMP_NUM_THREADS','MKL_NUM_THREADS','NUMEXPR_NUM_THREADS'):
+        env[variable]='1'
     options={'creationflags':subprocess.CREATE_NO_WINDOW} if os.name=='nt' else {'start_new_session':True}
     process=await asyncio.create_subprocess_exec(*(command or [sys.executable,'-m','apps.api.extraction_worker','--child']),
         cwd=Path(__file__).resolve().parents[2],env=env,stdin=asyncio.subprocess.PIPE,

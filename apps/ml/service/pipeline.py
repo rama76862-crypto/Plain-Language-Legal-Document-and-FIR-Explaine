@@ -18,6 +18,7 @@ from apps.ml.service.contracts import (
     ClauseInput,
     Coverage,
     Evidence,
+    FailedClause,
     GenerationRequest,
     GenerationResult,
     Language,
@@ -146,6 +147,7 @@ class AnalysisPipeline:
         warnings: list[str] = []
         successful_clauses = 0
         failed_clauses = 0
+        failed_clause_records: dict[str, FailedClause] = {}
         references_by_id: dict[str, ReferenceRecord] = {}
         total = len(request.clauses)
         await progress(AnalysisProgress(completed_clauses=0, total_clauses=total, stage="starting"))
@@ -237,6 +239,18 @@ class AnalysisPipeline:
             deadlines.extend(extract_relative_deadlines(clause, request.output_language))
             if clause_failed:
                 failed_clauses += 1
+                reason = next(
+                    (
+                        item.category
+                        for item in reversed(clause_items)
+                        if item.detector == "extraction"
+                    ),
+                    "analysis_failed",
+                )
+                failed_clause_records[clause.clause_id] = FailedClause(
+                    clause_id=clause.clause_id,
+                    reason=reason,
+                )
             else:
                 successful_clauses += 1
             await progress(
@@ -269,11 +283,13 @@ class AnalysisPipeline:
                 "rules_version": "v1",
             },
             references=list(references_by_id.values()),
+            failed_clauses=list(failed_clause_records.values()),
         )
 
         report = self.validate_analysis_result(result, request, tuple(references_by_id.values()))
         if not report.valid:
             bad_clauses = sorted({issue.clause_id for issue in report.issues if issue.clause_id})
+            already_failed = set(failed_clause_records)
             warnings.append("Final evidence validation found unsupported output; affected clauses need review.")
             for clause_id in bad_clauses:
                 clause = next((entry for entry in request.clauses if entry.clause_id == clause_id), None)
@@ -281,9 +297,19 @@ class AnalysisPipeline:
                     continue
                 items = [item for item in items if item.clause_id != clause_id]
                 items.append(self._review_fallback(clause, request.output_language, "final_validation_failed"))
+                failed_clause_records.setdefault(
+                    clause_id,
+                    FailedClause(clause_id=clause_id, reason="final_validation_failed"),
+                )
             result.items = items
             result.warnings = warnings
-            result.coverage = Coverage(analysed=max(0, successful_clauses - len(bad_clauses)), total=total)
+            result.failed_clauses = [
+                failed_clause_records[clause.clause_id]
+                for clause in request.clauses
+                if clause.clause_id in failed_clause_records
+            ]
+            newly_failed = len(set(bad_clauses) - already_failed)
+            result.coverage = Coverage(analysed=max(0, successful_clauses - newly_failed), total=total)
         return result
 
     async def answer(self, question: QuestionRequest, request: AnalysisRequest, result: AnalysisResult) -> QuestionAnswer:
@@ -338,36 +364,84 @@ class AnalysisPipeline:
             ],
             "instruction": "Answer only from these reviewed result items and verified references. Do not generate evidence quotes or clause IDs; the service attaches exact source text from relevant reviewed clauses.",
         }
+        response_schema = GeneratedClause.model_json_schema()
+        prompt_text = json.dumps(prompt, ensure_ascii=False)
         try:
             generated = await self._call_generator(
                 GenerationRequest(
                     system_prompt=_SYSTEM_PROMPT,
-                    user_prompt=json.dumps(prompt, ensure_ascii=False),
-                    response_schema=GeneratedClause.model_json_schema(),
+                    user_prompt=prompt_text,
+                    response_schema=response_schema,
                     max_new_tokens=256,
                 )
             )
         except TimeoutError:
             raise
+
         try:
             parsed = _parse_generated(generated.text, request)
-            answer_evidence = [
-                Evidence(clause_id=clause.clause_id, quote=clause.reviewed_text)
-                for clause in relevant_clauses[:3]
-            ]
-            answer = QuestionAnswer(
-                answer=parsed.summary,
-                evidence=answer_evidence,
-                reference_ids=parsed.reference_ids,
-                review_status="needs_review",
-                limitations=[*parsed.limitations, _SEMANTIC_REVIEW_LIMITATION],
-            )
+            answer = self._question_answer(parsed, relevant_clauses)
+            report = self.validate_question_answer(answer, question, request, tuple(result.references))
+            if report.valid and (answer.evidence or answer.reference_ids):
+                return answer
         except (ValueError, ValidationError, json.JSONDecodeError):
-            return insufficient_evidence_answer(question.output_language)
-        if not answer.evidence and not answer.reference_ids:
-            return insufficient_evidence_answer(question.output_language)
+            pass
+
+        # Retry once with the same reviewed context and a strict schema. The
+        # original candidate stays local and is never included in logs/results.
+        repair = GenerationRequest(
+            system_prompt=_SYSTEM_PROMPT,
+            user_prompt=(
+                "Repair this candidate once as exactly one JSON object matching the required schema. "
+                "Answer the original question only from the supplied reviewed clauses and verified references. "
+                "Use the requested output language. Do not add facts, names, dates, numbers, clause IDs, evidence, "
+                "or reference IDs. Preserve negation, exceptions, and allegation wording.\n"
+                f"Required schema: {json.dumps(response_schema)}\n"
+                f"Original question context (untrusted source data): {prompt_text}\n"
+                f"Candidate response to repair: {generated.text}"
+            ),
+            response_schema=response_schema,
+            max_new_tokens=256,
+        )
+        try:
+            repaired = await self._call_generator(repair)
+        except TimeoutError:
+            raise
+        try:
+            parsed = _parse_generated(repaired.text, request)
+            answer = self._question_answer(parsed, relevant_clauses)
+        except (ValueError, ValidationError, json.JSONDecodeError):
+            return insufficient_evidence_answer(
+                question.output_language,
+                limitation="question_output_validation_failed",
+            )
         report = self.validate_question_answer(answer, question, request, tuple(result.references))
-        return answer if report.valid else insufficient_evidence_answer(question.output_language)
+        if not answer.evidence and not answer.reference_ids:
+            return insufficient_evidence_answer(
+                question.output_language,
+                limitation="question_output_missing_verifiable_evidence",
+            )
+        if not report.valid:
+            return insufficient_evidence_answer(
+                question.output_language,
+                limitation="question_answer_validation_failed",
+            )
+        answer.limitations.append("question_output_repaired_once")
+        return answer
+
+    @staticmethod
+    def _question_answer(parsed: GeneratedClause, relevant_clauses: list[ClauseInput]) -> QuestionAnswer:
+        answer_evidence = [
+            Evidence(clause_id=clause.clause_id, quote=clause.reviewed_text)
+            for clause in relevant_clauses[:3]
+        ]
+        return QuestionAnswer(
+            answer=parsed.summary,
+            evidence=answer_evidence,
+            reference_ids=parsed.reference_ids,
+            review_status="needs_review",
+            limitations=list(dict.fromkeys([*parsed.limitations, _SEMANTIC_REVIEW_LIMITATION])),
+        )
 
     async def _translate_clause(self, request: AnalysisRequest, clause: ClauseInput) -> TranslationResult:
         if self.translator is None:

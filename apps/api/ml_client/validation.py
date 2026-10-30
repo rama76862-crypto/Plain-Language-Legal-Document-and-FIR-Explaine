@@ -44,7 +44,7 @@ class Reference(Model):
     title: str
     url: str
     section: str | None
-    version: str
+    version: str | None = None
     excerpt: str
 
 
@@ -131,8 +131,12 @@ def _official_url(url: str) -> bool:
         host.endswith('.gov.in') or host.endswith('.nic.in'))
 
 
-def _failed_ids(data: dict) -> set[str]:
+def _failed_ids(data: dict, *, allow_progress_count: bool = False) -> set[str]:
     failed = data.get('failed_clauses', [])
+    if allow_progress_count and isinstance(failed, int) and not isinstance(failed, bool):
+        if failed < 0:
+            _invalid()
+        return set()
     if not isinstance(failed, list):
         _invalid()
     ids = []
@@ -161,7 +165,13 @@ def validate_snapshot(snapshot: dict, payload: dict) -> dict:
         progress = model.progress
         if progress.total_clauses != len(clauses) or progress.completed_clauses > progress.total_clauses:
             _invalid()
-        failed = _failed_ids(snapshot) | _failed_ids(snapshot.get('progress', {}))
+        progress_data = snapshot.get('progress', {})
+        progress_failed_count = progress_data.get('failed_clauses')
+        if progress_failed_count is not None and (
+                not isinstance(progress_failed_count, int) or isinstance(progress_failed_count, bool)
+                or progress_failed_count < 0):
+            _invalid()
+        failed = _failed_ids(snapshot) | _failed_ids(progress_data, allow_progress_count=True)
         if not failed.issubset(clauses):
             _invalid()
         if model.status in {'complete', 'needs_review'} and model.result is None:
@@ -199,6 +209,8 @@ def validate_snapshot(snapshot: dict, payload: dict) -> dict:
                     _invalid()
             failed |= _failed_ids(snapshot['result'])
             if not failed.issubset(clauses):
+                _invalid()
+            if progress_failed_count is not None and progress_failed_count != len(failed):
                 _invalid()
             # A needs-review placeholder may represent a failed clause, but a supported
             # item cannot simultaneously claim that same clause failed analysis.

@@ -149,6 +149,35 @@ class FabricatedQuoteGenerator(FixtureGenerator):
         )
 
 
+class InvalidQuestionOnceGenerator(FixtureGenerator):
+    def __init__(self) -> None:
+        super().__init__()
+        self.invalid_question_once = False
+
+    async def generate(self, request: GenerationRequest) -> GenerationResult:
+        if request.user_prompt.startswith("Repair this candidate once"):
+            self.calls += 1
+            return GenerationResult(
+                text=json.dumps(
+                    {"summary": "The synthetic monthly fee is INR 1500.", "reference_ids": [], "limitations": []}
+                ),
+                model=self.model_name,
+                latency_ms=1.0,
+                output_tokens=10,
+            )
+        payload = json.loads(request.user_prompt)
+        if "clause_id" not in payload and not self.invalid_question_once:
+            self.calls += 1
+            self.invalid_question_once = True
+            return GenerationResult(
+                text="not-json",
+                model=self.model_name,
+                latency_ms=1.0,
+                output_tokens=1,
+            )
+        return await super().generate(request)
+
+
 def _pipeline() -> tuple[AnalysisPipeline, FixtureClassifier, FixtureGenerator]:
     classifier = FixtureClassifier()
     generator = FixtureGenerator()
@@ -276,6 +305,9 @@ def test_hindi_clause_without_fluent_review_is_preserved_and_marked_for_review()
     assert classifier.calls == []
     assert generator.calls == 0
     assert result.coverage.analysed == 0
+    assert [item.model_dump() for item in result.failed_clauses] == [
+        {"clause_id": "hindi-clause-1", "reason": "translation_uncertain"}
+    ]
     assert result.items[0].category == "translation_uncertain"
     assert result.items[0].review_status == "needs_review"
     assert result.items[0].evidence[0].quote == text
@@ -359,6 +391,38 @@ def test_generated_question_answer_stays_needs_review_without_semantic_review() 
     assert answer.evidence == [Evidence(clause_id=request.clauses[0].clause_id, quote=text)]
 
 
+def test_generated_question_output_gets_one_repair_attempt_then_marks_review() -> None:
+    generator = InvalidQuestionOnceGenerator()
+    pipeline = AnalysisPipeline(
+        classifier=FixtureClassifier(),
+        generator=generator,
+        translator=NeedsReviewTranslator(),
+        document_index_factory=build_document_index,
+        agreement_attention_items=agreement_attention_items,
+        validate_analysis_result=validate_analysis_result,
+        validate_question_answer=validate_question_answer,
+    )
+    text = "The synthetic monthly fee is INR 1500 and is due on the fifth day of each month."
+    request = _request("agreement", "agreement-question-repair", text)
+    result, _ = asyncio.run(_analyze(pipeline, request))
+    question = QuestionRequest(
+        document_id=request.document_id,
+        analysis_id=request.analysis_id,
+        document_revision=request.document_revision,
+        question="What is the monthly fee?",
+        output_language="en",
+        client_request_id="synthetic-question-repair",
+    )
+
+    answer = asyncio.run(pipeline.answer(question, request, result))
+
+    assert generator.calls == 3  # analysis, invalid question output, one repair
+    assert answer.review_status == "needs_review"
+    assert "question_output_repaired_once" in answer.limitations
+    assert "semantic_entailment_not_independently_verified" in answer.limitations
+    assert answer.evidence == [Evidence(clause_id=request.clauses[0].clause_id, quote=text)]
+
+
 def test_model_supplied_fabricated_quote_and_clause_id_are_rejected() -> None:
     classifier = FixtureClassifier()
     generator = FabricatedQuoteGenerator()
@@ -377,6 +441,9 @@ def test_model_supplied_fabricated_quote_and_clause_id_are_rejected() -> None:
     result, _ = asyncio.run(_analyze(pipeline, request))
 
     assert result.coverage.analysed == 0
+    assert [item.model_dump() for item in result.failed_clauses] == [
+        {"clause_id": "other-clause-fabricated", "reason": "model_output_validation_failed"}
+    ]
     assert result.items[0].category == "model_output_validation_failed"
     assert result.items[0].evidence[0].quote == text
     assert "fabricated quote" not in result.items[0].explanation
