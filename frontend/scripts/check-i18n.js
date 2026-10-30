@@ -4,6 +4,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import ts from 'typescript';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -52,6 +53,24 @@ for (const key of enKeys) {
     hasMismatch = true;
   }
 }
+
+function checkUsages(directory) {
+  for(const entry of fs.readdirSync(directory,{withFileTypes:true})) {
+    const filename=path.join(directory,entry.name);
+    if(entry.isDirectory()) {checkUsages(filename);continue;}
+    if(!/\.tsx?$/.test(filename)) continue;
+    const source=ts.createSourceFile(filename,fs.readFileSync(filename,'utf8'),ts.ScriptTarget.Latest,true,filename.endsWith('.tsx')?ts.ScriptKind.TSX:ts.ScriptKind.TS);
+    function visit(node) {
+      if(ts.isCallExpression(node)&&ts.isIdentifier(node.expression)&&node.expression.text==='t'&&node.arguments.length&&ts.isStringLiteral(node.arguments[0])&&!enKeys.has(node.arguments[0].text)) {
+        console.error(`Missing dictionary key used in ${path.relative(localesDir,filename)}: ${node.arguments[0].text}`);
+        hasMismatch=true;
+      }
+      ts.forEachChild(node,visit);
+    }
+    visit(source);
+  }
+}
+checkUsages(path.resolve(__dirname,'../src'));
 
 if (!hasMismatch) {
   console.log('✅ All keys in en.ts are mirrored in hi.ts and pa.ts with 100% parity!');

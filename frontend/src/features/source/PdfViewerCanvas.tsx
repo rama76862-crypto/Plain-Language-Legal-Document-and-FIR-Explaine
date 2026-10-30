@@ -151,20 +151,27 @@ export const PdfViewerCanvas = React.forwardRef<PdfViewerRef, PdfViewerCanvasPro
           try {
             const [x0, y0, x1, y1] = clause.source_ref.bbox;
 
-            // BE1/PyMuPDF supplies top-left PDF-point coordinates.
-            const left = x0 * zoomScale;
-            // BE1/PyMuPDF uses top-left coordinates, matching the viewer overlay.
-            const top = y0 * zoomScale;
-            const width = (x1 - x0) * zoomScale;
-            const height = (y1 - y0) * zoomScale;
+            const minX = Math.min(x0, x1);
+            const minY = Math.min(y0, y1);
+            const rawW = Math.abs(x1 - x0);
+            const rawH = Math.abs(y1 - y0);
 
-            setHighlightBbox({
-              pageNum,
-              left,
-              top,
-              width,
-              height,
-            });
+            if (rawW > 0 || rawH > 0) {
+              const left = Math.max(0, minX * zoomScale);
+              const top = Math.max(0, minY * zoomScale);
+              const width = Math.max(16, rawW * zoomScale);
+              const height = Math.max(14, rawH * zoomScale);
+
+              setHighlightBbox({
+                pageNum,
+                left,
+                top,
+                width,
+                height,
+              });
+            } else {
+              setHighlightBbox(null);
+            }
           } catch {
             setHighlightBbox(null);
           }

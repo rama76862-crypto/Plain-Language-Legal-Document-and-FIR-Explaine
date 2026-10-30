@@ -53,11 +53,11 @@ export const ClauseReviewCard: React.FC<ClauseReviewCardProps> = ({
   const handleSave = () => {
     const trimmed = editText.trim();
     if (trimmed.length === 0) {
-      setErrorMsg('Clause text cannot be empty.');
+      setErrorMsg(t('review.emptyClauseError'));
       return;
     }
     if (trimmed.length > 10000) {
-      setErrorMsg('Clause exceeds maximum 10,000 character limit.');
+      setErrorMsg(t('review.maxLimitError'));
       return;
     }
 
@@ -157,7 +157,7 @@ export const ClauseReviewCard: React.FC<ClauseReviewCardProps> = ({
 
           <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
             <span className="font-mono text-xs text-mute">
-              {t('review.charCount', { count: editText.length })} · <MonoLabel>Ctrl+Enter to save</MonoLabel>
+              {t('review.charCount', { count: editText.length })} · <MonoLabel>{t('review.ctrlEnterToSave')}</MonoLabel>
             </span>
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" onClick={handleCancel}>
@@ -183,7 +183,7 @@ export const ClauseReviewCard: React.FC<ClauseReviewCardProps> = ({
           {/* Diff View Toggle if edited */}
           {isModified && showDiff && (
             <div className="p-3 rounded bg-bg2/80 border border-line text-xs space-y-1 font-mono">
-              <div className="text-mute font-bold">Original Extraction:</div>
+              <div className="text-mute font-bold">{t('review.originalExtraction')}</div>
               <p className="text-mute line-through">{clause.source_text}</p>
             </div>
           )}
@@ -205,7 +205,7 @@ export const ClauseReviewCard: React.FC<ClauseReviewCardProps> = ({
                   onClick={() => setShowDiff(!showDiff)}
                   className="text-mute hover:text-navy underline text-xs font-mono ml-2"
                 >
-                  {showDiff ? 'Hide diff' : t('review.showOriginal')}
+                  {showDiff ? t('review.hideDiff') : t('review.showOriginal')}
                 </button>
               )}
             </div>

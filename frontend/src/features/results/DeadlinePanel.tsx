@@ -24,12 +24,14 @@ import { useResult } from './ResultContext';
 import { EvidenceButton } from './EvidenceButton';
 import { LegalAidDirectoryCard } from './LegalAidDirectoryCard';
 import { GlassCard, Banner, MonoLabel } from '../../design/primitives';
+import { useT } from '../../lib/i18n';
 
 interface DeadlinePanelProps {
   onNavigateEvidence: (clauseId: string) => void;
 }
 
 export const DeadlinePanel: React.FC<DeadlinePanelProps> = ({ onNavigateEvidence }) => {
+  const { t } = useT();
   const { result, outputLanguage } = useResult();
   const deadlines = result?.deadlines || [];
 
@@ -88,8 +90,7 @@ export const DeadlinePanel: React.FC<DeadlinePanelProps> = ({ onNavigateEvidence
         <div className="flex items-center gap-2">
           <ShieldAlert className="w-4 h-4 text-blue shrink-0" />
           <span>
-            Information only. Deadlines can have legal consequences; ask a legal aid provider if
-            unsure.
+            {t('deadlines.datesDisclaimer')}
           </span>
         </div>
       </Banner>
@@ -98,7 +99,7 @@ export const DeadlinePanel: React.FC<DeadlinePanelProps> = ({ onNavigateEvidence
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="p-3.5 rounded-lg bg-paper border border-line flex items-center justify-between">
           <div>
-            <div className="text-[11px] font-mono text-mute uppercase">Explicit Dates</div>
+            <div className="text-[11px] font-mono text-mute uppercase">{t('deadlines.explicitDatesLabel')}</div>
             <div className="text-xl font-bold font-mono text-navy mt-0.5">
               {explicitDeadlines.length}
             </div>
@@ -108,7 +109,7 @@ export const DeadlinePanel: React.FC<DeadlinePanelProps> = ({ onNavigateEvidence
 
         <div className="p-3.5 rounded-lg bg-paper border border-line flex items-center justify-between">
           <div>
-            <div className="text-[11px] font-mono text-mute uppercase">Needs Outside Info</div>
+            <div className="text-[11px] font-mono text-mute uppercase">{t('deadlines.needsInfoLabel')}</div>
             <div className="text-xl font-bold font-mono text-navy mt-0.5">
               {needsInfoDeadlines.length}
             </div>
@@ -118,7 +119,7 @@ export const DeadlinePanel: React.FC<DeadlinePanelProps> = ({ onNavigateEvidence
 
         <div className="p-3.5 rounded-lg bg-paper border border-line flex items-center justify-between">
           <div>
-            <div className="text-[11px] font-mono text-mute uppercase">Needs Review</div>
+            <div className="text-[11px] font-mono text-mute uppercase">{t('deadlines.needsReviewLabel')}</div>
             <div className="text-xl font-bold font-mono text-navy mt-0.5">
               {needsReviewDeadlines.length}
             </div>
@@ -133,9 +134,9 @@ export const DeadlinePanel: React.FC<DeadlinePanelProps> = ({ onNavigateEvidence
           <div className="flex items-center justify-between">
             <span className="text-xs font-mono font-bold text-navy uppercase flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-blue" />
-              Document Timeline Ribbon
+              {t('deadlines.timelineRibbon')}
             </span>
-            <span className="text-[10px] font-mono text-mute">Chronological & Relative Anchors</span>
+            <span className="text-[10px] font-mono text-mute">{t('deadlines.ribbonSub')}</span>
           </div>
 
           <div className="flex items-center gap-2 overflow-x-auto py-2">
@@ -161,7 +162,7 @@ export const DeadlinePanel: React.FC<DeadlinePanelProps> = ({ onNavigateEvidence
                   ?
                 </div>
                 <span className="text-blue font-semibold">
-                  {d.anchor ? d.anchor.replace(/_/g, ' ') : 'Anchor event'}
+                  {d.anchor ? d.anchor.replace(/_/g, ' ') : t('deadlines.anchorEvent')}
                 </span>
                 <MonoLabel>{d.clause_id}</MonoLabel>
               </div>
@@ -175,11 +176,10 @@ export const DeadlinePanel: React.FC<DeadlinePanelProps> = ({ onNavigateEvidence
         <GlassCard className="p-8 text-center space-y-2">
           <Calendar className="w-8 h-8 text-mute mx-auto" />
           <h4 className="text-sm font-bold text-navy">
-            No dates or time periods were detected. Read the document for deadlines.
+            {t('deadlines.emptyState')}
           </h4>
           <p className="text-xs text-mute max-w-sm mx-auto">
-            Legal documents often contain critical timing provisions in general terms. Review all
-            clauses manually.
+            {t('deadlines.emptyStateSub')}
           </p>
         </GlassCard>
       )}
@@ -190,10 +190,10 @@ export const DeadlinePanel: React.FC<DeadlinePanelProps> = ({ onNavigateEvidence
           <div className="pb-1 border-b border-line">
             <h3 className="text-sm font-bold text-navy flex items-center gap-2">
               <Calendar className="w-4 h-4 text-ok" />
-              Dates stated in the document ({explicitDeadlines.length})
+              {t('deadlines.statedDatesTitle')} ({explicitDeadlines.length})
             </h3>
             <p className="text-xs text-mute">
-              Explicit calendar dates or established recurring cycles.
+              {t('deadlines.statedDatesSub')}
             </p>
           </div>
 
@@ -231,11 +231,10 @@ export const DeadlinePanel: React.FC<DeadlinePanelProps> = ({ onNavigateEvidence
           <div className="pb-1 border-b border-line">
             <h3 className="text-sm font-bold text-navy flex items-center gap-2">
               <HelpCircle className="w-4 h-4 text-blue" />
-              Time periods that need more information ({needsInfoDeadlines.length})
+              {t('deadlines.relativePeriodsTitle')} ({needsInfoDeadlines.length})
             </h3>
             <p className="text-xs text-mute">
-              This document counts days from an event that is not in the file. The app does not
-              calculate legal deadlines.
+              {t('deadlines.relativePeriodNote')}
             </p>
           </div>
 
@@ -264,17 +263,17 @@ export const DeadlinePanel: React.FC<DeadlinePanelProps> = ({ onNavigateEvidence
                 {/* Missing Information Callout Row */}
                 <div className="p-2.5 rounded bg-paper border border-line text-xs space-y-1">
                   <div className="text-[11px] font-mono uppercase text-mute font-semibold">
-                    Starting event anchor:
+                    {t('deadlines.startingAnchor')}
                   </div>
                   <div className="text-navy font-mono font-medium">
-                    Starts from: <strong>{d.anchor ? d.anchor.replace(/_/g, ' ') : 'unspecified event'}</strong>
+                    {t('deadlines.startsFrom')} <strong>{d.anchor ? d.anchor.replace(/_/g, ' ') : 'unspecified event'}</strong>
                   </div>
 
                   {d.missing_information && d.missing_information.length > 0 && (
                     <div className="pt-1 border-t border-line/60 text-amber-800 flex items-center gap-1 font-semibold">
                       <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                       <span>
-                        Missing: {d.missing_information.map(formatMissingInfo).join(', ')}
+                        {t('deadlines.missingInfoPrefix')} {d.missing_information.map(formatMissingInfo).join(', ')}
                       </span>
                     </div>
                   )}
@@ -291,7 +290,7 @@ export const DeadlinePanel: React.FC<DeadlinePanelProps> = ({ onNavigateEvidence
           <div className="pb-1 border-b border-line">
             <h3 className="text-sm font-bold text-amber-900 flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-600" />
-              Dates requiring verification ({needsReviewDeadlines.length})
+              {t('deadlines.needsReviewTitle', { count: needsReviewDeadlines.length })}
             </h3>
           </div>
 
@@ -306,7 +305,7 @@ export const DeadlinePanel: React.FC<DeadlinePanelProps> = ({ onNavigateEvidence
                   />
                 </div>
                 <p className="text-xs text-amber-800">
-                  Please verify this date against the original document.
+                  {t('deadlines.needsReviewSub')}
                 </p>
                 <blockquote className="text-xs font-serif italic text-mute border-l-2 border-line pl-2">
                   "{d.source_quote}"

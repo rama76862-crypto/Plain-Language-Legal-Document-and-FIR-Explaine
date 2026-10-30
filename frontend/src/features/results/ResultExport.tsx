@@ -21,9 +21,12 @@ import { useResult } from './ResultContext';
 import { useSession } from '../../lib/session';
 import { GlassCard, Button, Banner } from '../../design/primitives';
 import { downloadReviewReport } from '../../lib/api';
+import { useT } from '../../lib/i18n';
 
 export const ResultExport: React.FC = () => {
-  const { result, outputLanguage, analysisId } = useResult();
+  const { t } = useT();
+  const { result, outputLanguage, qaHistory } = useResult();
+  const analysisId=result?.analysis_id??null;
   const { filename, revision, inputLanguage, documentId, sessionToken } = useSession();
   const [includeQuestions, setIncludeQuestions] = useState<boolean>(true);
   const [downloadSuccess, setDownloadSuccess] = useState<boolean>(false);
@@ -53,6 +56,10 @@ export const ResultExport: React.FC = () => {
   };
 
   const handleDownloadMarkdown = () => {
+    if (documentId && sessionToken && analysisId) {
+      void downloadReport('md');
+      return;
+    }
     const cleanName = sanitizeFilename(filename);
     const downloadFilename = `nyayasarathi-${cleanName}-r${revision}-${outputLanguage}.md`;
 
@@ -152,6 +159,30 @@ export const ResultExport: React.FC = () => {
       lines.push('');
     }
 
+    // Questions & Answers (if requested)
+    if (includeQuestions && qaHistory.length > 0) {
+      lines.push('## Document Questions & Answers\n');
+      lines.push('*The following questions were asked in-memory during this session against this reviewed document revision:*\n');
+      qaHistory.forEach((qa, idx) => {
+        lines.push(`### Q${idx + 1}: ${qa.question}`);
+        if (qa.answer) {
+          lines.push(`- **Explanation**: ${qa.answer.answer}`);
+          lines.push(`- **Review Status**: ${qa.answer.review_status}`);
+          if (qa.answer.evidence && qa.answer.evidence.length > 0) {
+            qa.answer.evidence.forEach((ev) => {
+              lines.push(`- **Source Evidence (Clause ${ev.clause_id})**: "${ev.quote}"`);
+            });
+          }
+          if (qa.answer.limitations && qa.answer.limitations.length > 0) {
+            lines.push(`- **Limitations**: ${qa.answer.limitations.join(', ')}`);
+          }
+        } else if (qa.error) {
+          lines.push(`- *Status: Question error (${qa.error.message})*`);
+        }
+        lines.push('');
+      });
+    }
+
     // Provenance
     lines.push('## Local Model Provenance');
     lines.push(`- Classifier Engine: ${result.provenance.classifier_version}`);
@@ -202,10 +233,10 @@ export const ResultExport: React.FC = () => {
       <div className="pb-2 border-b border-line space-y-1">
         <h3 className="text-sm font-bold text-navy flex items-center gap-2">
           <Download className="w-4 h-4 text-blue" />
-          Export & Print Explanations
+          {t('export.title')}
         </h3>
         <p className="text-xs text-mute">
-          Save explanations and evidence to your device. Use Delete session for cleanup; abandoned server sessions expire.
+          {t('export.sub')}
         </p>
       </div>
 
@@ -222,7 +253,7 @@ export const ResultExport: React.FC = () => {
       <GlassCard className="p-6 space-y-5">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <h4 className="text-sm font-bold text-navy">Download Offline Markdown (.md)</h4>
+            <h4 className="text-sm font-bold text-navy">{t('export.downloadMd')}</h4>
             <p className="text-xs text-mute">
               Plain text with headings, source quotations, review warnings and any admitted references.
             </p>
@@ -235,7 +266,7 @@ export const ResultExport: React.FC = () => {
             className="shrink-0"
           >
             <Download className="w-4 h-4" />
-            <span>Download Markdown</span>
+            <span>{t('export.downloadMd')}</span>
           </Button>
         </div>
 
@@ -257,13 +288,18 @@ export const ResultExport: React.FC = () => {
             ) : (
               <Square className="w-4 h-4 text-mute shrink-0" />
             )}
-            <span>Include in-memory question and answer history in export</span>
+            <span>
+              {t('export.includeQa')}
+              {qaHistory.length > 0
+                ? ` (${qaHistory.length})`
+                : ''}
+            </span>
           </button>
         </div>
 
         <div className="text-[11px] text-mute flex items-center gap-1.5 font-mono pt-1">
           <Lock className="w-3.5 h-3.5 text-ok" />
-          <span>The exported file stays on your device after the session is deleted.</span>
+          <span>{t('export.localDeviceNote')}</span>
         </div>
       </GlassCard>
 
@@ -271,7 +307,7 @@ export const ResultExport: React.FC = () => {
       <GlassCard className="p-6 space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <h4 className="text-sm font-bold text-navy">Print or Save as PDF</h4>
+            <h4 className="text-sm font-bold text-navy">{t('export.printButton')}</h4>
             <p className="text-xs text-mute">
               Formatted clean layout optimized for A4/Letter paper with high-contrast text.
             </p>
@@ -284,7 +320,7 @@ export const ResultExport: React.FC = () => {
             className="shrink-0"
           >
             <Printer className="w-4 h-4" />
-            <span>Print Document</span>
+            <span>{t('export.printButton')}</span>
           </Button>
         </div>
       </GlassCard>
@@ -299,6 +335,89 @@ export const ResultExport: React.FC = () => {
           Reports contain your document text and generated results. Keep downloaded copies private.
           Session tokens and internal service addresses are excluded from the report format.
         </p>
+      </div>
+
+      {/* Print-Only Formatted Layout */}
+      <div className="hidden print:block print:p-8 space-y-6 text-black bg-white">
+        <div className="border-b-2 border-black pb-4 space-y-2">
+          <h1 className="text-xl font-bold">NyayaSarathi Plain-Language Explanation</h1>
+          <p className="text-xs text-gray-600">
+            Information only. This is not legal advice and does not replace a qualified advocate.
+          </p>
+          <div className="grid grid-cols-2 gap-2 text-xs pt-2 font-mono">
+            <div><strong>Document:</strong> {filename || 'Uploaded Document'} (Rev {revision})</div>
+            <div><strong>Type:</strong> {result.document_type.toUpperCase()}</div>
+            <div><strong>Input Language:</strong> {inputLanguage.toUpperCase()}</div>
+            <div><strong>Explanation Language:</strong> {outputLanguage.toUpperCase()}</div>
+            <div><strong>Coverage:</strong> Analysed {result.coverage.analysed} of {result.coverage.total} clauses</div>
+            <div><strong>Date:</strong> {new Date().toLocaleDateString()}</div>
+          </div>
+        </div>
+
+        {/* Clauses */}
+        <div className="space-y-4">
+          <h2 className="text-sm font-bold uppercase tracking-wider border-b border-gray-300 pb-1">
+            Clause-by-Clause Explanations
+          </h2>
+          {result.items.map((item) => (
+            <div key={item.item_id} className="text-xs space-y-1 pb-3 border-b border-gray-200">
+              <div className="font-bold">
+                Clause {item.clause_id} {item.category ? `[${item.category.replace(/_/g, ' ')}]` : ''} ({item.review_status})
+              </div>
+              <div>{item.explanation}</div>
+              {item.evidence?.map((ev, i) => (
+                <blockquote key={i} className="pl-3 border-l-2 border-gray-400 italic text-gray-700">
+                  "{ev.quote}"
+                </blockquote>
+              ))}
+            </div>
+          ))}
+        </div>
+
+        {/* Deadlines */}
+        {result.deadlines.length > 0 && (
+          <div className="space-y-3">
+            <h2 className="text-sm font-bold uppercase tracking-wider border-b border-gray-300 pb-1">
+              Dates and Deadlines
+            </h2>
+            {result.deadlines.map((d) => (
+              <div key={d.deadline_id} className="text-xs space-y-0.5">
+                <span className="font-semibold">{d.display_text}</span> (Clause {d.clause_id})
+                <div className="italic text-gray-600">"{d.source_quote}"</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Q&A in Print if requested */}
+        {includeQuestions && qaHistory.length > 0 && (
+          <div className="space-y-3">
+            <h2 className="text-sm font-bold uppercase tracking-wider border-b border-gray-300 pb-1">
+              Questions & Answers ({qaHistory.length})
+            </h2>
+            {qaHistory.map((qa, idx) => (
+              <div key={qa.id || idx} className="text-xs space-y-1 pb-2 border-b border-gray-200">
+                <div className="font-bold">Q: {qa.question}</div>
+                {qa.answer ? (
+                  <>
+                    <div>A: {qa.answer.answer}</div>
+                    {qa.answer.evidence?.map((ev, i) => (
+                      <div key={i} className="italic text-gray-600 pl-2">Evidence: "{ev.quote}"</div>
+                    ))}
+                  </>
+                ) : (
+                  <div className="italic text-red-600">Error: {qa.error?.message}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="pt-4 border-t border-gray-300 text-[10px] text-gray-500 flex justify-between">
+          <span>NyayaSarathi Civic Legal Empowerment · NALSA Helpline: 15100</span>
+          <span>Zero cloud persistence</span>
+        </div>
       </div>
     </div>
   );

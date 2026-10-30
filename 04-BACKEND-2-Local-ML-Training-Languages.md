@@ -1,3 +1,5 @@
+> Current integration update (30 October 2026): read FULL-FEATURE-VERIFICATION.md and the application READMEs for implemented behavior and actual checks. This document contains historical development specifications. All frontend fixture/mock modes and canned results are removed; older instructions allowing frontend fixtures are superseded. Current upload defaults are 25 MB / 50 PDF pages. Reports use authenticated backend JSON/MD/HTML endpoints. Language/legal review gates remain open.
+
 # BE2 — GPU owner: datasets, trained classifier, local models and validation
 
 ## Integration addendum — complete feature map (30 October 2026)

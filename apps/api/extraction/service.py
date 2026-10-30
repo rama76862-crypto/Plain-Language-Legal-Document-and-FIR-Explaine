@@ -76,6 +76,29 @@ def _segments(text):
     return [part.strip() for part in output if part.strip()]
 
 
+def _coalesce_native_blocks(blocks):
+    """Keep tight same-column heading/body and wrapped lines in one source unit.
+
+    PDF producers can emit a new text block for every line. Respect numbering,
+    columns and visible paragraph gaps; never join distant/parallel blocks.
+    """
+    output=[]
+    for block in blocks:
+        text=block[4].strip()
+        if not text: continue
+        if output:
+            previous=output[-1]
+            gap=block[1]-previous[3]
+            same_column=abs(block[0]-previous[0])<=24 and min(block[2],previous[2])>max(block[0],previous[0])
+            # ReportLab/PDF word processors commonly leave 1-3 point gaps
+            # between wrapped baselines. A five-point cap preserves paragraphs.
+            if same_column and -1<=gap<=5 and not _NUMBERED.match(text):
+                output[-1]=(min(previous[0],block[0]),min(previous[1],block[1]),max(previous[2],block[2]),max(previous[3],block[3]),previous[4].rstrip()+'\n'+text,*previous[5:])
+                continue
+        output.append((*block[:4],text,*block[5:]))
+    return output
+
+
 def _pdf(path, input_language, settings, progress):
     import pymupdf as fitz
     # MuPDF diagnostics can echo attacker-controlled tokens from a damaged
@@ -103,6 +126,10 @@ def _pdf(path, input_language, settings, progress):
             # preserve image bytes while reading a page's text blocks.
             flags = fitz.TEXTFLAGS_BLOCKS & ~fitz.TEXT_PRESERVE_IMAGES
             blocks = [block for block in page.get_text('blocks', sort=True, flags=flags) if len(block) < 7 or block[6] == 0]
+            original_block_count=len(blocks)
+            blocks=_coalesce_native_blocks(blocks)
+            if len(blocks)<original_block_count:
+                warnings.append(f'NATIVE_LAYOUT_GROUPING: page {index+1}; adjacent text lines grouped; verify clause boundaries against the original.')
             native = '\n'.join(block[4] for block in blocks).strip()
             method, review = 'text', bool(re.search(r'[\u0900-\u097f\u0a00-\u0a7f]',native))
             if review:

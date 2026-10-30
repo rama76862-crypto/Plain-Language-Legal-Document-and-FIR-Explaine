@@ -6,14 +6,14 @@ from typing import Any
 from apps.ml.service.contracts import ClauseInput
 from apps.ml.validation.result_validator import _critical_mentions
 
-VERSION = "source-facts-v2"
+VERSION = "source-facts-v3"
 _CONDITION = re.compile(r"\b(?:unless|except|provided\s+that|subject\s+to|only\s+if|if|until)\b|जब तक|यदि|बशर्ते|ਜੇ|ਜਦੋਂ ਤੱਕ", re.I)
 _NEGATIVE = re.compile(r"\b(?:no|not|never|cannot|without|prohibit\w*|exclud\w*)\b|नहीं|नही|बिना|ਨਹੀਂ|ਬਿਨਾਂ", re.I)
 _ANCHORS = {
     "receipt": re.compile(r"\b(?:receipt|received|receiving)\b|प्राप्ति|प्राप्त|ਪ੍ਰਾਪਤੀ|ਮਿਲਣ", re.I),
     "delivery": re.compile(r"\bdeliver(?:y|ed)\b|डिलीवरी|ਡਿਲੀਵਰੀ", re.I),
     "service": re.compile(r"\bserv(?:ice|ed)\b|तामील|ਤਾਮੀਲ", re.I),
-    "due_date": re.compile(r"\bdue\s+date\b|नियत तिथि|ਨਿਯਤ ਮਿਤੀ", re.I),
+    "due_date": re.compile(r"\bdue\s+date\b|\b(?:rent|payment|repayment|instalment|installment)\b.{0,40}\b(?:late|overdue|on\s+time)\b|\b(?:pay|paid)\b.{0,20}\bon\s+time\b|नियत तिथि|ਨਿਯਤ ਮਿਤੀ", re.I),
     "signature": re.compile(r"\b(?:signing|signature|signed)\b|हस्ताक्षर|ਦਸਤਖਤ", re.I),
 }
 _ROLE = re.compile(r"\b(?:landlord|tenant|borrower|lender|buyer|seller|complainant|accused|recipient|sender|employer|employee|customer|provider)\b", re.I)
@@ -66,6 +66,8 @@ def grounding_issues(source: str, summary: str, *, output_language: str = "en", 
     for name, pattern in _ANCHORS.items():
         if pattern.search(summary) and not pattern.search(source):
             issues.append(f"unsupported_anchor:{name}")
+        if require_coverage and name in {"receipt","delivery","service","signature"} and pattern.search(source) and not pattern.search(summary):
+            issues.append(f"omitted_anchor:{name}")
     if re.search(r"\bconsent\b", summary, re.I) and not re.search(r"\b(?:consent|permission|authori[sz])\w*\b", source, re.I):
         issues.append("unsupported_consent_claim")
     if (require_coverage or re.search(r"\b(?:if|unless|within|after|before|when)\b",summary,re.I)) and re.search(r"payment.{0,25}receiv|receiv.{0,25}payment", source, re.I) and not re.search(r"payment.{0,25}receiv|receiv.{0,25}payment", summary, re.I):

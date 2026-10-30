@@ -6,7 +6,6 @@
  * - Assurance MarqueeBand
  * - InactivityModal & DeleteSessionDialog
  * - Persistent disclaimer footer & NALSA link
- * - Development fixture badge
  */
 
 import React, { useState, useEffect } from 'react';
@@ -22,7 +21,7 @@ import { config } from '../lib/config';
 import { ShieldCheck, Clock, ExternalLink } from 'lucide-react';
 
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { documentId, inactivityRemainingSeconds } = useSession();
+  const { documentId, inactivityRemainingSeconds, serverExpiresAt } = useSession();
   const { t, uiLanguage, setUiLanguage } = useT();
   const location = useLocation();
 
@@ -66,17 +65,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
         <BootIntro onDone={() => setBootDone(true)} ready={bootReady} />
       )}
 
-      {/* Development Fixture Badge */}
-      {config.useFixtures && (
-        <aside
-          role="status"
-          aria-label="Development mock fixture active"
-          className="fixed top-2 left-1/2 -translate-x-1/2 z-50 px-3 py-1 bg-caution-bg text-caution-ink border border-caution rounded-pill text-xs font-mono font-bold shadow-md pointer-events-none select-none tracking-wide flex items-center gap-1.5"
-        >
-          <span>⚠</span>
-          <span>DEVELOPMENT FIXTURE MODE</span>
-        </aside>
-      )}
+
 
       {/* Floating Glass Header */}
       <header className="sticky top-0 z-40 my-3 mx-auto w-[min(1120px,94%)] flex items-center justify-between gap-3 px-4 py-2.5 rounded-[18px] bg-[rgba(255,255,255,0.74)] backdrop-blur-md border border-[rgba(14,26,61,0.1)] shadow-[0_18px_50px_-18px_rgba(20,48,107,0.35)]">
@@ -126,7 +115,13 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
           {/* Inactivity Timer Chip (only when session exists) */}
           {documentId && (
-            <Tooltip content={t('nav.inactivityTooltip')}>
+            <Tooltip
+              content={
+                serverExpiresAt
+                  ? t('nav.serverRetentionTooltip')
+                  : t('nav.inactivityTooltip')
+              }
+            >
               <div
                 tabIndex={0}
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-pill bg-paper border border-line text-xs font-mono text-mute shadow-sm"

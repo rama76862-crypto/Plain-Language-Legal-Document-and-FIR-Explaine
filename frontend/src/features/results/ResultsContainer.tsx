@@ -12,8 +12,6 @@ import { SourceDocumentViewer, SourceDocumentViewerRef } from '../source/SourceD
 import { ResultsWorkspace } from './ResultsWorkspace';
 import { useSession } from '../../lib/session';
 import { getExtraction } from '../../lib/api';
-import { config } from '../../lib/config';
-import { fixtureRentAgreementExtraction } from '../../lib/fixtures';
 import type { Clause } from '../../lib/types';
 import { Skeleton, SegmentedControl } from '../../design/primitives';
 
@@ -42,11 +40,6 @@ export const ResultsContainer: React.FC = () => {
     let isCancelled = false;
 
     async function load() {
-      if (config.useFixtures) {
-        setClauses(fixtureRentAgreementExtraction.clauses);
-        setLoadingClauses(false);
-        return;
-      }
 
       if (!documentId || !sessionToken) {
         navigate('/');

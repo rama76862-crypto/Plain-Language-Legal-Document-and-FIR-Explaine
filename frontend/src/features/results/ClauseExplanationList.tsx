@@ -26,6 +26,7 @@ import { useResult } from './ResultContext';
 import { useSession } from '../../lib/session';
 import { EvidenceCard } from './EvidenceCard';
 import { Banner, MonoLabel } from '../../design/primitives';
+import { useT } from '../../lib/i18n';
 
 interface ClauseExplanationListProps {
   onNavigateEvidence: (clauseId: string) => void;
@@ -38,6 +39,7 @@ export const ClauseExplanationList: React.FC<ClauseExplanationListProps> = ({
   onNavigateEvidence,
   clauses: externalClauses,
 }) => {
+  const { t } = useT();
   const { result, outputLanguage } = useResult();
   const { selectedClauseId } = useSession();
 
@@ -133,7 +135,7 @@ export const ClauseExplanationList: React.FC<ClauseExplanationListProps> = ({
           <div className="flex items-center gap-2">
             <Scale className="w-4 h-4 text-blue shrink-0" />
             <span className="font-semibold">
-              An FIR records allegations. It is not a finding of guilt.
+              {t('disclaimers.fir')}
             </span>
           </div>
         </Banner>
@@ -144,8 +146,7 @@ export const ClauseExplanationList: React.FC<ClauseExplanationListProps> = ({
           <div className="flex items-center gap-2">
             <FileCheck className="w-4 h-4 text-blue shrink-0" />
             <span>
-              This describes what the document asks for. Decide what to do after reading the whole
-              notice and, if needed, getting legal aid.
+              {t('disclaimers.notice')}
             </span>
           </div>
         </Banner>
@@ -161,7 +162,7 @@ export const ClauseExplanationList: React.FC<ClauseExplanationListProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search clauses, quotes, or explanations…"
+              placeholder={t('results.searchPlaceholder')}
               className="w-full pl-9 pr-3 py-1.5 text-xs rounded-md border border-line bg-bg focus:outline-hidden focus:ring-2 focus:ring-blue"
             />
           </div>
@@ -174,8 +175,8 @@ export const ClauseExplanationList: React.FC<ClauseExplanationListProps> = ({
               className={`p-1.5 rounded transition-colors ${
                 viewMode === 'card' ? 'bg-paper text-navy shadow-xs font-bold' : 'text-mute'
               }`}
-              title="Card view"
-              aria-label="Switch to card view"
+              title={t('results.cardView')}
+              aria-label={t('results.cardView')}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
             </button>
@@ -185,8 +186,8 @@ export const ClauseExplanationList: React.FC<ClauseExplanationListProps> = ({
               className={`p-1.5 rounded transition-colors ${
                 viewMode === 'table' ? 'bg-paper text-navy shadow-xs font-bold' : 'text-mute'
               }`}
-              title="Table view"
-              aria-label="Switch to table view"
+              title={t('results.tableView')}
+              aria-label={t('results.tableView')}
             >
               <Table className="w-3.5 h-3.5" />
             </button>
@@ -197,7 +198,7 @@ export const ClauseExplanationList: React.FC<ClauseExplanationListProps> = ({
         <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-line/60">
           <span className="text-[11px] font-mono text-mute flex items-center gap-1 mr-1">
             <SlidersHorizontal className="w-3 h-3" />
-            Filter:
+            {t('results.filterLabel')}
           </span>
 
           <button
@@ -209,7 +210,7 @@ export const ClauseExplanationList: React.FC<ClauseExplanationListProps> = ({
                 : 'bg-bg2 text-mute hover:text-navy'
             }`}
           >
-            All ({items.length})
+            {t('results.filterAll', { count: items.length })}
           </button>
 
           <button
@@ -221,7 +222,7 @@ export const ClauseExplanationList: React.FC<ClauseExplanationListProps> = ({
                 : 'bg-amber-500/10 text-amber-800 hover:bg-amber-500/20'
             }`}
           >
-            <span>Attention items</span>
+            <span>{t('results.filterConcerns')}</span>
             <span className="text-[10px] font-mono font-bold">({attentionCount})</span>
           </button>
 
@@ -234,7 +235,7 @@ export const ClauseExplanationList: React.FC<ClauseExplanationListProps> = ({
                 : 'bg-bg2 text-mute hover:text-navy'
             }`}
           >
-            <span>Needs review</span>
+            <span>{t('results.filterNeedsReview')}</span>
             <span className="text-[10px] font-mono">({needsReviewCount})</span>
           </button>
 
@@ -247,7 +248,7 @@ export const ClauseExplanationList: React.FC<ClauseExplanationListProps> = ({
                 : 'bg-bg2 text-mute hover:text-navy'
             }`}
           >
-            <span>Has deadline</span>
+            <span>{t('results.filterDeadline')}</span>
             <span className="text-[10px] font-mono">({deadlineCount})</span>
           </button>
         </div>
@@ -256,7 +257,7 @@ export const ClauseExplanationList: React.FC<ClauseExplanationListProps> = ({
       {/* Empty Filter State */}
       {filteredItems.length === 0 && (
         <div className="p-8 text-center rounded-lg border border-dashed border-line bg-paper/60 space-y-2">
-          <p className="text-xs text-mute">No clauses matched your filter or search query.</p>
+          <p className="text-xs text-mute">{t('results.noMatches')}</p>
           <button
             type="button"
             onClick={() => {
@@ -265,7 +266,7 @@ export const ClauseExplanationList: React.FC<ClauseExplanationListProps> = ({
             }}
             className="text-xs text-blue hover:underline font-semibold"
           >
-            Reset filters
+            {t('results.resetFilters')}
           </button>
         </div>
       )}
@@ -300,11 +301,11 @@ export const ClauseExplanationList: React.FC<ClauseExplanationListProps> = ({
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-bg2/80 border-b border-line text-mute font-mono text-[11px] uppercase">
-                  <th className="p-3 w-16">ID</th>
-                  <th className="p-3 w-28">Type</th>
-                  <th className="p-3">Plain-Language Explanation</th>
-                  <th className="p-3 w-28">Status</th>
-                  <th className="p-3 w-24 text-right">Evidence</th>
+                  <th className="p-3 w-16">{t('results.tableId')}</th>
+                  <th className="p-3 w-28">{t('results.tableType')}</th>
+                  <th className="p-3">{t('results.tableExplanation')}</th>
+                  <th className="p-3 w-28">{t('results.tableStatus')}</th>
+                  <th className="p-3 w-24 text-right">{t('results.tableEvidence')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line/60">
@@ -318,13 +319,13 @@ export const ClauseExplanationList: React.FC<ClauseExplanationListProps> = ({
                     <td className="p-3 font-mono font-bold text-navy">{item.clause_id}</td>
                     <td className="p-3 font-mono text-[11px]">
                       {item.kind === 'attention' ? (
-                        <span className="text-amber-800 font-semibold uppercase">Concern</span>
+                        <span className="text-amber-800 font-semibold uppercase">{t('results.badgeConcern')}</span>
                       ) : item.kind === 'allegation' ? (
-                        <span className="text-blue font-semibold uppercase">Allegation</span>
+                        <span className="text-blue font-semibold uppercase">{t('results.badgeAllegation')}</span>
                       ) : item.kind === 'notice_action' ? (
-                        <span className="text-blue font-semibold uppercase">Action</span>
+                        <span className="text-blue font-semibold uppercase">{t('results.badgeAction')}</span>
                       ) : (
-                        <span className="text-mute uppercase">Standard</span>
+                        <span className="text-mute uppercase">{t('results.badgeStandard')}</span>
                       )}
                     </td>
                     <td className="p-3 text-navy font-medium leading-relaxed max-w-md">
@@ -334,12 +335,12 @@ export const ClauseExplanationList: React.FC<ClauseExplanationListProps> = ({
                       {item.review_status === 'needs_review' ? (
                         <span className="inline-flex items-center gap-1 text-[10px] font-mono text-amber-700 bg-amber-500/10 px-1.5 py-0.5 rounded">
                           <AlertTriangle className="w-3 h-3" />
-                          Verify
+                          {t('results.badgeVerify')}
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-[10px] font-mono text-ok bg-ok/10 px-1.5 py-0.5 rounded">
                           <CheckCircle className="w-3 h-3" />
-                          Verified
+                          {t('results.badgeVerified')}
                         </span>
                       )}
                     </td>
@@ -350,7 +351,7 @@ export const ClauseExplanationList: React.FC<ClauseExplanationListProps> = ({
                         className="inline-flex items-center gap-1 text-xs text-blue hover:underline font-mono"
                       >
                         <Eye className="w-3.5 h-3.5" />
-                        <span>View</span>
+                        <span>{t('results.badgeView')}</span>
                       </button>
                     </td>
                   </tr>
@@ -373,7 +374,7 @@ export const ClauseExplanationList: React.FC<ClauseExplanationListProps> = ({
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <MonoLabel>{c.clause_id}</MonoLabel>
-                  <span className="text-mute font-medium">Clause not analysed</span>
+                  <span className="text-mute font-medium">{t('results.unanalysedNotice')}</span>
                 </div>
                 <p className="text-mute line-clamp-1">{c.reviewed_text}</p>
               </div>
@@ -382,7 +383,7 @@ export const ClauseExplanationList: React.FC<ClauseExplanationListProps> = ({
                 onClick={() => onNavigateEvidence(c.clause_id)}
                 className="text-xs font-semibold text-blue hover:underline shrink-0 font-mono"
               >
-                Show in source &rarr;
+                {t('review.showInSource')} &rarr;
               </button>
             </div>
           ))}

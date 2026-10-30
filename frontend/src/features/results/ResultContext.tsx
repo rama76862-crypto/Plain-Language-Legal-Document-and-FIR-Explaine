@@ -12,18 +12,14 @@ import type {
   OutputLanguage,
   QuestionAnswer,
 } from '../../lib/types';
-import { createAnalysis, getAnalysis, ApiClientError } from '../../lib/api';
-import { config } from '../../lib/config';
-import {
-  fixtureRentAgreementResult,
-  fixtureFirResult,
-  fixtureNoticeResult,
-} from '../../lib/fixtures';
+import { createAnalysis, getAnalysis, cancelAnalysis as deleteAnalysis, ApiClientError } from '../../lib/api';
 
-export type ResultTab = 'overview' | 'clauses' | 'attention' | 'dates' | 'ask' | 'export';
+export type ResultTab = 'overview' | 'clauses' | 'attention' | 'dates' | 'legalAid' | 'ask' | 'export';
 
 export interface QuestionHistoryEntry {
-  id: string; question: string; clientRequestId: string;
+  id: string;
+  question: string;
+  clientRequestId: string;
   answer: QuestionAnswer | null;
   error?: { code: string; message: string; retryable: boolean };
   timestamp: number;
@@ -49,10 +45,14 @@ interface ResultContextValue {
   error: ResultError | null;
   startAnalysis: (targetLang?: OutputLanguage) => Promise<void>;
   retryAnalysis: () => Promise<void>;
+  cancelAnalysis: () => Promise<void>;
+  isCancelling: boolean;
   documentType: string;
   analysisId: string | null;
-  questionHistory: QuestionHistoryEntry[];
-  setQuestionHistory: React.Dispatch<React.SetStateAction<QuestionHistoryEntry[]>>;
+  qaHistory: QuestionHistoryEntry[];
+  addQaHistory: (entry: QuestionHistoryEntry) => void;
+  updateQaHistory: (id: string, update: Partial<QuestionHistoryEntry>) => void;
+  clearQaHistory: () => void;
 }
 
 const ResultContext = createContext<ResultContextValue | null>(null);
@@ -84,8 +84,33 @@ export const ResultProvider: React.FC<ResultProviderProps> = ({
   const [activeTab, setActiveTab] = useState<ResultTab>('overview');
   const [error, setError] = useState<ResultError | null>(null);
   const [analysisId, setAnalysisId] = useState<string | null>(null);
-  const [questionHistory, setQuestionHistory] = useState<QuestionHistoryEntry[]>([]);
-  useEffect(() => { setQuestionHistory([]); }, [documentId, revision, analysisId, outputLanguage]);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [qaHistory, setQaHistory] = useState<QuestionHistoryEntry[]>([]);
+  const historyBinding = [documentId, revision, analysisId, outputLanguage].join(":");
+  const currentHistoryBinding = useRef(historyBinding);
+  currentHistoryBinding.current = historyBinding;
+  useEffect(() => { setQaHistory([]); }, [historyBinding]);
+
+  const addQaHistory = useCallback((entry: QuestionHistoryEntry) => {
+    if (currentHistoryBinding.current !== historyBinding) return;
+    setQaHistory((prev) => {
+      const updated = [...prev.filter(item => item.id !== entry.id), entry];
+      if (updated.length > 20) {
+        return updated.slice(updated.length - 20);
+      }
+      return updated;
+    });
+  }, [historyBinding]);
+
+  const updateQaHistory = useCallback((id: string, update: Partial<QuestionHistoryEntry>) => {
+    setQaHistory((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, ...update } : item))
+    );
+  }, []);
+
+  const clearQaHistory = useCallback(() => {
+    setQaHistory([]);
+  }, []);
 
   // Key tracking to ignore stale responses
   const activeKeyRef = useRef<string>('');
@@ -113,6 +138,7 @@ export const ResultProvider: React.FC<ResultProviderProps> = ({
       abortControllerRef.current?.abort();
       setAnalysisId(null);
       setPendingLanguage(null);
+      setQaHistory([]);
       clearPollTimer();
     }
   }, [revision]);
@@ -212,34 +238,6 @@ export const ResultProvider: React.FC<ResultProviderProps> = ({
       const lang = targetLang || outputLanguage;
       setError(null);
 
-      // Handle fixture mode
-      if (config.useFixtures) {
-        setStatus('running');
-        setProgress({ completed_clauses: 3, total_clauses: 7 });
-        setPendingLanguage(lang !== outputLanguage ? lang : null);
-
-        setTimeout(() => {
-          let fixture = fixtureRentAgreementResult;
-          if (documentType === 'fir') fixture = fixtureFirResult;
-          if (documentType === 'notice') fixture = fixtureNoticeResult;
-
-          const updatedFixture: ResultObject = {
-            ...fixture,
-            output_language: lang,
-          };
-
-          setResult(updatedFixture);
-          setStatus('complete');
-          setProgress({
-            completed_clauses: fixture.coverage.analysed,
-            total_clauses: fixture.coverage.total,
-          });
-          setOutputLanguage(lang);
-          setPendingLanguage(null);
-        }, 1200);
-        return;
-      }
-
       if (!documentId || !sessionToken) return;
 
       const isSwitchingLanguage = lang !== outputLanguage && result !== null;
@@ -273,6 +271,7 @@ export const ResultProvider: React.FC<ResultProviderProps> = ({
       } catch (err: unknown) {
         if (activeKeyRef.current !== currentKey) return;
         setPendingLanguage(null);
+        setStatus('failed');
 
         if (err instanceof ApiClientError) {
           if (err.status === 404) {
@@ -337,8 +336,45 @@ export const ResultProvider: React.FC<ResultProviderProps> = ({
     [outputLanguage, pendingLanguage, startAnalysis]
   );
 
+  const cancelCurrentAnalysis=useCallback(async () => {
+    if (!analysisId || isCancelling) return;
+    const key=activeKeyRef.current;
+    setIsCancelling(true);
+    activeKeyRef.current='';
+    clearPollTimer();
+    abortControllerRef.current?.abort();
+    try {
+      await deleteAnalysis(documentId,sessionToken,analysisId);
+      const retained=result && result.analysis_id!==analysisId ? result : null;
+      setResult(retained);
+      setStatus(retained?'needs_review':'idle');
+      setAnalysisId(retained?.analysis_id??null);
+      if(retained) setOutputLanguage(retained.output_language);
+      setPendingLanguage(null);
+      setProgress({completed_clauses:0,total_clauses:0});
+      setError(null);
+    } catch (error) {
+      setError({code:error instanceof ApiClientError?error.code:'NETWORK_ERROR',message:error instanceof Error?error.message:'Cancellation was not confirmed.',retryable:false});
+      activeKeyRef.current=key;
+      if(key) void pollAnalysis(analysisId,pendingLanguage||outputLanguage,key);
+    } finally {setIsCancelling(false);}
+  },[analysisId,isCancelling,documentId,sessionToken,result,pendingLanguage,outputLanguage,pollAnalysis]);
+
   const isAnalyzing = status === 'queued' || status === 'running';
   const isDimmedLoading = pendingLanguage !== null;
+
+  // Auto-start analysis on mount when arriving from review confirmation
+  const hasAutoStarted = useRef(false);
+  useEffect(() => {
+    let disposed=false;
+    queueMicrotask(() => {
+      if (!disposed && status === 'idle' && !hasAutoStarted.current && documentId && sessionToken) {
+        hasAutoStarted.current = true;
+        void startAnalysis();
+      }
+    });
+    return () => {disposed=true;};
+  }, [status, startAnalysis, documentId, sessionToken]);
 
   return (
     <ResultContext.Provider
@@ -356,10 +392,14 @@ export const ResultProvider: React.FC<ResultProviderProps> = ({
         error,
         startAnalysis,
         retryAnalysis,
+        cancelAnalysis:cancelCurrentAnalysis,
+        isCancelling,
         documentType: result?.document_type ?? documentType,
         analysisId,
-        questionHistory,
-        setQuestionHistory,
+        qaHistory,
+        addQaHistory,
+        updateQaHistory,
+        clearQaHistory,
       }}
     >
       {children}

@@ -36,7 +36,7 @@ export type ReviewStatus = 'supported' | 'needs_review';
 
 export type DeadlineStatus = 'explicit' | 'needs_information' | 'needs_review';
 
-export type DetectorType = 'rule' | 'model' | 'classifier' | 'extraction' | 'development_fixture';
+export type DetectorType = 'rule' | 'model' | 'classifier' | 'extraction';
 
 export type ExtractionMethod = 'text' | 'ocr';
 
@@ -85,6 +85,7 @@ export interface DocumentCreateResponse {
   session_token: string;
   status: DocumentStatus;
   revision: number;
+  expires_at?: string;
 }
 
 export interface DocumentSummary {
@@ -96,6 +97,8 @@ export interface DocumentSummary {
   input_language: Language;
   warnings: string[];
   extraction_ready: boolean;
+  reviewed_revision?: number | null;
+  expires_at?: string;
 }
 
 export interface SourceRef {
@@ -224,7 +227,6 @@ export interface ResultObject {
   structured_facts?: Record<string, unknown>[];
   next_steps?: {kind: string; text: string; clause_ids?: string[]; review_status?: string}[];
   provenance: Provenance;
-  __fixture?: boolean;
 }
 
 export interface AnalysisProgress {

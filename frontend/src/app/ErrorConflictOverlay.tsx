@@ -9,6 +9,7 @@ import React from 'react';
 import { Modal, Button, MonoLabel } from '../design/primitives';
 import { AlertCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import type { ErrorCode } from '../lib/types';
+import { useT } from '../lib/i18n';
 
 export interface ErrorConflictOverlayProps {
   isOpen: boolean;
@@ -33,6 +34,8 @@ export const ErrorConflictOverlay: React.FC<ErrorConflictOverlayProps> = ({
   onWipe,
   onClose,
 }) => {
+  const { t } = useT();
+
   if (!isOpen) return null;
 
   const isConflict = errorCode === 'REVISION_CONFLICT' || errorCode === '409';
@@ -40,12 +43,12 @@ export const ErrorConflictOverlay: React.FC<ErrorConflictOverlayProps> = ({
   const isExpired = errorCode === 'NOT_FOUND' || errorCode === '404';
 
   const title = isConflict
-    ? 'Document Revision Conflict (409)'
+    ? t('errors.conflictTitle')
     : isBusy
-    ? 'Local AI Model Busy (429)'
+    ? t('errors.busyTitle')
     : isExpired
-    ? 'Document Session Expired (404)'
-    : 'System Communication Notice';
+    ? t('errors.expiredTitle')
+    : t('errors.noticeTitle');
 
   return (
     <Modal isOpen={isOpen} onClose={onClose || (() => {})} title={title} maxWidth="md">
@@ -91,7 +94,7 @@ export const ErrorConflictOverlay: React.FC<ErrorConflictOverlayProps> = ({
               leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
               onClick={onReload}
             >
-              Reload Latest Clauses
+              {t('errors.reloadClauses')}
             </Button>
           )}
 
@@ -102,19 +105,19 @@ export const ErrorConflictOverlay: React.FC<ErrorConflictOverlayProps> = ({
               leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
               onClick={onRetry}
             >
-              Retry Request
+              {t('errors.retryRequest')}
             </Button>
           )}
 
           {isExpired && onWipe && (
             <Button variant="primary" size="sm" onClick={onWipe}>
-              Return to Upload
+              {t('errors.returnToUpload')}
             </Button>
           )}
 
           {onWipe && !isExpired && (
             <Button variant="danger-outline" size="sm" onClick={onWipe}>
-              Wipe Session
+              {t('errors.wipeSession')}
             </Button>
           )}
         </div>

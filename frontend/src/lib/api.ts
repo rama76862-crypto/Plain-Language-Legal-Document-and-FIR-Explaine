@@ -45,6 +45,15 @@ export class ApiClientError extends Error {
   }
 }
 
+export async function cancelAnalysis(documentId:string,sessionToken:string,analysisId:string):Promise<void> {
+  try {
+    const response=await fetch(`${config.apiBaseUrl}/documents/${encodeURIComponent(documentId)}/analyses/${encodeURIComponent(analysisId)}`,{
+      method:'DELETE',headers:{'X-Session-Token':sessionToken},cache:'no-store',
+    });
+    await handleResponse<void>(response);
+  } catch(error) {catchNetworkError(error);}
+}
+
 async function handleResponse<T>(res: Response): Promise<T> {
   if (res.status === 204) {
     return {} as T;
@@ -64,6 +73,13 @@ async function handleResponse<T>(res: Response): Promise<T> {
   }
 
   const data = await res.json();
+  // Refuse a development-mode backend rather than render simulated results.
+  if(res.ok && data && typeof data==='object') {
+    const items=Array.isArray(data.items)?data.items:Array.isArray(data.result?.items)?data.result.items:[];
+    if(data.mode==='fixture' || data.__fixture===true || data.result?.__fixture===true || items.some((item: {detector?:string}|null) => item?.detector==='development_fixture')) {
+      throw new ApiClientError(502,'SIMULATED_RESPONSE_REJECTED','This frontend requires real backend responses. Development-mode results are disabled.',false);
+    }
+  }
 
   if (!res.ok) {
     const errorBody = data as ApiError;

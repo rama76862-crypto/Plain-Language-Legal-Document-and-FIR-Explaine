@@ -1,10 +1,7 @@
 /**
  * LandingPage Component (P-01)
  * High-performance intake interface matching the preview design:
- * 1. Hero with Upload Console & exact 3D DocumentPrism stage
- * 2. Section #try: Interactive Clause-by-Clause Inspector preview
  * 3. Section #docs: Built for the judge's five documents with 3D TiltCards
- * 4. Section #privacy: 3D Spinning PrivacyCube
  * 5. Section #aid: Legal aid banner with 15100 helpline number
  */
 
@@ -13,16 +10,13 @@ import { useNavigate } from 'react-router-dom';
 import { HealthStatusBar } from './HealthStatusBar';
 import { UploadDropzone } from './UploadDropzone';
 import { LanguageDocTypeSelector } from './LanguageDocTypeSelector';
-import { DocumentPrism } from '../../design/scenes/DocumentPrism';
-import { PrivacyCube } from '../../design/scenes/PrivacyCube';
-import { ClauseInspectorPreview } from './ClauseInspectorPreview';
 import { Button, GlassCard, TiltCard, Banner } from '../../design/primitives';
 import { useSession } from '../../lib/session';
 import { useT } from '../../lib/i18n';
 import { createDocument } from '../../lib/api';
 import { config } from '../../lib/config';
 import type { InputLanguage, OutputLanguage, InputDocumentType, HealthResponse } from '../../lib/types';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, FileText, ShieldCheck } from 'lucide-react';
 
 export const LandingPage: React.FC = () => {
   const { startSession } = useSession();
@@ -48,7 +42,6 @@ export const LandingPage: React.FC = () => {
   // Submittal & Telemetry State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [isHealthReady, setIsHealthReady] = useState(false);
   const [healthData, setHealthData] = useState<HealthResponse | null>(null);
 
   // IntersectionObserver for .reveal elements matching HTML preview behavior
@@ -68,35 +61,16 @@ export const LandingPage: React.FC = () => {
     return () => io.disconnect();
   }, []);
 
-  const handleHealthChange = useCallback((isHealthy: boolean, data: HealthResponse | null) => {
-    setIsHealthReady(isHealthy);
+  const handleHealthChange = useCallback((_isHealthy: boolean, data: HealthResponse | null) => {
     setHealthData(data);
   }, []);
 
   const handleExtractSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedFile || !isHealthReady) return;
+    if (!selectedFile || !healthData || !processingConsent) return;
 
     setIsSubmitting(true);
     setUploadError(null);
-
-    // If fixtures mode enabled in development
-    if (config.useFixtures) {
-      setTimeout(() => {
-        startSession({
-          documentId: 'doc_fixture_rent_01',
-          sessionToken: 'opaque_fixture_token',
-          revision: 1,
-          filename: selectedFile.name,
-          inputLanguage: inputLang === 'auto' ? 'en' : inputLang,
-          outputLanguage: outputLang,
-          documentType: docType === 'auto' ? 'agreement' : docType,
-        });
-        setIsSubmitting(false);
-        navigate('/workspace?step=extracting');
-      }, 600);
-      return;
-    }
 
     try {
       if (!processingConsent) throw new Error('Consent to temporary processing is required.');
@@ -163,9 +137,9 @@ export const LandingPage: React.FC = () => {
 
             {/* Trust Assurance Row */}
             <div className="trust">
-              <span>Punjabi · Hindi · English</span>
-              <span>Delete session or automatic expiry</span>
-              <span>DLSA / NALSA links</span>
+              <span>{t('landing.trust1')}</span>
+              <span>{t('landing.trust2')}</span>
+              <span>{t('landing.trust3')}</span>
             </div>
 
             {/* UPLOAD CONSOLE (Glass Card) */}
@@ -176,7 +150,7 @@ export const LandingPage: React.FC = () => {
                   <UploadDropzone
                     selectedFile={selectedFile}
                     onFileSelect={setSelectedFile}
-                    disabled={isSubmitting || !isHealthReady}
+                    disabled={isSubmitting}
                     maxBytes={limits.max_upload_bytes}
                     maxPages={limits.max_pdf_pages}
                   />
@@ -210,17 +184,21 @@ export const LandingPage: React.FC = () => {
                     variant="primary"
                     size="lg"
                     className="w-full text-base font-bold shadow-pop btn-sweep"
-                    disabled={!selectedFile || !isHealthReady || isSubmitting || !processingConsent}
+                    disabled={!selectedFile || !healthData || isSubmitting || !processingConsent}
                     isLoading={isSubmitting}
                   >
-                    {isSubmitting ? t('upload.extractingButton') : t('upload.extractButton')}
+                    {isSubmitting
+                      ? t('upload.extractingButton')
+                      : !healthData && selectedFile
+                      ? 'Connecting to local engine…'
+                      : t('upload.extractButton')}
                   </Button>
 
                   <label className="flex items-start gap-2 text-xs text-mute leading-relaxed">
                     <input type="checkbox" checked={processingConsent} onChange={e => setProcessingConsent(e.target.checked)} className="mt-1" />
-                    <span>I consent to temporary processing and storage on the processing computer. Use Delete session to request cleanup; abandoned sessions expire. Downloaded reports remain on my device.</span>
+                    <span>{t('upload.processingConsent')}</span>
                   </label>
-                  <p className="text-xs text-mute">PDF: up to {limits.max_pdf_pages} pages; file size: up to {Math.floor(limits.max_upload_bytes / 1024 / 1024)} MB.</p>
+                  <p className="text-xs text-mute">{t('upload.limitsDynamic',{pages:limits.max_pdf_pages,mb:Math.floor(limits.max_upload_bytes/1024/1024)})}</p>
                   {/* Consent & Privacy Notice Line */}
                   <p className="text-[11px] text-mute leading-normal text-center pt-1">
                     {t('disclaimers.consent')}
@@ -233,25 +211,24 @@ export const LandingPage: React.FC = () => {
             <HealthStatusBar onHealthStatusChange={handleHealthChange} />
           </div>
 
-          {/* Right Column: Exact 3D DocumentPrism Scene */}
+          {/* Right Column: Document workflow guide */}
           <div className="lg:col-span-5 relative hidden lg:flex items-center justify-center">
-            <DocumentPrism />
+            <GlassCard className="p-10 space-y-5 text-center"><FileText className="w-20 h-20 mx-auto text-blue" aria-hidden="true" /><h2 className="text-xl font-bold">{t('landing.howItWorksTitle')}</h2><p className="text-mute">{t('landing.howItWorksSub')}</p></GlassCard>
           </div>
         </div>
       </section>
 
-      {/* 2. CLAUSE INSPECTOR PREVIEW SECTION (#try) */}
-      <ClauseInspectorPreview />
+      {/* 2. DOCUMENT WORKFLOW (#try) */}
+
 
       {/* 3. CITIZEN DOCUMENT TYPES (#docs) */}
       <section id="docs" className="py-16 px-4 sm:px-6 max-w-6xl mx-auto space-y-8">
         <div className="space-y-2">
           <h2 className="reveal text-2xl sm:text-3xl font-extrabold text-navy tracking-tight">
-            Built for the judge’s five documents
+            {t('landing.docTypesTitle')}
           </h2>
           <p className="lead reveal text-mute text-base max-w-2xl">
-            Each document type has its own view and checks. Concerns are labelled “potential” —
-            never a safety score.
+            {t('landing.docTypesSub')}
           </p>
         </div>
 
@@ -260,7 +237,7 @@ export const LandingPage: React.FC = () => {
             className="reveal"
             index="01"
             icon="🏠"
-            title="Rent agreement"
+            title={t('docTypes.agreement')}
             description="Penalties, lock-in, auto-renewal"
           />
           <TiltCard
@@ -281,14 +258,14 @@ export const LandingPage: React.FC = () => {
             className="reveal"
             index="04"
             icon="📨"
-            title="Court notice"
+            title={t('docTypes.notice')}
             description="Hearing dates, action demanded"
           />
           <TiltCard
             className="reveal"
             index="05"
             icon="🚔"
-            title="FIR copy"
+            title={t('docTypes.fir')}
             description="Allegations recorded, who said what"
           />
         </div>
@@ -299,11 +276,10 @@ export const LandingPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
           <div className="reveal space-y-4">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-navy tracking-tight">
-              Temporary processing with your consent
+              {t('landing.privacyTitle')}
             </h2>
             <p className="text-mute text-base leading-relaxed">
-              Uploaded files are held temporarily on the processing server. Use Delete session to
-              request cleanup; abandoned sessions expire. Downloaded reports remain on your device.
+              {t('landing.privacySub')}
             </p>
             <div className="pt-2">
               <a href="#upload-console" className="btn p btn-sweep font-bold inline-block">
@@ -313,7 +289,7 @@ export const LandingPage: React.FC = () => {
           </div>
 
           <div className="reveal flex items-center justify-center">
-            <PrivacyCube />
+            <ShieldCheck className="w-32 h-32 text-cyan" aria-hidden="true" />
           </div>
         </div>
       </section>
@@ -323,11 +299,10 @@ export const LandingPage: React.FC = () => {
         <div className="aid reveal">
           <div className="space-y-2">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Need a lawyer you can’t afford?
+              {t('landing.legalAidTitle')}
             </h2>
             <p className="text-sm text-white/90 leading-relaxed max-w-lg">
-              District Legal Services Authorities (DLSA) and NALSA offer free legal aid to eligible
-              people. Find your nearest DLSA from here.
+              {t('landing.legalAidSub')}
             </p>
             <div className="pt-2">
               <a

@@ -14,8 +14,6 @@ import { useT } from '../../lib/i18n';
 import { useToast } from '../../design/primitives';
 import { usePolling } from '../../lib/usePolling';
 import { getDocument, fetchSourceBlob, getExtraction, ApiClientError } from '../../lib/api';
-import { config } from '../../lib/config';
-import { fixtureRentAgreementExtraction } from '../../lib/fixtures';
 import type { DocumentSummary } from '../../lib/types';
 import { GlassCard, Button, Banner, MonoLabel } from '../../design/primitives';
 import { useReducedMotion } from '../../design/motion';
@@ -33,6 +31,7 @@ export const ExtractionScreen: React.FC = () => {
     setDocumentStatus,
     setSourceBlobUrl,
     setWarnings,
+    setServerExpiresAt,
     resetSession,
   } = useSession();
   const { t } = useT();
@@ -63,31 +62,6 @@ export const ExtractionScreen: React.FC = () => {
   // Poll function
   const pollDoc = useCallback(
     async (signal: AbortSignal): Promise<DocumentSummary> => {
-      if (config.useFixtures) {
-        // Fixture simulation: after 2 seconds transition to awaiting_review
-        if (elapsedSeconds >= 2) {
-          return {
-            document_id: documentId || 'doc_fixture_rent_01',
-            status: 'awaiting_review',
-            revision: 1,
-            filename: filename || 'sample_document.pdf',
-            document_type: documentType,
-            input_language: inputLanguage,
-            warnings: fixtureRentAgreementExtraction.warnings,
-            extraction_ready: true,
-          };
-        }
-        return {
-          document_id: documentId || 'doc_fixture_rent_01',
-          status: 'extracting',
-          revision: 1,
-          filename: filename || 'sample_document.pdf',
-          document_type: documentType,
-          input_language: inputLanguage,
-          warnings: [],
-          extraction_ready: false,
-        };
-      }
 
       if (!documentId || !sessionToken) {
         throw new Error('No session active');
@@ -101,17 +75,11 @@ export const ExtractionScreen: React.FC = () => {
   const handleExtractionComplete = useCallback(
     async (doc: DocumentSummary) => {
       setDocumentStatus(doc.status);
+      if (doc.expires_at) {
+        setServerExpiresAt(doc.expires_at);
+      }
       if (doc.warnings && doc.warnings.length > 0) {
         setWarnings(doc.warnings);
-      }
-
-      if (config.useFixtures) {
-        // Create a dummy Blob for PDF viewer in fixture mode
-        const dummyBlob = new Blob(['%PDF-1.4 simulated pdf stream'], { type: 'application/pdf' });
-        const blobUrl = URL.createObjectURL(dummyBlob);
-        setSourceBlobUrl(blobUrl);
-        navigate('/workspace?step=review');
-        return;
       }
 
       if (!documentId || !sessionToken) return;
@@ -248,10 +216,10 @@ export const ExtractionScreen: React.FC = () => {
         {connectionLost && (
           <Banner
             variant="error"
-            title="Connection Interrupted"
-            action={{ label: 'Retry polling', onClick: retry }}
+            title={t('results.connectionLost')}
+            action={{ label: t('results.retryAnalysis'), onClick: retry }}
           >
-            Communication with the local API server was lost. Check your connection.
+            {t('errors.NETWORK_ERROR')}
           </Banner>
         )}
 

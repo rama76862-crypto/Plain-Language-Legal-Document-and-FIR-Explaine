@@ -308,3 +308,30 @@ def test_setup_asset_cache_checks_sha_without_network(tmp_path, monkeypatch):
     monkeypatch.setattr(urllib.request, 'urlopen', lambda *args, **kwargs: pytest.fail('Verified cache must not use network'))
     download('https://example.invalid/synthetic', path, digest(path))
     assert path.read_bytes() == b'synthetic upstream asset'
+
+def test_wrapped_real_pdf_retains_renewal_and_refund_conditions(tmp_path):
+    source=Path(__file__).parent/"fixtures"/"wrapped-synthetic-agreement.pdf"
+    result=extract_document(source,"pdf","en",settings(tmp_path))
+    texts=[c.source_text for c in result["clauses"]]
+    renewal=next(text for text in texts if "automatically renews" in text)
+    refund=next(text for text in texts if "INR 20,000" in text)
+    assert "30\ndays before expiry" in renewal or "30 days before expiry" in renewal
+    assert "written refund request." in refund
+    assert len(texts)==10
+    assert all(c.source_ref.page_number==1 for c in result["clauses"])
+
+def test_native_grouping_respects_columns_numbering_and_paragraph_gaps():
+    from apps.api.extraction.service import _coalesce_native_blocks
+    blocks=[
+      (50,10,250,25,"3. Renewal",0,0),
+      (50,27,290,42,"Automatically renews unless notice is given 30",1,0),
+      (50,44,200,59,"days before expiry.",2,0),
+      (50,61,200,76,"4. Next clause",3,0),
+      (330,61,500,76,"Parallel column must stay separate.",4,0),
+      (50,100,250,115,"Distant paragraph stays separate.",5,0),
+    ]
+    grouped=_coalesce_native_blocks(blocks)
+    assert len(grouped)==4
+    assert "30\ndays before expiry." in grouped[0][4]
+    assert grouped[1][4]=="4. Next clause"
+    assert grouped[2][4].startswith("Parallel")

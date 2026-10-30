@@ -8,8 +8,6 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { getHealth } from '../../lib/api';
-import { config } from '../../lib/config';
-import { fixtureHealth } from '../../lib/fixtures';
 import type { HealthResponse } from '../../lib/types';
 import { Banner, Button, Skeleton, MonoLabel } from '../../design/primitives';
 import { CheckCircle2, WifiOff, RefreshCw } from 'lucide-react';
@@ -28,13 +26,6 @@ export const HealthStatusBar: React.FC<HealthStatusBarProps> = ({
   const fetchStatus = useCallback(async () => {
     setLoading(true);
     setOffline(false);
-
-    if (config.useFixtures) {
-      setHealth(fixtureHealth);
-      setLoading(false);
-      onHealthStatusChange?.(true, fixtureHealth);
-      return;
-    }
 
     try {
       const data = await getHealth();
@@ -92,7 +83,7 @@ export const HealthStatusBar: React.FC<HealthStatusBarProps> = ({
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5 text-ok-ink font-semibold">
             <CheckCircle2 className="w-4 h-4 text-ok" aria-hidden="true" />
-            <span>Local Engine Active</span>
+            <span>Local API Online</span>
           </div>
           <span className="text-line">|</span>
           <div className="flex items-center gap-1 text-mute font-mono">
@@ -107,7 +98,7 @@ export const HealthStatusBar: React.FC<HealthStatusBarProps> = ({
         <div className="flex items-center gap-2">
           <MonoLabel>LANGUAGE REVIEW:</MonoLabel>
           <div className="flex items-center gap-1 font-mono text-[11px] font-bold text-navy bg-bg2 px-2 py-0.5 rounded">
-            <span>{config.useFixtures ? 'DEVELOPMENT FIXTURES' : 'EN · HI · PA — review pending'}</span>
+            <span>{'EN · HI · PA — review pending'}</span>
           </div>
           <Button variant="ghost" size="sm" onClick={fetchStatus} aria-label="Refresh system health">
             <RefreshCw className="w-3.5 h-3.5 text-mute" />

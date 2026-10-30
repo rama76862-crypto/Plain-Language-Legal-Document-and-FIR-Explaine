@@ -159,8 +159,7 @@ export type StatusPillVariant =
   | 'caution'
   | 'deadline'
   | 'ok'
-  | 'translation'
-  | 'fixture';
+  | 'translation';
 
 export const StatusPill: React.FC<{
   variant: StatusPillVariant;
@@ -193,11 +192,6 @@ export const StatusPill: React.FC<{
       bg: 'bg-paper border-caution text-caution-ink',
       text: 'text-caution-ink',
       defaultIcon: <Info className="w-3.5 h-3.5 text-caution" aria-hidden="true" />,
-    },
-    fixture: {
-      bg: 'bg-[#FFF8E7] border-dashed border-[#E6A23C]',
-      text: 'text-[#8A5A00]',
-      defaultIcon: <AlertTriangle className="w-3.5 h-3.5 text-[#E6A23C]" aria-hidden="true" />,
     },
   };
 

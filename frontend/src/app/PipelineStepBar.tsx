@@ -8,6 +8,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useSession } from '../lib/session';
+import { useT } from '../lib/i18n';
 
 interface PipelineStepBarProps {
   currentStep: 'extracting' | 'review' | 'results';
@@ -18,18 +19,19 @@ export const PipelineStepBar: React.FC<PipelineStepBarProps> = ({
   currentStep,
   onNavigateStep,
 }) => {
+  const { t } = useT();
   const { documentStatus, reviewConfirmed } = useSession();
 
   const steps = [
-    { id: 'upload', label: '1. Upload', status: 'done' as const },
+    { id: 'upload', label: t('pipeline.step1'), status: 'done' as const },
     {
       id: 'extract',
-      label: '2. Extract',
+      label: t('pipeline.step2'),
       status: currentStep === 'extracting' ? ('active' as const) : ('done' as const),
     },
     {
       id: 'review',
-      label: '3. Review',
+      label: t('pipeline.step3'),
       status:
         currentStep === 'review'
           ? ('active' as const)
@@ -39,7 +41,7 @@ export const PipelineStepBar: React.FC<PipelineStepBarProps> = ({
     },
     {
       id: 'results',
-      label: '4. Explain',
+      label: t('pipeline.step4'),
       status:
         currentStep === 'results' && documentStatus === 'complete'
           ? ('done' as const)
@@ -49,7 +51,7 @@ export const PipelineStepBar: React.FC<PipelineStepBarProps> = ({
     },
     {
       id: 'qa',
-      label: '5. Ask',
+      label: t('pipeline.step5'),
       status: currentStep === 'results' ? ('ready' as const) : ('ready' as const),
     },
   ];

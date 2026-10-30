@@ -2,7 +2,7 @@
  * QuestionPanel Component (C-12)
  * Grounded Q&A strictly bound to document evidence:
  * - Document-scoped: answers are derived ONLY from extracted document text
- * - Input validation (FM-03): 3–500 chars, trimmed, enter to send
+ * - Input validation: 3–4000 chars, trimmed, enter to send
  * - Retry with idempotent client_request_id (UUIDv4 reused on 429 / timeout)
  * - Evidence cards with source quotes and working EvidenceButtons
  * - Honest out-of-scope / insufficient evidence handling
@@ -19,15 +19,14 @@ import {
   Sparkles,
   XCircle,
 } from 'lucide-react';
-import type { QuestionAnswer, Clause } from '../../lib/types';
+import type { Clause } from '../../lib/types';
 import { useResult } from './ResultContext';
 import { useSession } from '../../lib/session';
 import { askQuestion, ApiClientError } from '../../lib/api';
-import { config } from '../../lib/config';
 import { EvidenceButton } from './EvidenceButton';
 import { ReferenceCard } from './ReferenceCard';
 import { GlassCard, Button, Banner } from '../../design/primitives';
-
+import { useT } from '../../lib/i18n';
 
 interface QuestionPanelProps {
   onNavigateEvidence: (clauseId: string) => void;
@@ -37,8 +36,9 @@ interface QuestionPanelProps {
 export const QuestionPanel: React.FC<QuestionPanelProps> = ({
   onNavigateEvidence,
 }) => {
-  const { status, result, outputLanguage, analysisId, documentType, questionHistory: history, setQuestionHistory: setHistory } = useResult();
-  const { documentId, sessionToken, revision } = useSession();
+  const { t } = useT();
+  const { status, result, outputLanguage, analysisId, documentType, qaHistory, addQaHistory } = useResult();
+  const { documentId, sessionToken } = useSession();
 
   const [questionText, setQuestionText] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -53,29 +53,19 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Clear conversation history on revision change or language change
-  const currentLangRef = useRef(outputLanguage);
-  const currentRevRef = useRef(revision);
-  useEffect(() => {
-    if (currentLangRef.current !== outputLanguage || currentRevRef.current !== revision) {
-      currentLangRef.current = outputLanguage;
-      currentRevRef.current = revision;
-      setHistory([]);
-      setLastError(null);
-    }
-  }, [outputLanguage, revision]);
-
   // Clean up on unmount
   useEffect(() => {
+    setIsSubmitting(false);
+    setLastError(null);
     return () => {
       abortControllerRef.current?.abort();
     };
-  }, []);
+  }, [documentId,analysisId,outputLanguage]);
 
   // Scroll to bottom on new answer
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [history, isSubmitting]);
+  }, [qaHistory, isSubmitting]);
 
   // Suggested questions
   const suggestedQuestions =
@@ -115,76 +105,6 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
         setQuestionText('');
       }
 
-      // Handle fixture mode
-      if (config.useFixtures) {
-        setTimeout(() => {
-          let mockAnswer: QuestionAnswer;
-          const qLower = q.toLowerCase();
-
-          if (qLower.includes('renew') || qLower.includes('clause 3')) {
-            mockAnswer = {
-              answer:
-                'Under clause c3, this lease automatically renews for successive 12-month periods unless either party gives at least 60 days written notice before expiration.',
-              evidence: [
-                {
-                  clause_id: 'c3',
-                  quote:
-                    'automatically renew for successive terms of 12 months unless either party provides written notice of termination at least 60 days prior',
-                },
-              ],
-              reference_ids: [],
-              review_status: 'supported',
-              limitations: [],
-            };
-          } else if (
-            qLower.includes('who will win') ||
-            qLower.includes('court') ||
-            qLower.includes('out of scope')
-          ) {
-            mockAnswer = {
-              answer:
-                'The document does not provide sufficient evidence to answer this question. The text contains terms agreed between the parties, not judicial outcome determinations.',
-              evidence: [],
-              reference_ids: [],
-              review_status: 'supported',
-              limitations: ['Insufficient evidence in document'],
-            };
-          } else {
-            mockAnswer = {
-              answer: `Based on the document terms, rent of Rs. 25,000 is due on or before the 5th of each calendar month as stated in clause c2.`,
-              evidence: [
-                {
-                  clause_id: 'c2',
-                  quote:
-                    'monthly rent of Rs. 25,000 payable on or before the 5th of each calendar month.',
-                },
-              ],
-              reference_ids: [],
-              review_status: 'supported',
-              limitations: [],
-            };
-          }
-
-          setHistory((prev) => {
-            const next = [
-              ...prev,
-              {
-                id: reqId,
-                question: q,
-                clientRequestId: reqId,
-                answer: mockAnswer,
-                timestamp: Date.now(),
-              },
-            ];
-            // Enforce memory-only 20 items cap
-            return next.slice(-20);
-          });
-
-          setIsSubmitting(false);
-        }, 1000);
-        return;
-      }
-
       if (!documentId || !sessionToken || !analysisId) {
         setIsSubmitting(false);
         return;
@@ -203,23 +123,18 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
           abortControllerRef.current.signal
         );
 
-        setHistory((prev) => {
-          const next = [
-            ...prev,
-            {
-              id: reqId,
-              question: q,
-              clientRequestId: reqId,
-              answer: resp,
-              timestamp: Date.now(),
-            },
-          ];
-          return next.slice(-20);
+        addQaHistory({
+          id: reqId,
+          question: q,
+          clientRequestId: reqId,
+          answer: resp,
+          timestamp: Date.now(),
         });
 
         setIsSubmitting(false);
       } catch (err: unknown) {
         setIsSubmitting(false);
+        if(err instanceof DOMException && err.name==='AbortError') return;
 
         if (err instanceof ApiClientError) {
           if (err.status === 429) {
@@ -260,6 +175,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
       sessionToken,
       analysisId,
       outputLanguage,
+      addQaHistory,
     ]
   );
 
@@ -283,9 +199,9 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
           <HelpCircle className="w-6 h-6" />
         </div>
         <div className="space-y-1">
-          <h3 className="text-base font-bold text-navy">Ask Questions About Document</h3>
+          <h3 className="text-base font-bold text-navy">{t('qa.title')}</h3>
           <p className="text-xs text-mute max-w-sm mx-auto">
-            Ask questions after the explanation is ready.
+            {t('qa.sub')}
           </p>
         </div>
       </GlassCard>
@@ -300,18 +216,18 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
       <div className="text-xs text-mute flex items-center justify-between pb-2 border-b border-line">
         <div className="flex items-center gap-1.5">
           <Sparkles className="w-3.5 h-3.5 text-blue" />
-          <span>Answers are strictly grounded in your document text.</span>
+          <span>{t('qa.sub')}</span>
         </div>
         <span className="font-mono text-[11px] text-mute">
-          History: {history.length}/20 (In-Memory)
+          History: {qaHistory.length}/20 (In-Memory)
         </span>
       </div>
 
       {/* Suggested Questions */}
-      {history.length === 0 && (
+      {qaHistory.length === 0 && (
         <div className="space-y-2">
           <span className="text-[11px] font-mono uppercase text-mute font-semibold">
-            Suggested questions:
+            {t('qa.suggestedTitle')}
           </span>
           <div className="flex flex-wrap gap-2">
             {suggestedQuestions.map((sq, idx) => (
@@ -330,7 +246,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
 
       {/* Conversation Thread */}
       <div className="space-y-4 min-h-[160px]">
-        {history.map((entry) => (
+        {qaHistory.map((entry) => (
           <div key={entry.id} className="space-y-3">
             {/* User Question */}
             <div className="flex justify-end">
@@ -369,7 +285,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
                     <div className="p-2.5 rounded bg-blue/5 border border-blue/20 text-xs text-navy flex items-start gap-2">
                       <Info className="w-4 h-4 text-blue shrink-0 mt-0.5" />
                       <span>
-                        The document does not provide sufficient evidence to answer this question.
+                        {t('qa.insufficientEvidence')}
                       </span>
                     </div>
                   )}
@@ -412,7 +328,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
 
                   {/* Answer Disclaimer */}
                   <div className="pt-2 border-t border-line/40 text-[10px] font-mono text-mute flex items-center justify-between">
-                    <span>Information only · Not legal advice</span>
+                    <span>{t('disclaimers.footer')}</span>
                     <span>Clause-grounded</span>
                   </div>
                 </GlassCard>
@@ -428,7 +344,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-xs text-mute font-mono flex items-center gap-2">
                   <RotateCw className="w-3.5 h-3.5 animate-spin text-blue" />
-                  Searching document clauses…
+                  {t('qa.askingButton')}
                 </span>
                 <button
                   type="button"
@@ -436,7 +352,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
                   className="text-xs text-mute hover:text-navy flex items-center gap-1 font-mono"
                 >
                   <XCircle className="w-3.5 h-3.5" />
-                  Cancel
+                  {t('privacy.cancel')}
                 </button>
               </div>
               <div className="space-y-2">
@@ -448,7 +364,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
         )}
 
         <div ref={messagesEndRef} aria-live="polite" className="sr-only">
-          {history.length > 0 ? 'Answer ready' : ''}
+          {qaHistory.length > 0 ? 'Answer ready' : ''}
         </div>
       </div>
 
@@ -487,14 +403,14 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
                   handleSendQuestion();
                 }
               }}
-              placeholder={`Ask a question in ${outputLanguage.toUpperCase()} about this document…`}
+              placeholder={t('qa.placeholder')}
               disabled={isSubmitting}
               className="w-full p-3 pr-24 text-xs rounded-lg border border-line bg-paper text-navy focus:outline-hidden focus:ring-2 focus:ring-blue resize-none leading-relaxed"
             />
 
             <div className="absolute right-2 bottom-3 flex items-center gap-2">
               <span className="text-[10px] font-mono text-mute">
-                {questionText.trim().length}/4000
+                {t('qa.charCount', { count: questionText.trim().length })}
               </span>
               <Button
                 type="submit"
@@ -508,14 +424,14 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
                 ) : (
                   <Send className="w-3.5 h-3.5" />
                 )}
-                <span>Send</span>
+                <span>{t('qa.askButton')}</span>
               </Button>
             </div>
           </div>
 
           {/* Legal Advice Guard Persistent Notice */}
           <div className="flex items-center justify-between text-[11px] text-mute">
-            <span>Answers explain the document. They are not legal advice.</span>
+            <span>{t('disclaimers.answersNotAdvice')}</span>
             <span className="font-mono text-[10px]">Enter to send · Shift+Enter newline</span>
           </div>
         </form>

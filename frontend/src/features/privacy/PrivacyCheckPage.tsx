@@ -1,7 +1,7 @@
 /**
  * PrivacyCheckPage Dev Component
- * Verifies that zero browser storage (localStorage, sessionStorage, cookies, IndexedDB)
- * is utilized, confirming total adherence to memory-only confidentiality.
+ * Diagnostics for accessible localStorage, sessionStorage, cookies and URL secrets.
+ * This does not inspect IndexedDB, service-worker caches or server storage.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -33,7 +33,7 @@ export const PrivacyCheckPage: React.FC = () => {
         pass: lsCount === 0,
       });
     } catch {
-      results.push({ name: 'localStorage', count: 0, details: 'Blocked/Clean', pass: true });
+      results.push({ name: 'localStorage', count: 0, details: 'Unavailable; not checked', pass: false });
     }
 
     // 2. SessionStorage Check
@@ -46,7 +46,7 @@ export const PrivacyCheckPage: React.FC = () => {
         pass: ssCount === 0,
       });
     } catch {
-      results.push({ name: 'sessionStorage', count: 0, details: 'Blocked/Clean', pass: true });
+      results.push({ name: 'sessionStorage', count: 0, details: 'Unavailable; not checked', pass: false });
     }
 
     // 3. Document Cookie Check
@@ -100,7 +100,7 @@ export const PrivacyCheckPage: React.FC = () => {
             {allPassed ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-ok/10 text-ok border border-ok/20">
                 <CheckCircle2 className="w-4 h-4" />
-                VERIFIED: 100% MEMORY-ONLY
+                CHECKED STORAGE IS EMPTY
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-red-500/10 text-red-600 border border-red-500/20">

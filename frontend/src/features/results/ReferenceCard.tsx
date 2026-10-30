@@ -8,6 +8,7 @@
 import React, { useState } from 'react';
 import { BookOpen, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Reference } from '../../lib/types';
+import { useT } from '../../lib/i18n';
 
 interface ReferenceCardProps {
   reference: Reference;
@@ -15,6 +16,7 @@ interface ReferenceCardProps {
 }
 
 export const ReferenceCard: React.FC<ReferenceCardProps> = ({ reference, className = '' }) => {
+  const { t } = useT();
   const [expanded, setExpanded] = useState<boolean>(false);
 
   return (
@@ -38,9 +40,9 @@ export const ReferenceCard: React.FC<ReferenceCardProps> = ({ reference, classNa
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue hover:underline shrink-0"
-            aria-label={`Official link for ${reference.title} (Opens an official external site; internet needed)`}
+            aria-label={`Official link for ${reference.title} (${t('results.opensExternalSite')})`}
           >
-            <span>Official text</span>
+            <span>{t('results.officialText')}</span>
             <ExternalLink className="w-3 h-3" />
           </a>
         )}
@@ -48,7 +50,7 @@ export const ReferenceCard: React.FC<ReferenceCardProps> = ({ reference, classNa
 
       {reference.version && (
         <div className="text-[10px] font-mono text-mute">
-          Statute version: {reference.version}
+          {t('results.statuteVersion', { version: reference.version })}
         </div>
       )}
 
@@ -67,7 +69,7 @@ export const ReferenceCard: React.FC<ReferenceCardProps> = ({ reference, classNa
               onClick={() => setExpanded(!expanded)}
               className="text-[11px] text-blue hover:underline flex items-center gap-0.5 font-medium"
             >
-              <span>{expanded ? 'Show less' : 'Read excerpt'}</span>
+              <span>{expanded ? t('results.showLess') : t('results.readExcerpt')}</span>
               {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             </button>
           )}
@@ -75,8 +77,8 @@ export const ReferenceCard: React.FC<ReferenceCardProps> = ({ reference, classNa
       )}
 
       <div className="text-[10px] text-mute flex items-center justify-between pt-1 border-t border-line/60">
-        <span>Official source — applicability requires review</span>
-        <span>Opens external site</span>
+        <span>{t('results.officialSourceDisclaimer')}</span>
+        <span>{t('results.opensExternalSite')}</span>
       </div>
     </div>
   );

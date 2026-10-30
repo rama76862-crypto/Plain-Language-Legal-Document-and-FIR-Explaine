@@ -21,6 +21,7 @@ import {
   Phone,
 } from 'lucide-react';
 import { useResult } from './ResultContext';
+import { useT } from '../../lib/i18n';
 import { CoverageRing } from '../../design/scenes/CoverageRing';
 import { GlassCard, Button, Banner, MonoLabel } from '../../design/primitives';
 
@@ -35,6 +36,7 @@ export const OverviewSummaryPanel: React.FC<OverviewSummaryPanelProps> = ({
   onGoToClauses,
   filename = 'Document',
 }) => {
+  const { t } = useT();
   const { result } = useResult();
   const [showTechDetails, setShowTechDetails] = useState<boolean>(false);
 
@@ -67,17 +69,15 @@ export const OverviewSummaryPanel: React.FC<OverviewSummaryPanelProps> = ({
     <div className="space-y-6">
       {/* Partial Analysis Warning */}
       {isPartial && (
-        <Banner variant="warn" title="Partial analysis — not complete">
-          {analysed} of {total} clauses were analysed. Some clauses could not be processed and
-          require manual verification.
+        <Banner variant="warn" title={t('overview.partialTitle')}>
+          {t('overview.partialBody', { analysed, total })}
         </Banner>
       )}
 
       {/* Translation-Assisted Notice */}
       {isTranslationAssisted && (
-        <Banner variant="info" title="Translation-Assisted Analysis">
-          Classification and explanations ran with English working assistance. Verify all cues
-          against the original text.
+        <Banner variant="info" title={t('overview.translationAssistedTitle')}>
+          {t('overview.translationAssistedBody')}
         </Banner>
       )}
 
@@ -89,12 +89,12 @@ export const OverviewSummaryPanel: React.FC<OverviewSummaryPanelProps> = ({
             <CoverageRing analysed={analysed} total={total} />
             <div className="mt-3 text-center">
               <div className="text-sm font-semibold text-navy">
-                Analysed {analysed} of {total} clauses
+                {t('overview.analysedCount', { analysed, total })}
               </div>
               <p className="text-xs text-mute mt-0.5">
                 {isPartial
-                  ? 'Partial clause analysis coverage'
-                  : 'Full clause coverage assessed'}
+                  ? t('results.partialNotice')
+                  : t('overview.coverageTitle')}
               </p>
             </div>
           </div>
@@ -193,11 +193,11 @@ export const OverviewSummaryPanel: React.FC<OverviewSummaryPanelProps> = ({
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle className="w-4 h-4 text-amber-600" />
             <h4 className="text-sm font-bold text-amber-900">
-              Clauses Requiring Extra Verification ({needsReviewItems.length})
+              {t('overview.reviewFindingsTitle',{count:needsReviewItems.length})}
             </h4>
           </div>
           <p className="text-xs text-amber-800 mb-3">
-            These clauses had low OCR confidence or translation limitations. Read the original text carefully.
+            {t('overview.reviewFindingsDescription')}
           </p>
           <div className="space-y-2">
             {needsReviewItems.map((item) => (
@@ -214,7 +214,7 @@ export const OverviewSummaryPanel: React.FC<OverviewSummaryPanelProps> = ({
                   variant="secondary"
                   onClick={() => onNavigateEvidence(item.clause_id)}
                 >
-                  Show in source
+                  {t('review.showInSource')}
                 </Button>
               </div>
             ))}
@@ -242,7 +242,7 @@ export const OverviewSummaryPanel: React.FC<OverviewSummaryPanelProps> = ({
         >
           <span className="flex items-center gap-2">
             <Cpu className="w-3.5 h-3.5 text-blue" />
-            Technical details: Local model versions
+            {showTechDetails ? t('overview.hideTech') : t('overview.showTech')}: {t('overview.modelProvenance')}
           </span>
           {showTechDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
@@ -250,15 +250,15 @@ export const OverviewSummaryPanel: React.FC<OverviewSummaryPanelProps> = ({
         {showTechDetails && (
           <div className="p-4 pt-2 border-t border-line bg-bg2/30 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono">
             <div>
-              <span className="text-mute block text-[10px] uppercase">Classifier</span>
+              <span className="text-mute block text-[10px] uppercase">{t('overview.classifierVer')}</span>
               <span className="text-navy font-semibold">{result.provenance.classifier_version}</span>
             </div>
             <div>
-              <span className="text-mute block text-[10px] uppercase">Generator</span>
+              <span className="text-mute block text-[10px] uppercase">{t('overview.generatorVer')}</span>
               <span className="text-navy font-semibold">{result.provenance.generator}</span>
             </div>
             <div>
-              <span className="text-mute block text-[10px] uppercase">Rules Engine</span>
+              <span className="text-mute block text-[10px] uppercase">{t('overview.rulesVer')}</span>
               <span className="text-navy font-semibold">{result.provenance.rules_version}</span>
             </div>
           </div>
@@ -271,12 +271,10 @@ export const OverviewSummaryPanel: React.FC<OverviewSummaryPanelProps> = ({
           <ShieldCheck className="w-5 h-5 text-blue shrink-0 mt-0.5" />
           <div className="space-y-2 text-xs">
             <h4 className="font-bold text-navy text-sm">
-              Important: Information only · Not legal advice
+              {t('disclaimers.footer')}
             </h4>
             <p className="text-mute leading-relaxed">
-              No detected attention cue is not a clean legal bill of health. NyayaSarathi
-              helps explain language in legal papers, but does not replace a qualified advocate. Always read
-              every clause carefully.
+              {t('disclaimers.noDetectedCue')}
             </p>
           </div>
         </div>
@@ -288,12 +286,12 @@ export const OverviewSummaryPanel: React.FC<OverviewSummaryPanelProps> = ({
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono font-bold uppercase text-cyan px-2 py-0.5 rounded bg-cyan/10">
-                Free Legal Aid
+                {t('legalAid.freeAidTitle')}
               </span>
               <span className="text-xs font-bold text-navy">National Legal Services Authority (NALSA)</span>
             </div>
             <p className="text-xs text-mute">
-              Free legal services are available to eligible citizens through DLSA and NALSA.
+              {t('legalAid.needHelp')}
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
