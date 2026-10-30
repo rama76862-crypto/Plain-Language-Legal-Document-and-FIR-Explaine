@@ -24,5 +24,5 @@ class PiiVault:
         return text
 
     def restore(self,text):
-        for token,value in self.values.items():text=text.replace(token,value)
-        return text
+        pattern=r'\b'+re.escape(self.prefix)+r'_\d+\b'
+        return re.sub(pattern,lambda match:self.values.get(match.group(),match.group()),text)

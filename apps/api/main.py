@@ -1,4 +1,4 @@
-"""One-worker public API. All private document work stays local."""
+"""One-worker public API with explicit local or consented hosted inference."""
 from __future__ import annotations
 
 import asyncio

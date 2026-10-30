@@ -81,7 +81,10 @@ async def _stop(process,job):
 async def extract_isolated(path: Path,kind: str,input_language: str,settings: Settings,progress=None,
                            *,command=None,on_started=None):
     """Spawn one bounded parser; test-only command injection never comes from HTTP."""
-    env=dict(os.environ); env.pop('ML_SERVICE_TOKEN',None); env['PYTHONIOENCODING']='utf-8'; env['PYTHONNOUSERSITE']='1'
+    env=dict(os.environ)
+    for credential in ('ML_SERVICE_TOKEN','GROQ_API_KEY','CLOUDFLARE_AI_TOKEN','HF_TOKEN','HUGGING_FACE_HUB_TOKEN'):
+        env.pop(credential,None)
+    env['PYTHONIOENCODING']='utf-8'; env['PYTHONNOUSERSITE']='1'
     # Native parser imports may load NumPy/OpenBLAS. Unbounded BLAS threads can
     # exceed the worker's memory cap before parsing starts, especially on hosts
     # that advertise many logical CPUs. Parsing is single-worker by design.

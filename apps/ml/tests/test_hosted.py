@@ -2,7 +2,7 @@
 import json
 import httpx
 import pytest
-from apps.ml.inference.hosted import HostedGenerator
+from apps.ml.inference.hosted import HostedGenerator,compact_schema
 from apps.ml.inference.generator import GenerationBusy
 from apps.ml.service.contracts import GenerationRequest
 
@@ -29,3 +29,20 @@ async def test_hosted_rate_limit_is_explicit_and_does_not_forward_provider_body(
     with pytest.raises(GenerationBusy) as error:
         await HostedGenerator().generate(GenerationRequest(system_prompt='Return JSON.',user_prompt='synthetic',response_schema={'type':'object'}))
     assert 'private provider body' not in str(error.value)
+
+
+def test_compact_schema_retains_only_reachable_definitions_without_mutation():
+    schema={'type':'object','properties':{'unused':{'type':'array','maxItems':0,'items':{'$ref':'#/$defs/Unused'}},'used':{'$ref':'#/$defs/Used'}},'$defs':{'Unused':{'type':'string'},'Used':{'type':'object','title':'Noise','properties':{'child':{'$ref':'#/$defs/Child'}}},'Child':{'type':'string'}}}
+    compact=compact_schema(schema)
+    assert set(compact['$defs'])=={'Used','Child'}
+    assert compact['properties']['unused']['items']=={}
+    assert 'title' not in compact['$defs']['Used']
+    assert schema['$defs']['Used']['title']=='Noise'
+
+
+def test_identifier_restoration_does_not_confuse_first_and_tenth_placeholders():
+    from apps.ml.inference.pii import PiiVault
+    vault=PiiVault();source=' '.join(f'citizen{n}@example.test' for n in range(12))
+    protected=vault.protect(source)
+    assert 'example.test' not in protected
+    assert vault.restore(protected)==source

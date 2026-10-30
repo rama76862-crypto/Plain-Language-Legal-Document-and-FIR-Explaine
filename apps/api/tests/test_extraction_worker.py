@@ -84,3 +84,13 @@ async def test_isolated_parser_errors_keep_expected_code(tmp_path):
     with pytest.raises(ApiError) as error:
         await extract_isolated(path,'docx','en',Settings(runtime_dir=tmp_path/'runtime'))
     assert error.value.code=='EXTRACTION_FAILED'
+
+
+@pytest.mark.asyncio
+async def test_parser_does_not_inherit_hosted_provider_credentials(tmp_path,monkeypatch):
+    names=('ML_SERVICE_TOKEN','GROQ_API_KEY','CLOUDFLARE_AI_TOKEN','HF_TOKEN','HUGGING_FACE_HUB_TOKEN')
+    for name in names:monkeypatch.setenv(name,'synthetic-sensitive-value')
+    script="import os,json; names="+repr(names)+"; print(json.dumps({'type':'error','code':'EXTRACTION_FAILED' if any(n in os.environ for n in names) else 'EMPTY_DOCUMENT'}))"
+    with pytest.raises(ApiError) as error:
+        await extract_isolated(tmp_path/'unused','pdf','en',Settings(runtime_dir=tmp_path/'runtime'),command=[sys.executable,'-c',script])
+    assert error.value.code=='EMPTY_DOCUMENT'

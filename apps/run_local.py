@@ -66,7 +66,7 @@ def main():
     if not check_installation():raise RuntimeError('Incomplete setup. Run Setup.cmd; see TEAM-SETUP.md.')
     RUNTIME.mkdir(parents=True,exist_ok=True)
     env=os.environ.copy()
-    env.update(ML_MODE="real",ML_BASE_URL="http://127.0.0.1:8001",WEB_ORIGIN="http://127.0.0.1:8000",WEB_DIST_DIR=str(ROOT/"frontend"/"dist"),RUNTIME_DIR=str(ROOT/"work"/"runtime"/"be1"),OPENBLAS_NUM_THREADS="1",OMP_NUM_THREADS="2",TOKENIZERS_PARALLELISM="false")
+    env.update(INFERENCE_MODE="local",ML_MODE="real",ML_BASE_URL="http://127.0.0.1:8001",WEB_ORIGIN="http://127.0.0.1:8000",WEB_DIST_DIR=str(ROOT/"frontend"/"dist"),RUNTIME_DIR=str(ROOT/"work"/"runtime"/"be1"),OPENBLAS_NUM_THREADS="1",OMP_NUM_THREADS="2",TOKENIZERS_PARALLELISM="false")
     env.update(LLAMA_GPU_LAYERS=str(args.gpu_layers),LLAMA_CTX_SIZE=str(args.ctx_size),MODEL_TIMEOUT_SECONDS='300')
     owned=json.loads(STATE.read_text()) if STATE.exists() else []
     import psutil

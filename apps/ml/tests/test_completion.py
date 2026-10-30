@@ -168,6 +168,16 @@ def test_indic_amount_loss_is_rejected_and_working_digits_keep_the_value():
     assert '१२,५००' in source
 
 
+@pytest.mark.parametrize('hyphen',['-','\u2010','\u2011'])
+def test_typographic_duration_hyphens_preserve_count_and_unit(hyphen):
+    source='The agreement renews for 11 months unless cancelled 30 days before the end.'
+    equivalent=f'The agreement renews for an 11{hyphen}month period unless cancelled 30 days before the end.'
+    wrong=f'The agreement renews for an 11{hyphen}week period unless cancelled 30 days before the end.'
+    assert not grounding_issues(source,equivalent)
+    assert 'omitted_critical_literal' in grounding_issues(source,wrong)
+    assert 'unsupported_critical_literal' in grounding_issues(source,wrong)
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize('bad_summary',[False,True])
 async def test_optional_risk_prose_cannot_publish_consent_or_caveat_inventions(bad_summary):

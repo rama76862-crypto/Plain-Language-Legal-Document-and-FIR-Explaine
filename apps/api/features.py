@@ -19,9 +19,9 @@ def action_pack(record,snapshot):
     }[language]
     for clause in record.clauses:
         if re.search(r'\b(?:must|shall|required\s+to|agrees?\s+to)\b|करना होगा|लाज़मी|ਲਾਜ਼ਮੀ|ਹੋਵੇਗਾ',clause.reviewed_text,re.I):
-            party=re.search(r'\b(?:tenant|landlord|borrower|lender|buyer|seller|provider|customer|recipient|sender)\b',clause.reviewed_text,re.I)
+            roles=re.findall(r'\b(?:tenant|landlord|borrower|lender|buyer|seller|provider|customer|recipient|sender)\b|किरायेदार|मकान मालिक|ऋणदाता|उधारकर्ता|खरीदार|विक्रेता|ग्राहक|प्रदाता|ਕਿਰਾਏਦਾਰ|ਮਕਾਨ ਮਾਲਕ|ਕਰਜ਼ਦਾਤਾ|ਕਰਜ਼ਦਾਰ|ਖਰੀਦਦਾਰ|ਵਿਕਰੇਤਾ|ਗਾਹਕ|ਪ੍ਰਦਾਤਾ',clause.reviewed_text,re.I)
             dates=[d['source_quote'] for d in deadlines if d['clause_id']==clause.clause_id]
-            checklist.append({'id':clause.clause_id,'statement':clause.reviewed_text,'party':party.group() if party else 'not_stated','due_or_trigger':dates,'clause_id':clause.clause_id,'source_ref':clause.source_ref.model_dump(),'review_status':'needs_review'})
+            checklist.append({'id':clause.clause_id,'statement':clause.reviewed_text,'party':', '.join(dict.fromkeys(role.casefold() for role in roles)) if roles else 'not_detected','due_or_trigger':dates,'clause_id':clause.clause_id,'source_ref':clause.source_ref.model_dump(),'review_status':'needs_review'})
     seen=set()
     for item in result.get('items',[]):
         category=item.get('category')

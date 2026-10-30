@@ -9,6 +9,12 @@
 **/runtime
 **/training/artifacts
 **/training/indian_artifacts
+**/training/downloads
+**/training/datasets
+**/training/raw
+**/tests
+**/evaluation/reports
+**/service/fixtures/real_local_result.json
 work
 tools
 **/.env

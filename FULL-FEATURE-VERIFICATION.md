@@ -1,3 +1,5 @@
+> For the new Clauseora port and hosted CPU mode, read CLAUSEORA-VERIFICATION.md. The baseline below predates that feature port and does not certify its public deployment or legal accuracy.
+
 # Integrated feature verification — 30 October 2026
 
 The real frontend, public API (BE1), private ML service (BE2), and local Qwen model are connected. Frontend fixture datasets, fixture branches, fixture flags, canned result previews and the sample loader were removed. The frontend rejects explicitly flagged simulated backend responses.

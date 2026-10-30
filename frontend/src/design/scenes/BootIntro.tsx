@@ -86,7 +86,7 @@ export const BootIntro: React.FC<BootIntroProps> = ({ onDone, ready }) => {
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span>Local API Server</span>
+                <span>Processing API Server</span>
                 <span className={ready.health ? 'text-ok font-bold' : 'text-mute'}>
                   {ready.health ? 'Checked ✓' : 'Checking...'}
                 </span>

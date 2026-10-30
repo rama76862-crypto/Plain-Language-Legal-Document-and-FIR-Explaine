@@ -282,7 +282,7 @@ export const LandingPage: React.FC = () => {
               {t('landing.privacyTitle')}
             </h2>
             <p className="text-mute text-base leading-relaxed">
-              {hostedMode?'Temporary server storage after consent; Groq provides hosted AI inference.':t('landing.privacySub')}
+              {t('landing.privacySub')}
             </p>
             <div className="pt-2">
               <a href="#upload-console" className="btn p btn-sweep font-bold inline-block">

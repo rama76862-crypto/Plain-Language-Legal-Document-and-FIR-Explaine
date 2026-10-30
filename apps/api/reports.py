@@ -88,7 +88,7 @@ def render_markdown(report: dict) -> str:
         lines += ["", "## Questions and answers"]
         for question in report["questions"]:
             lines += ["", "Question: "+_safe_text(question["question"]), "Answer: "+_safe_text(question["answer"]["answer"]), "Review: "+_safe_text(question["answer"]["review_status"])]
-    lines += ["", "## Model and rules provenance", _safe_text(json.dumps(result.get("provenance",{}),ensure_ascii=False)), "", "## Privacy", report["retention"]]
+    lines += ["", "## Model and rules provenance", _safe_text(json.dumps(result.get("provenance",{}),ensure_ascii=False)), "", "## Privacy", report["retention"], _safe_text(report['external_ai_disclosure']), 'Processing mode: '+_safe_text(report['inference_mode'])]
     return "\n".join(lines)+"\n"
 
 def render_html(report: dict) -> str:

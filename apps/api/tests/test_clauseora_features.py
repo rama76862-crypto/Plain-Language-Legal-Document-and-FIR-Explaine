@@ -54,3 +54,14 @@ def test_hosted_processing_requires_separate_external_consent_before_storage(tmp
         response=client.post('/api/v1/documents',files={'file':('synthetic.pdf',pdf_bytes(),'application/pdf')},data={'processing_consent':'true'})
         assert response.status_code==422
         assert not app.state.store.records
+
+
+def test_checklist_keeps_multiple_role_mentions_without_assigning_responsibility():
+    from types import SimpleNamespace
+    from apps.api.features import action_pack
+    from apps.api.schemas import Clause,SourceRef
+    source='The landlord must notify the tenant within 15 days.'
+    record=SimpleNamespace(document_id='synthetic',revision=1,clauses=[Clause(clause_id='c1',source_text=source,reviewed_text=source,source_ref=SourceRef(paragraph_index=1))])
+    pack=action_pack(record,{'analysis_id':'synthetic','result':{'output_language':'en'}})
+    assert pack['checklist'][0]['party']=='landlord, tenant'
+    assert pack['checklist'][0]['statement']==source

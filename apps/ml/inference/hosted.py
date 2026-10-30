@@ -10,6 +10,30 @@ from .generator import GenerationBusy,GenerationTimeout,GenerationUnavailable,Ge
 from .pii import PiiVault
 
 
+def compact_schema(schema):
+    """Drop unused model definitions without changing permitted JSON values."""
+    def walk(value):
+        if isinstance(value,list):return [walk(x) for x in value]
+        if not isinstance(value,dict):return value
+        value={k:walk(v) for k,v in value.items() if k not in {'title','default','$defs'}}
+        if value.get('type')=='array' and value.get('maxItems')==0:value['items']={}
+        return value
+    compact=walk(schema);definitions=schema.get('$defs',{});needed={}
+    def references(value):
+        if isinstance(value,list):
+            for item in value:yield from references(item)
+        elif isinstance(value,dict):
+            if '$ref' in value:yield value['$ref'].rsplit('/',1)[-1]
+            for item in value.values():yield from references(item)
+    queue=list(references(compact))
+    while queue:
+        name=queue.pop()
+        if name in needed or name not in definitions:continue
+        needed[name]=walk(definitions[name]);queue.extend(references(needed[name]))
+    if needed:compact['$defs']=needed
+    return compact
+
+
 class HostedGenerator:
     def __init__(self):
         self.key=os.environ.get('GROQ_API_KEY','').strip()
@@ -32,10 +56,11 @@ class HostedGenerator:
     async def generate(self,request):
         if not self.key:raise GenerationUnavailable('Hosted provider is not configured.')
         vault=PiiVault();started=time.monotonic()
-        system=vault.protect(request.system_prompt)+'\nReturn only JSON matching this schema: '+json.dumps(request.response_schema)
+        system=vault.protect(request.system_prompt)+'\nReturn only JSON matching this schema: '+json.dumps(compact_schema(request.response_schema),separators=(',',':'))
         prompt=vault.protect(request.user_prompt)
         payload={'model':self.model_name,'messages':[{'role':'system','content':system},{'role':'user','content':prompt}],
                  'temperature':0,'max_tokens':min(request.max_new_tokens,1024),'response_format':{'type':'json_object'}}
+        if self.model_name.startswith('openai/gpt-oss-'):payload['reasoning_effort']='low'
         async with self._lock:
             try:
                 async with httpx.AsyncClient(timeout=40,trust_env=False) as client:
@@ -49,4 +74,6 @@ class HostedGenerator:
             if not isinstance(content,str) or not content.strip():raise ValueError('empty')
             tokens=body.get('usage',{}).get('completion_tokens')
         except (ValueError,KeyError,IndexError,TypeError):raise GenerationInvalidResponse('Invalid hosted response.') from None
-        return GenerationResult(text=vault.restore(content),model=self.model_name,latency_ms=(time.monotonic()-started)*1000,output_tokens=tokens if isinstance(tokens,int) else None)
+        content=vault.restore(content)
+        if vault.prefix in content:raise GenerationInvalidResponse('Hosted result contains unresolved identifier placeholders.')
+        return GenerationResult(text=content,model=self.model_name,latency_ms=(time.monotonic()-started)*1000,output_tokens=tokens if isinstance(tokens,int) and not isinstance(tokens,bool) and tokens>=0 else None)

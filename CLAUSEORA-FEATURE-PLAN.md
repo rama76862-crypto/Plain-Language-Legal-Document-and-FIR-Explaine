@@ -1,6 +1,6 @@
 # Clauseora features in the original CTBF project
 
-Implementation target: this repository only. Clauseora is a read-only feature/design reference. No push is authorized until the user explicitly permits it.
+Implementation target: this repository only. Clauseora is a read-only feature/design reference. The user authorized a new feature branch and pushes on 31 October 2026. Changes go to `feature/clauseora-features-and-hosted-mode`; main remains unchanged.
 
 1. Restore the saved accuracy fixes: Indic numeric working-copy normalization, source cues for unilateral changes, grounding of optional risk descriptions, safe service-owned caveats and earlier FIR framing validation.
 2. Add the Clauseora Action Pack: source-linked obligation checklist, stated due/trigger text and up to five questions to raise with legal aid. Keep all unchecked obligations and caveats visible; do not prescribe legal strategy.
@@ -12,3 +12,5 @@ Implementation target: this repository only. Clauseora is a read-only feature/de
 8. Verify real local and hosted workflows, compare changes, Action Pack and privacy/deletion. Reuse labelled synthetic documents and preserve failure counts. Actual judge documents and independent legal/fluent review remain unavailable.
 
 Clauseora's Next.js routes and site are not the target. Its uncommitted port attempt was saved and removed from its working tree. Existing models/credentials/private documents remain ignored; no secrets are copied into committed files.
+
+Implementation steps 1–8 are complete at the software/technical-check level. Exact evidence and open judge/fluent-review/browser/public-deployment gates are recorded in CLAUSEORA-VERIFICATION.md. Main was not changed.

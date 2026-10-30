@@ -1,6 +1,6 @@
 # NyayaSarathi / NyayaLens
 
-Local plain-language legal document and FIR explainer for CTBF-AI-09. English, Hindi and Punjabi paths are implemented with mandatory review warnings. Generated text is information only, not legal advice.
+Local-first plain-language legal document and FIR explainer for CTBF-AI-09. English, Hindi and Punjabi paths are implemented with mandatory review warnings. Generated text is information only, not legal advice.
 
 Read FULL-FEATURE-VERIFICATION.md for current checks and unresolved accuracy gates. Role handoffs are specifications; historical audit files are not current acceptance evidence.
 
@@ -20,3 +20,8 @@ Open http://127.0.0.1:8000/ . The launcher starts missing local services, preser
 Setup and artifact recreation: apps/api/README.md and apps/ml/README.md. Frontend details: frontend/README.md. Deployment options: deployment/README.md. The model weights, datasets, runtime documents, credentials and generated verification output are ignored by Git.
 
 The core path is consent -> upload -> extraction -> explicit review -> local analysis -> evidence/questions -> optional report download -> deletion or expiry. Do not represent synthetic checks, classifier F1 or coverage as legal/LLM accuracy.
+
+
+## Clauseora features added here
+
+The feature branch adds an Action Pack, exact-source document version comparison, an optional separately consented Cloudflare source checker and a Groq-backed CPU deployment path. The original local model path remains available through `Start.cmd`. Read `CLAUSEORA-FEATURE-PLAN.md`, `CLAUSEORA-VERIFICATION.md` and `deployment/README.md`; hosted mode is not offline and a live public Render service has not yet been created. Current API additions are in `contracts/README.md`.

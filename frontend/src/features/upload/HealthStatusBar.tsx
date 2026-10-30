@@ -57,7 +57,7 @@ export const HealthStatusBar: React.FC<HealthStatusBarProps> = ({
     return (
       <Banner
         variant="error"
-        title="Local API Server Offline"
+        title="API Server Offline"
         action={{ label: 'Retry connection', onClick: fetchStatus }}
         className="w-full"
       >
@@ -83,7 +83,7 @@ export const HealthStatusBar: React.FC<HealthStatusBarProps> = ({
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5 text-ok-ink font-semibold">
             <CheckCircle2 className="w-4 h-4 text-ok" aria-hidden="true" />
-            <span>Local API Online</span>
+            <span>API Online</span>
           </div>
           <span className="text-line">|</span>
           <div className="flex items-center gap-1 text-mute font-mono">
