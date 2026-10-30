@@ -60,22 +60,33 @@ export const PdfViewerCanvas = React.forwardRef<PdfViewerRef, PdfViewerCanvasPro
       setLoading(true);
       setLoadError(null);
 
-      const loadingTask = pdfjsLib.getDocument({ url: blobUrl });
-
-      loadingTask.promise
+      const controller=new AbortController();
+      let loadingTask:pdfjsLib.PDFDocumentLoadingTask|undefined;
+      // Read the already authenticated in-memory blob ourselves. PDF.js's URL
+      // transport parses response headers and fails on some embedded browsers.
+      fetch(blobUrl,{signal:controller.signal,cache:'no-store'})
+        .then(response => {if(!response.ok) throw new Error('Source PDF unavailable'); return response.arrayBuffer();})
+        .then(bytes => {
+          if(controller.signal.aborted) throw new DOMException('Cancelled','AbortError');
+          loadingTask=pdfjsLib.getDocument({data:new Uint8Array(bytes)});
+          return loadingTask.promise;
+        })
         .then((doc) => {
+          if(controller.signal.aborted) {void doc.destroy();return;}
           setPdfDoc(doc);
           setNumPages(doc.numPages);
           onPageCountChange?.(doc.numPages);
           setLoading(false);
         })
         .catch((err) => {
+          if(controller.signal.aborted) return;
           setLoadError(err instanceof Error ? err.message : 'Failed to load PDF source');
           setLoading(false);
         });
 
       return () => {
-        loadingTask.destroy();
+        controller.abort();
+        void loadingTask?.destroy();
       };
     }, [blobUrl, onPageCountChange]);
 

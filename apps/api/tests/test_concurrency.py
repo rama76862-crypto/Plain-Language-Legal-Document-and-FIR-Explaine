@@ -34,7 +34,7 @@ class SlowML(FixtureMLClient):
 
 async def prepare(client,data=None):
     response=await client.post('/api/v1/documents',files={'file':('synthetic.pdf',data or pdf_bytes(),'application/pdf')},
-        data={'input_language':'en','document_type':'agreement'})
+        data={'input_language':'en','document_type':'agreement','processing_consent':'true'})
     value=response.json(); base='/api/v1/documents/'+value['document_id']; headers={'X-Session-Token':value['session_token']}
     for _ in range(2000):
         data=(await client.get(base,headers=headers)).json()
@@ -141,7 +141,7 @@ async def test_partial_progress_and_terminal_failed_clause_fields_survive(tmp_pa
                 job['full']=deepcopy(snapshot); job['partial_sent']=True
                 snapshot['status']='running'
                 snapshot.pop('failed_clauses',None)
-                snapshot['progress'].update(completed_clauses=1,stage='mock_first_clause',failed_clauses=[])
+                snapshot['progress'].update(completed_clauses=1,stage='mock_first_clause',failed_clauses=0)
                 snapshot['result'].pop('failed_clauses',None)
                 snapshot['result']['items']=snapshot['result']['items'][:1]
                 snapshot['result']['coverage']['analysed']=1
@@ -151,7 +151,7 @@ async def test_partial_progress_and_terminal_failed_clause_fields_survive(tmp_pa
             full['result']['items']=full['result']['items'][:1]
             full['result']['coverage']['analysed']=1
             full['result']['failed_clauses']=[failed]
-            full['progress']['failed_clauses']=[failed]
+            full['progress']['failed_clauses']=1
             full['failed_clauses']=[failed]
             return full
     app=create_app(settings,ml_client=PartialML(settings))

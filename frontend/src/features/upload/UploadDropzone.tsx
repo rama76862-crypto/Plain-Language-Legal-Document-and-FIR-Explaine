@@ -2,31 +2,33 @@
  * UploadDropzone Component (C-03)
  * Handles PDF and DOCX file selection and pre-flight validation:
  * - Drag-and-drop, file picker, and keyboard accessibility (Enter/Space)
- * - Enforces 10MB limit and 0-byte rejection
- * - Client-side page count warning via pdfjs-dist (>20 pages warning)
+ * - Enforces configured size limit and rejects empty files
+ * - Checks PDF page count against the configured server limit
  * - Accessible error notifications with aria-live
  */
 
 import React, { useState, useRef, useCallback } from 'react';
-import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { useT } from '../../lib/i18n';
 import { FileText, UploadCloud, X, AlertCircle } from 'lucide-react';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
-const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_BYTES = 25 * 1024 * 1024;
 
 interface UploadDropzoneProps {
   selectedFile: File | null;
   onFileSelect: (file: File | null) => void;
   disabled?: boolean;
+  maxBytes?: number;
+  maxPages?: number;
 }
 
 export const UploadDropzone: React.FC<UploadDropzoneProps> = ({
   selectedFile,
   onFileSelect,
   disabled = false,
+  maxBytes = MAX_BYTES,
+  maxPages = 50,
 }) => {
   const { t } = useT();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -47,8 +49,8 @@ export const UploadDropzone: React.FC<UploadDropzoneProps> = ({
       }
 
       // 2. Check maximum 10MB size limit
-      if (file.size > MAX_BYTES) {
-        setErrorMsg(t('errors.FILE_TOO_LARGE'));
+      if (file.size > maxBytes) {
+        setErrorMsg(`Maximum upload size: ${Math.floor(maxBytes / 1024 / 1024)} MB`);
         onFileSelect(null);
         return;
       }
@@ -69,13 +71,15 @@ export const UploadDropzone: React.FC<UploadDropzoneProps> = ({
       // 4. Client-side PDF page count inspection (warning only; does not block)
       if (isPdf) {
         try {
+          const pdfjsLib = await import('pdfjs-dist');
+          pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
           const buffer = await file.arrayBuffer();
           const loadingTask = pdfjsLib.getDocument({ data: buffer });
           const pdfDoc = await loadingTask.promise;
           const numPages = pdfDoc.numPages;
 
-          if (numPages > 20) {
-            setPageWarning(t('upload.pageLimitWarning', { pages: numPages }));
+          if (numPages > maxPages) {
+            setPageWarning(`This PDF has ${numPages} pages; the server limit is ${maxPages}.`);
           }
         } catch {
           // If client-side check fails, do not block; backend will validate
@@ -84,7 +88,7 @@ export const UploadDropzone: React.FC<UploadDropzoneProps> = ({
 
       onFileSelect(file);
     },
-    [onFileSelect, t]
+    [onFileSelect, t, maxBytes, maxPages]
   );
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -187,7 +191,7 @@ export const UploadDropzone: React.FC<UploadDropzoneProps> = ({
             <div className="font-bold text-sm text-navy">{t('upload.dropTitle')}</div>
             <div className="text-xs text-mute">{t('upload.dropSub')}</div>
             <div className="font-mono text-[11px] text-mute pt-1 font-semibold tracking-wide">
-              {t('upload.limitsNotice')}
+              PDF / DOCX · {Math.floor(maxBytes / 1024 / 1024)} MB · PDF ≤ {maxPages} pages
             </div>
           </div>
         )}

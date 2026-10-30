@@ -43,7 +43,7 @@ def client(settings):
 def upload(client,data=None,kind='pdf'):
     mime='application/pdf' if kind=='pdf' else 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     response=client.post('/api/v1/documents',files={'file':('synthetic.'+kind,pdf_bytes() if data is None else data,mime)},
-        data={'input_language':'en','document_type':'agreement'})
+        data={'input_language':'en','document_type':'agreement','processing_consent':'true'})
     assert response.status_code==202,response.text
     value=response.json(); return value,{'X-Session-Token':value['session_token']}
 
@@ -140,7 +140,7 @@ def test_tokens_validation_and_upload_errors(client):
 def test_oversize_and_health(settings):
     settings.max_upload_mb=1
     with TestClient(create_app(settings)) as client:
-        r=client.post('/api/v1/documents',files={'file':('x.pdf',b'x'*(1024*1024+1),'application/pdf')})
+        r=client.post('/api/v1/documents',files={'file':('x.pdf',b'x'*(1024*1024+1),'application/pdf')},data={'processing_consent':'true'})
         assert r.status_code==413
         h=client.get('/api/v1/health').json()
         assert h['mode']=='fixture' and h['ml']['simulation'] and not h['ml']['available']
@@ -215,7 +215,8 @@ def test_real_http_adapter_public_journey(settings):
         if request.url.path=='/internal/question':
             question_count+=1; p=json.loads(request.content)
             assert 'session_token' not in p
-            c=p['clauses'][0]
+            assert set(p)=={'document_id','analysis_id','document_revision','question','output_language','client_request_id'}
+            c=private[p['analysis_id']]['clauses'][0]
             return httpx.Response(200,json=dict(answer='Mock grounded answer',evidence=[dict(clause_id=c['clause_id'],quote=c['reviewed_text'])],reference_ids=[],review_status='supported',limitations=['HTTP contract test only']))
         return httpx.Response(404)
     ml=RealMLClient(settings,transport=httpx.MockTransport(handler))
@@ -243,6 +244,8 @@ def test_expiry_and_polling_does_not_extend(settings):
         assert not list(settings.runtime_dir.glob('doc_*'))
 
 
-def test_openapi_has_ten_operations():
+def test_openapi_has_completion_operations():
     schema=create_app().openapi()
-    assert sum(len(ops) for path,ops in schema['paths'].items() if path.startswith('/api/v1/'))==10
+    assert '/api/v1/capabilities' in schema['paths']
+    assert '/api/v1/documents/{document_id}/analyses/{analysis_id}/report' in schema['paths']
+    assert 'delete' in schema['paths']['/api/v1/documents/{document_id}/analyses/{analysis_id}']

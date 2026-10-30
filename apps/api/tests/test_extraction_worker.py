@@ -26,7 +26,9 @@ async def test_real_parser_isolated_refs_and_safe_progress(tmp_path,kind):
 
 @pytest.mark.asyncio
 async def test_hard_timeout_kills_parser_and_ocr_descendant(tmp_path):
-    settings=Settings(runtime_dir=tmp_path/'runtime',extraction_timeout_seconds=.5)
+    # Windows process startup can exceed 0.5s on this laptop. Keep a finite
+    # hard deadline while allowing the descendant to exist before testing kill.
+    settings=Settings(runtime_dir=tmp_path/'runtime',extraction_timeout_seconds=2)
     marker=tmp_path/'descendant.pid'; pids=[]
     script="import subprocess,sys,time; from pathlib import Path; child=subprocess.Popen([sys.executable,'-c','import time; time.sleep(60)']); Path(sys.argv[1]).write_text(str(child.pid)); time.sleep(60)"
     with pytest.raises(ApiError) as error:

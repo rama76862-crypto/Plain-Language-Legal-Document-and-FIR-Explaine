@@ -32,7 +32,7 @@ const SAMPLE_CLAUSES: SampleClause[] = [
   {
     q: 'A penalty of 3% per week shall be levied on delayed rent.',
     t: [['r', 'Potential concern · Penalty']],
-    p: 'Cl. 5 · p.1',
+    p: 'Sample clause 2',
     e: {
       en: 'Late rent adds a 3% charge for every week of delay.',
       hi: 'देर होने पर हर हफ़्ते 3% अतिरिक्त शुल्क लगेगा।',
@@ -45,7 +45,7 @@ const SAMPLE_CLAUSES: SampleClause[] = [
       ['a', 'Potential concern · Auto-renewal'],
       ['c', 'Deadline · 60 days'],
     ],
-    p: 'Cl. 8 · p.2',
+    p: 'Sample clause 3',
     e: {
       en: 'The lease renews itself for 11 months unless notice is given 60 days before it ends.',
       hi: 'नोटिस न देने पर समझौता अपने-आप 11 महीने बढ़ जाएगा; नोटिस 60 दिन पहले देना है।',
@@ -55,7 +55,7 @@ const SAMPLE_CLAUSES: SampleClause[] = [
   {
     q: 'The Tenant waives all rights to approach any court regarding eviction.',
     t: [['r', 'Potential concern · Waived right']],
-    p: 'Cl. 11 · p.2',
+    p: 'Sample clause 4',
     e: {
       en: 'This clause says you give up the right to go to court over eviction.',
       hi: 'यह शर्त बेदखली पर अदालत जाने का आपका अधिकार छोड़ने को कहती है।',
@@ -65,7 +65,7 @@ const SAMPLE_CLAUSES: SampleClause[] = [
   {
     q: 'Security deposit of ₹54,000 is refundable within 30 days of vacating.',
     t: [['c', 'Deadline · 30 days']],
-    p: 'Cl. 13 · p.3',
+    p: 'Sample clause 5',
     e: {
       en: 'Deposit of ₹54,000 is to be returned within 30 days of vacating.',
       hi: 'खाली करने के 30 दिन के भीतर ₹54,000 की जमा राशि लौटाई जानी है।',

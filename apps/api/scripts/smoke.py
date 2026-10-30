@@ -72,7 +72,7 @@ def run(base: str, private_base: str, kind: str, mode: str, extraction_only: boo
         response = client.post(
             "/api/v1/documents",
             files={"file": ("synthetic." + kind, data, mime)},
-            data={"input_language": "en", "document_type": "agreement"},
+            data={"input_language": "en", "document_type": "agreement", "processing_consent": "true"},
         )
         response.raise_for_status()
         upload = response.json()

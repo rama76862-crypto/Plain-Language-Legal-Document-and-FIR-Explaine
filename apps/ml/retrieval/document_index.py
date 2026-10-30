@@ -19,6 +19,9 @@ class LocalDocumentIndex:
             raise ValueError("clause_id values must be unique within a document index")
         self._bm25 = BM25Index([tokenize(clause.reviewed_text) for clause in self._clauses])
         self._closed = False
+        from .embeddings import get_encoder
+        self._encoder = get_encoder()
+        self._vectors = self._encoder.encode([c.reviewed_text for c in self._clauses]) if self._encoder else None
 
     def search(self, query: str, *, limit: int = 5) -> list[RetrievalHit]:
         """Rank matching reviewed clauses; this is for context and questions only."""
@@ -32,6 +35,17 @@ class LocalDocumentIndex:
 
         scores = self._bm25.score(query_tokens)
         ranked = sorted(enumerate(scores), key=lambda pair: (-pair[1], pair[0]))
+        semantic_scores = None
+        fused = {i: 1 / (60 + rank) for rank, (i, score) in enumerate(ranked, 1) if score > 0}
+        if self._encoder and self._vectors is not None and len(self._clauses):
+            semantic_scores = self._vectors @ self._encoder.encode([query], query=True)[0]
+            semantic_rank = sorted(enumerate(semantic_scores), key=lambda pair: (-pair[1], pair[0]))
+            for rank, (i, score) in enumerate(semantic_rank, 1):
+                # Candidate threshold, not a probability of truth. A second
+                # answerability and grounding check is required downstream.
+                if score >= 0.82:
+                    fused[i] = fused.get(i, 0) + 1 / (60 + rank)
+            ranked = sorted(fused.items(), key=lambda pair: (-pair[1], pair[0]))
         hits: list[RetrievalHit] = []
         for index, score in ranked:
             if score <= 0.0:
@@ -43,6 +57,8 @@ class LocalDocumentIndex:
                     text=clause.reviewed_text,
                     score=score,
                     source_kind="document",
+                    semantic_score=float(semantic_scores[index]) if semantic_scores is not None else None,
+                    retrieval_methods=(["bm25"] if scores[index] > 0 else []) + (["e5"] if semantic_scores is not None and semantic_scores[index] >= 0.82 else []),
                 )
             )
             if len(hits) >= limit:
@@ -53,6 +69,7 @@ class LocalDocumentIndex:
         """Clear clause text and BM25 state when the owning session is deleted."""
         self._clauses = ()
         self._bm25.clear()
+        self._vectors = None
         self._closed = True
 
 

@@ -1,3 +1,5 @@
+> Update, 30 October 2026: the completion work and current evidence are documented in apps/ml/COMPLETION.md and BACKEND-COMPLETION.md. Earlier counts and language results below are historical snapshots.
+
 # Backend 1 progress
 
 Original shared checklist: **[#######-] 7/8 passed**. This counts checked work, not time or product quality. All remaining BE1-only implementation/verification is completed; the last shared milestone requires the actual other services.

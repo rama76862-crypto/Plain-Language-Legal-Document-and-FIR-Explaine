@@ -90,7 +90,7 @@ export const PrivacyCheckPage: React.FC = () => {
           Client Privacy & Storage Audit
         </h1>
         <p className="text-xs text-mute">
-          Automated verification of memory-only execution. NyayaSarathi prohibits any browser storage.
+          Checks browser storage and URL secrets. This page does not audit server retention or deployment infrastructure.
         </p>
       </div>
 
@@ -143,9 +143,9 @@ export const PrivacyCheckPage: React.FC = () => {
         </div>
 
         <div className="pt-3 border-t border-line text-[11px] text-mute font-mono leading-relaxed">
-          Rule: All tokens, extracted paragraphs, OCR bboxes, model explanations, and Q&A threads
-          reside exclusively in volatile React/JS memory and are instantly cleared upon tab close,
-          refresh, or session deletion.
+          Browser state is kept in memory. The processing server temporarily holds documents and results
+          after consent. Use Delete session to request cleanup; abandoned server sessions expire.
+          Refreshing or closing this tab does not prove server deletion. Downloaded reports remain on your device.
         </div>
       </GlassCard>
     </main>

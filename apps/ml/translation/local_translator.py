@@ -35,7 +35,7 @@ _NEGATION_PATTERNS: dict[str, re.Pattern[str]] = {
         re.IGNORECASE,
     ),
     "hi": re.compile(r"(?:नहीं|नही|मत|बिना|कोई\s+.{0,16}\s+नहीं)"),
-    "pa": re.compile(r"(?:ਨਹੀਂ|ਨਹੀ|ਨਾ|ਬਿਨਾਂ|ਬਿਨਾ|ਕੋਈ\s+.{0,16}\s+ਨਹੀਂ)"),
+    "pa": re.compile(r"(?<![\w\u0A00-\u0A7F])(?:ਨਹੀਂ|ਨਹੀ|ਨਾ|ਬਿਨਾਂ|ਬਿਨਾ|ਕੋਈ\s+.{0,16}\s+ਨਹੀਂ)(?![\w\u0A00-\u0A7F])"),
 }
 _ALLEGATION_PATTERNS: dict[str, re.Pattern[str]] = {
     "en": re.compile(r"\b(?:alleg(?:e|es|ed|ation|ations)|complaint)\b", re.IGNORECASE),
@@ -340,6 +340,7 @@ class LocalTranslator:
             version=self.model_version,
             review_status="supported" if supported else "needs_review",
             checks=checks,
+            automated_checks_passed=preservation_passed,
         )
 
     @staticmethod

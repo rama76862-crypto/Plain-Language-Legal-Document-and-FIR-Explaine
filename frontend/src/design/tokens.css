@@ -3,12 +3,12 @@
 @import "@fontsource/plus-jakarta-sans/800.css";
 @import "@fontsource/jetbrains-mono/400.css";
 @import "@fontsource/jetbrains-mono/600.css";
-@import "@fontsource/noto-sans-devanagari/400.css";
-@import "@fontsource/noto-sans-devanagari/600.css";
-@import "@fontsource/noto-sans-devanagari/700.css";
-@import "@fontsource/noto-sans-gurmukhi/400.css";
-@import "@fontsource/noto-sans-gurmukhi/600.css";
-@import "@fontsource/noto-sans-gurmukhi/700.css";
+@import "@fontsource/noto-sans-devanagari/devanagari-400.css";
+@import "@fontsource/noto-sans-devanagari/devanagari-600.css";
+@import "@fontsource/noto-sans-devanagari/devanagari-700.css";
+@import "@fontsource/noto-sans-gurmukhi/gurmukhi-400.css";
+@import "@fontsource/noto-sans-gurmukhi/gurmukhi-600.css";
+@import "@fontsource/noto-sans-gurmukhi/gurmukhi-700.css";
 
 @tailwind base;
 @tailwind components;

@@ -276,9 +276,7 @@
       "progress": {
         "completed_clauses": 4,
         "total_clauses": 4,
-        "failed_clauses": [
-          "c4"
-        ]
+        "failed_clauses": 1
       },
       "result": {
         "document_id": "doc_example",

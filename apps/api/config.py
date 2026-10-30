@@ -13,8 +13,8 @@ class Settings:
     ml_base_url: str = 'http://127.0.0.1:8001'
     ml_service_token: str = ''
     runtime_dir: Path = field(default_factory=lambda: Path('work/runtime/be1'))
-    max_upload_mb: int = 10
-    max_pdf_pages: int = 20
+    max_upload_mb: int = 25
+    max_pdf_pages: int = 50
     session_ttl_minutes: float = 30
     model_timeout_seconds: float = 120
     ml_mode: str = 'real'
@@ -30,12 +30,16 @@ class Settings:
     poll_interval_seconds: float = 0.5
     max_analysis_jobs: int = 4
     cleanup_interval_seconds: float = 10
+    max_analysis_seconds: float = 1800
+    upload_rate_limit: int = 30
 
     def __post_init__(self):
         # Preserve lexical path until SessionStore checks links/junctions.
         self.runtime_dir = Path(self.runtime_dir).absolute()
         if self.ml_mode not in {'real', 'fixture'}:
             raise ValueError('ML_MODE must be real or fixture')
+        if not math.isfinite(self.max_analysis_seconds) or not math.isfinite(self.upload_rate_limit) or self.max_analysis_seconds <= 0 or self.upload_rate_limit <= 0:
+            raise ValueError('Analysis budget and upload rate must be positive')
         for key in ('max_upload_mb','max_pdf_pages','session_ttl_minutes','model_timeout_seconds','extraction_workers','extraction_queue_size','extraction_timeout_seconds','extraction_memory_mb','max_docx_expanded_bytes','max_docx_entries','max_extracted_chars','ocr_timeout_seconds','ocr_max_pixels','poll_interval_seconds','max_analysis_jobs','cleanup_interval_seconds'):
             if not math.isfinite(getattr(self,key)) or getattr(self,key) <= 0:
                 raise ValueError(f'{key} must be positive')

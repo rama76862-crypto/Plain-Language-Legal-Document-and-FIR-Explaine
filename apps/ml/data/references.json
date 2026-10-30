@@ -16,7 +16,11 @@
       "retrieval_query": "India Code Bharatiya Nagarik Suraksha Sanhita 2023 section 173",
       "retrieval_method": "Official India Code Act PDF; exact subsection located in the PDF text and checked against the printed page locator",
       "excerpt_sha256_utf8": "a5f0c5452519f6e1df78cc619ac887e0824104014864203c51d9c701d36efd38",
-      "reuse_note": "Short attributed statutory excerpt. Keep the official source URL, Act identity, section, and version with any reuse; public availability does not establish a separate reuse licence."
+      "reuse_note": "Short attributed statutory excerpt. Keep the official source URL, Act identity, section, and version with any reuse; public availability does not establish a separate reuse licence.",
+      "verification_status": "needs_direct_source_recheck",
+      "reuse_status": "needs_review",
+      "automated_recheck_date": "2026-10-30",
+      "automated_recheck_method": "Exact normalized excerpt match against the retrieved official source; no applicability assessment."
     }
   },
   {
@@ -36,7 +40,11 @@
       "retrieval_query": "India Code Code of Criminal Procedure 1973 section 154",
       "retrieval_method": "Official India Code Act PDF; exact subsection located in the PDF text and checked against the page and amendment footnote",
       "excerpt_sha256_utf8": "491cd213c6134ae3058b7147c01082a047dcb9f8af46148cbb5b649119a2a72b",
-      "reuse_note": "Short attributed statutory excerpt. This record is the CrPC section 154 source only; it does not assert equivalence with a later enactment. State amendments and later source revisions require separate checking."
+      "reuse_note": "Short attributed statutory excerpt. This record is the CrPC section 154 source only; it does not assert equivalence with a later enactment. State amendments and later source revisions require separate checking.",
+      "verification_status": "needs_direct_source_recheck",
+      "reuse_status": "needs_review",
+      "automated_recheck_date": "2026-10-30",
+      "automated_recheck_method": "Exact normalized excerpt match against the retrieved official source; no applicability assessment."
     }
   },
   {
@@ -56,7 +64,11 @@
       "retrieval_query": "India Code Bharatiya Nyaya Sanhita 2023 section 316",
       "retrieval_method": "Official India Code Act PDF; opening words of subsection located in the PDF text and checked against the printed page locator",
       "excerpt_sha256_utf8": "f96ad9bd39462c3cd3057b4fae010942a165c0a2201d1d2525a45d564c5ca038",
-      "reuse_note": "Short attributed statutory excerpt. Keep the official source URL, Act identity, section, and version with any reuse; public availability does not establish a separate reuse licence."
+      "reuse_note": "Short attributed statutory excerpt. Keep the official source URL, Act identity, section, and version with any reuse; public availability does not establish a separate reuse licence.",
+      "verification_status": "needs_direct_source_recheck",
+      "reuse_status": "needs_review",
+      "automated_recheck_date": "2026-10-30",
+      "automated_recheck_method": "Exact normalized excerpt match against the retrieved official source; no applicability assessment."
     }
   },
   {
@@ -76,7 +88,11 @@
       "retrieval_query": "Department of Consumer Affairs Consumer Protection E-Commerce Rules 2020 rule 2(1)(a)",
       "retrieval_method": "Official Department PDF indexed text and official notification metadata; browser opening of the PDF timed out, so recheck the direct PDF before release",
       "excerpt_sha256_utf8": "74eb07c0125691be291acd92530b5fd8990e99927ab7e7a5010d2a7ad5c052ad",
-      "reuse_note": "Short attributed rule excerpt. Recheck the direct PDF and later amendments before release; the 2021 amendment checked here changes rule 4(1), and this record does not claim a complete amendment audit."
+      "reuse_note": "Short attributed rule excerpt. Recheck the direct PDF and later amendments before release; the 2021 amendment checked here changes rule 4(1), and this record does not claim a complete amendment audit.",
+      "verification_status": "needs_direct_source_recheck",
+      "reuse_status": "needs_review",
+      "automated_recheck_date": "2026-10-30",
+      "automated_recheck_method": "Exact normalized excerpt match against the retrieved official source; no applicability assessment."
     }
   },
   {
@@ -96,7 +112,11 @@
       "retrieval_query": "Department of Consumer Affairs Consumer Protection E-Commerce Rules 2020 rule 4(9)",
       "retrieval_method": "Official Department PDF indexed text and official notification metadata; browser opening of the PDF timed out, so recheck the direct PDF before release",
       "excerpt_sha256_utf8": "f493a7f64f85347c40d059aa1d4153284224de330b6b5b1e2f6f5ab0c2ea521f",
-      "reuse_note": "This short excerpt concerns the consent provision in rule 4(9) of the E-Commerce Rules; it is not a general rule for every agreement or payment authorization. Recheck the direct PDF and amendments before release."
+      "reuse_note": "This short excerpt concerns the consent provision in rule 4(9) of the E-Commerce Rules; it is not a general rule for every agreement or payment authorization. Recheck the direct PDF and amendments before release.",
+      "verification_status": "needs_direct_source_recheck",
+      "reuse_status": "needs_review",
+      "automated_recheck_date": "2026-10-30",
+      "automated_recheck_method": "Exact normalized excerpt match against the retrieved official source; no applicability assessment."
     }
   },
   {
@@ -116,7 +136,11 @@
       "retrieval_query": "site:nalsa.gov.in/faqs NALSA helpline FAQ 11",
       "retrieval_method": "Official NALSA FAQ HTML page; FAQ heading and text checked on the page",
       "excerpt_sha256_utf8": "b4d9c93bfd2cfdc429d765a1e20d7c182c4dfbd79a4b209a4d64160deb772676",
-      "reuse_note": "Official-agency contact information, not a statutory provision. Recheck the live page before release because contact details can change; this excerpt does not determine individual eligibility or guarantee assistance."
+      "reuse_note": "Official-agency contact information, not a statutory provision. Recheck the live page before release because contact details can change; this excerpt does not determine individual eligibility or guarantee assistance.",
+      "verification_status": "verified",
+      "reuse_status": "short_attributed_excerpt_reviewed",
+      "automated_recheck_date": "2026-10-30",
+      "automated_recheck_method": "Exact normalized excerpt match against the retrieved official source; no applicability assessment."
     }
   }
 ]

@@ -11,7 +11,8 @@ _CUES: tuple[tuple[str, re.Pattern[str]], ...] = (
         "automatic_renewal",
         re.compile(
             r"\b(?:automatic(?:ally)?\s*[- ]?\s*renew(?:s|ed|ing|al)?|"
-            r"auto[- ]?renew(?:al|s|ed|ing)?|renew(?:s|ed|ing)?\s+automatically)\b",
+            r"auto[- ]?renew(?:al|s|ed|ing)?|renew(?:s|ed|ing)?\s+automatically)\b|"
+            r"स्वतः\s*नवीनी|अपने\s*आप\s*नवीनी|ਆਪਣੇ\s*ਆਪ\s*ਨਵੀ|ਆਟੋ.{0,8}ਨਵੀ",
             re.IGNORECASE,
         ),
     ),
@@ -20,9 +21,14 @@ _CUES: tuple[tuple[str, re.Pattern[str]], ...] = (
         re.compile(
             r"\b(?:late\s+(?:payment\s+)?(?:fees?|charges?|penalt(?:y|ies))|"
             r"(?:pre[- ]?payment|payment|repayment)\s+penalt(?:y|ies)|"
-            r"penalt(?:y|ies)\s+(?:for|on)\s+(?:(?:late|missed|overdue)\s+payment|non[- ]?payment))\b",
+            r"penalt(?:y|ies)\s+(?:for|on)\s+(?:(?:late|missed|overdue)\s+payment|non[- ]?payment)|penalt(?:y|ies)|surcharge)\b|"
+            r"जुर्माना|विलंब\s*शुल्क|देरी.{0,12}शुल्क|ਜੁਰਮਾਨਾ|ਦੇਰੀ.{0,12}ਫੀਸ",
             re.IGNORECASE,
         ),
+    ),
+    (
+        "waived_rights",
+        re.compile(r"\b(?:waiv(?:e|es|ed|ing)|give\s+up|surrender|relinquish\w*|abandon\w*)\b.{0,65}\b(?:rights?|claims?|appeal|refund|notice|remed(?:y|ies)|entitlement|ability\s+to\s+dispute)\b|\b(?:rights?|claims?)\b.{0,45}\bwaiv(?:e|es|ed|ing)\b|अधिकार.{0,30}(?:त्याग|छोड़)|(?:त्याग|छोड़).{0,30}अधिकार|ਹੱਕ.{0,30}ਛੱਡ|ਅਧਿਕਾਰ.{0,30}ਤਿਆਗ", re.I),
     ),
 )
 
@@ -35,10 +41,8 @@ _NEGATION_AT_END = re.compile(
 )
 _NEGATED_PREDICATE = re.compile(
     r"^\s*(?:(?:[\w'-]+\s+){0,2})?(?:(?:does|do|did|will|shall|would|should|is|are|was|were|has|have|had)"
-    r"\s+not\s+(?:be\s+)?|(?:is|are|was|were|will\s+be|shall\s+be)\s+)"
-    r"(?:applicable|apply|charged|imposed|levied|required|permitted|allowed|"
-    r"available|effective|enforceable|included|part\s+of|excluded|exempt|"
-    r"excepted|prohibited)\b",
+    r"\s+not\s+(?:(?:be|been)\s+)?(?:applicable|apply|charged|imposed|levied|required|permitted|allowed|available|effective|enforceable|included|part\s+of)"
+    r"|(?:is|are|was|were|will\s+be|shall\s+be)\s+(?:excluded|exempt|excepted|prohibited))\b",
     re.IGNORECASE,
 )
 
@@ -58,7 +62,9 @@ def _scope_after(text: str, position: int) -> str:
 def _is_explicitly_negated(text: str, match: re.Match[str]) -> bool:
     before = _scope_before(text, match.start())
     after = _scope_after(text, match.end())
-    return bool(_NEGATION_AT_END.search(before) or _NEGATED_PREDICATE.match(after))
+    return bool(_NEGATION_AT_END.search(before) or _NEGATED_PREDICATE.match(after)
+                or re.search(r"\b(?:cannot|shall\s+not|will\s+not|does\s+not|not\s+be)\b|नहीं|ਨਹੀਂ", match.group(0), re.I)
+                or re.match(r".{0,24}?(?:नहीं|ਨਹੀਂ)", after))
 
 
 def agreement_attention_items(
@@ -93,6 +99,11 @@ def agreement_attention_items(
                 "This wording describes automatic renewal; review the renewal term "
                 "and any cancellation steps."
             )
+        elif category == "waived_rights":
+            explanation = (
+                "This wording refers to giving up a right or claim; review exactly "
+                "which right, the exceptions, and whether clarification is needed."
+            )
         else:
             explanation = (
                 "This wording describes a payment penalty or charge; review its amount "
@@ -113,3 +124,17 @@ def agreement_attention_items(
             )
         )
     return items
+
+
+def candidate_supported(category: str, text: str) -> bool:
+    """A classifier score cannot turn an ordinary payment into a penalty."""
+    for name, pattern in _CUES:
+        if category == name:
+            return any(not _is_explicitly_negated(text,m) for m in pattern.finditer(text))
+    anchors = {
+        "deposit_forfeiture": r"(?:deposit|security|advance|earnest).{0,90}(?:forfeit|los[et]|retain|non.refundable|not.{0,12}return)|(?:forfeit|retain).{0,50}(?:deposit|security)",
+        "unilateral_change": r"(?:may|can|reserves?).{0,65}(?:change|amend|vary|alter|modify|revise)|(?:sole|unilateral|discretion).{0,50}(?:change|amend|vary|alter)",
+        "unilateral_termination": r"(?:may|can|reserves?).{0,65}(?:terminate|end|cancel|discontinue|close)|unilateral.{0,30}termination",
+        "limitation_of_liability": r"(?:liab\w*|responsib\w*|compensation|recovery).{0,70}(?:limit|cap|restrict|exclud|not|no|exceed)|(?:not|no|limit|cap|disclaim|exclud).{0,50}(?:liab\w*|responsib\w*|compensation)",
+    }
+    return category not in anchors or bool(re.search(anchors[category], text, re.I))

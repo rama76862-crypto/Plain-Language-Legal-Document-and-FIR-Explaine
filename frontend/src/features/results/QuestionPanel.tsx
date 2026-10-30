@@ -28,14 +28,6 @@ import { EvidenceButton } from './EvidenceButton';
 import { ReferenceCard } from './ReferenceCard';
 import { GlassCard, Button, Banner } from '../../design/primitives';
 
-interface QuestionHistoryEntry {
-  id: string;
-  question: string;
-  clientRequestId: string;
-  answer: QuestionAnswer | null;
-  error?: { code: string; message: string; retryable: boolean };
-  timestamp: number;
-}
 
 interface QuestionPanelProps {
   onNavigateEvidence: (clauseId: string) => void;
@@ -45,12 +37,11 @@ interface QuestionPanelProps {
 export const QuestionPanel: React.FC<QuestionPanelProps> = ({
   onNavigateEvidence,
 }) => {
-  const { status, result, outputLanguage, analysisId, documentType } = useResult();
+  const { status, result, outputLanguage, analysisId, documentType, questionHistory: history, setQuestionHistory: setHistory } = useResult();
   const { documentId, sessionToken, revision } = useSession();
 
   const [questionText, setQuestionText] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [history, setHistory] = useState<QuestionHistoryEntry[]>([]);
   const [lastError, setLastError] = useState<{
     code: string;
     message: string;
@@ -109,7 +100,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
   const handleSendQuestion = useCallback(
     async (textToSend?: string, existingRequestId?: string) => {
       const q = (textToSend || questionText).trim();
-      if (q.length < 3 || q.length > 500) return;
+      if (q.length < 3 || q.length > 4000) return;
       if (isSubmitting) return;
 
       const reqId = existingRequestId || crypto.randomUUID();
@@ -301,7 +292,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
     );
   }
 
-  const isLengthValid = questionText.trim().length >= 3 && questionText.trim().length <= 500;
+  const isLengthValid = questionText.trim().length >= 3 && questionText.trim().length <= 4000;
 
   return (
     <div className="space-y-6">
@@ -503,7 +494,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
 
             <div className="absolute right-2 bottom-3 flex items-center gap-2">
               <span className="text-[10px] font-mono text-mute">
-                {questionText.trim().length}/500
+                {questionText.trim().length}/4000
               </span>
               <Button
                 type="submit"

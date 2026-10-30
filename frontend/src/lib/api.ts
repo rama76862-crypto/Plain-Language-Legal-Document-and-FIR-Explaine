@@ -124,6 +124,7 @@ export async function createDocument(
     formData.append('file', file);
     formData.append('input_language', inputLanguage);
     formData.append('document_type', documentType);
+    formData.append('processing_consent', 'true');
 
     const res = await fetch(`${config.apiBaseUrl}/documents`, {
       method: 'POST',
@@ -338,4 +339,14 @@ export async function deleteDocument(
   } catch (err) {
     return catchNetworkError(err);
   }
+}
+
+export async function downloadReviewReport(
+  documentId: string, sessionToken: string, analysisId: string,
+  format: 'json' | 'md' | 'html', includeQuestions = false
+): Promise<Blob> {
+  const url = `${config.apiBaseUrl}/documents/${encodeURIComponent(documentId)}/analyses/${encodeURIComponent(analysisId)}/report?format=${format}&include_questions=${includeQuestions}`;
+  const response = await fetch(url, { headers: { 'X-Session-Token': sessionToken }, cache: 'no-store' });
+  if (!response.ok) await handleResponse(response);
+  return response.blob();
 }

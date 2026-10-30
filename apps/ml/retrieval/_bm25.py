@@ -14,7 +14,18 @@ _TOKEN_PATTERN = re.compile(r"[^\W_]+", flags=re.UNICODE)
 def tokenize(text: str) -> list[str]:
     """Return Unicode-aware word tokens without retaining source text globally."""
     normalized = unicodedata.normalize("NFKC", text).casefold()
-    return _TOKEN_PATTERN.findall(normalized)
+    # Python's \\w excludes combining marks, splitting Hindi/Punjabi words.
+    # Retain letters, digits and marks together without adding a dependency.
+    words, current = [], []
+    for char in normalized:
+        if unicodedata.category(char)[0] in {"L", "N", "M"}:
+            current.append(char)
+        elif current:
+            words.append("".join(current))
+            current = []
+    if current:
+        words.append("".join(current))
+    return words
 
 
 class BM25Index:

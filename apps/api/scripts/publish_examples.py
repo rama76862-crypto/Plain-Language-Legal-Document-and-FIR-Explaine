@@ -44,7 +44,7 @@ def examples():
     snapshots['needs_review']['result']['coverage']['analysed']=3
     snapshots['needs_review']['result']['items']=items[:3]
     snapshots['needs_review']['result']['failed_clauses']=['c4']
-    snapshots['needs_review']['progress'].update(completed_clauses=4,failed_clauses=['c4'])
+    snapshots['needs_review']['progress'].update(completed_clauses=4,failed_clauses=1)
     errors={code:dict(error=dict(code=code,message=message,retryable=retryable),request_id='req_example')
         for code,message,retryable in [('REVISION_CONFLICT','Reload the current revision.',False),
         ('MODEL_BUSY','Local model queue is full; retry explicitly.',True),('MODEL_UNAVAILABLE','Local ML service unavailable.',True),

@@ -19,7 +19,6 @@ import { DeleteSessionDialog } from './DeleteSessionDialog';
 import { useSession } from '../lib/session';
 import { useT } from '../lib/i18n';
 import { config } from '../lib/config';
-import { isWebGLAvailable } from '../design/webglUtils';
 import { ShieldCheck, Clock, ExternalLink } from 'lucide-react';
 
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -29,11 +28,11 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   const [bootDone, setBootDone] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [bootReady, setBootReady] = useState({
-    fonts: true,
-    health: true,
-    webgl: isWebGLAvailable(),
-  });
+  const [bootReady, setBootReady] = useState(() => ({
+    fonts: !document.fonts,
+    health: false,
+    webgl: typeof CSS !== 'undefined' && CSS.supports('transform-style','preserve-3d'),
+  }));
 
   useEffect(() => {
     // Fonts readiness
@@ -42,6 +41,11 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
         setBootReady((prev) => ({ ...prev, fonts: true }));
       });
     }
+    const controller=new AbortController();
+    fetch(`${config.apiBaseUrl}/health`,{signal:controller.signal}).then(response => {
+      if(response.ok) setBootReady(previous => ({...previous,health:true}));
+    }).catch(() => {});
+    return () => controller.abort();
   }, []);
 
   const formatTimer = (seconds: number) => {
@@ -55,10 +59,10 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   return (
     <div className="relative min-h-screen flex flex-col font-sans bg-bg text-ink overflow-x-hidden selection:bg-blue/20">
       {/* Global Background */}
-      <LiveBackground />
+      {isLanding && <LiveBackground />}
 
       {/* Boot sequence for initial load */}
-      {!bootDone && (
+      {isLanding && !bootDone && (
         <BootIntro onDone={() => setBootDone(true)} ready={bootReady} />
       )}
 

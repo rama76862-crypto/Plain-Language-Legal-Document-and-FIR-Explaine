@@ -1,5 +1,6 @@
 """Native parsers, source-linked segmentation, and conservative detection."""
 import re
+import unicodedata
 import zipfile
 from pathlib import Path
 from apps.api.schemas import ApiError, Clause, SourceRef
@@ -15,7 +16,11 @@ def _notify(progress, **values):
 
 def _quality(text):
     letters = sum(character.isalpha() for character in text)
-    return letters >= 8 and '\ufffd' not in text and text.count('\x00') == 0
+    damaged_mapping=any(unicodedata.category(character) in {'Cc','Co','Cs'} and character not in '\n\r\t' for character in text)
+    indic=any('\u0900' <= c <= '\u097f' or '\u0a00' <= c <= '\u0a7f' for c in text)
+    extended_latin=sum('\u0080' <= c <= '\u024f' and c.isalpha() for c in text)
+    suspicious_indic_mapping=indic and extended_latin >= 3 and extended_latin/max(letters,1) > .1
+    return letters >= 8 and '\ufffd' not in text and not damaged_mapping and not suspicious_indic_mapping
 
 
 def _detect(text, requested):
@@ -99,7 +104,9 @@ def _pdf(path, input_language, settings, progress):
             flags = fitz.TEXTFLAGS_BLOCKS & ~fitz.TEXT_PRESERVE_IMAGES
             blocks = [block for block in page.get_text('blocks', sort=True, flags=flags) if len(block) < 7 or block[6] == 0]
             native = '\n'.join(block[4] for block in blocks).strip()
-            method, review = 'text', False
+            method, review = 'text', bool(re.search(r'[\u0900-\u097f\u0a00-\u0a7f]',native))
+            if review:
+                warnings.append(f'NATIVE_SCRIPT_REVIEW_REQUIRED: page {index+1}; check Indic shaping and PDF character mapping against the original.')
             # A scanned body may coexist with a tiny selectable header/footer.
             # Such a header is not evidence that the scanned body was extracted.
             image_dominant = len(native) < 150 and any(

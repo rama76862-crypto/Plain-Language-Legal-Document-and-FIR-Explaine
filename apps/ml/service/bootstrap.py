@@ -31,6 +31,10 @@ def build_default_pipeline() -> AnalysisPipeline | None:
         classifier = UnfairToSClassifier.load(artifact_dir)
     except (FileNotFoundError, OSError, ValueError, ImportError):
         classifier = None
+    indian_dir = ML_DIR / "training" / "indian_artifacts"
+    if os.environ.get("ML_CLASSIFIER_MODE", "indian") == "indian" and (indian_dir / "classifier.joblib").is_file():
+        from apps.ml.training.indian import IndianClauseClassifier
+        classifier = IndianClauseClassifier(indian_dir)
 
     base_url = os.environ.get("ML_LLM_BASE_URL", "http://127.0.0.1:8080")
     try:
@@ -42,6 +46,11 @@ def build_default_pipeline() -> AnalysisPipeline | None:
             timeout_seconds=float(os.environ.get("MODEL_TIMEOUT_SECONDS", "180")),
         )
         translator = LocalTranslator(generator)
+        if os.environ.get("ML_TRANSLATOR", "auto") != "qwen":
+            from apps.ml.translation.indic_translator import IndicTranslator
+            dedicated = IndicTranslator()
+            if dedicated.available():
+                translator = dedicated
     except (ValueError, OSError):
         generator = None
         translator = None
@@ -68,6 +77,7 @@ def build_default_pipeline() -> AnalysisPipeline | None:
                     law=entry.get("law"),
                 )
                 for entry in reference_payload
+                if reference_is_admitted(entry)
             )
         except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
             curated_references = ()
@@ -83,5 +93,23 @@ def build_default_pipeline() -> AnalysisPipeline | None:
         references=curated_references,
         find_official_references=find_official_references,
         tested_languages=tested_languages,
+        enforce_grounding=True,
+    )
+
+
+def reference_is_admitted(entry: dict) -> bool:
+    """Fail closed on incomplete source/reuse review or altered excerpts."""
+    import hashlib
+    from urllib.parse import urlsplit
+    record, provenance = entry.get("record", {}), entry.get("provenance", {})
+    host = urlsplit(record.get("url", "")).hostname or ""
+    if not host.endswith((".gov.in", ".nic.in")):
+        return False
+    return bool(
+        provenance.get("verification_status") == "verified"
+        and provenance.get("reuse_status") in {"verified", "short_attributed_excerpt_reviewed"}
+        and provenance.get("source_locator")
+        and provenance.get("source_checked_date")
+        and hashlib.sha256(record.get("excerpt", "").encode("utf-8")).hexdigest() == provenance.get("excerpt_sha256_utf8")
     )
 

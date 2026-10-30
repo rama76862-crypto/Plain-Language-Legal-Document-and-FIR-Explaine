@@ -34,6 +34,16 @@ export const LandingPage: React.FC = () => {
   const [inputLang, setInputLang] = useState<InputLanguage>('auto');
   const [outputLang, setOutputLang] = useState<OutputLanguage>('en');
   const [docType, setDocType] = useState<InputDocumentType>('auto');
+  const [processingConsent, setProcessingConsent] = useState(false);
+  const [limits, setLimits] = useState({ max_upload_bytes: 25 * 1024 * 1024, max_pdf_pages: 50 });
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(`${config.apiBaseUrl}/capabilities`, { signal: controller.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then(value => { if (value?.limits) setLimits(value.limits); })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
 
   // Submittal & Telemetry State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -89,6 +99,7 @@ export const LandingPage: React.FC = () => {
     }
 
     try {
+      if (!processingConsent) throw new Error('Consent to temporary processing is required.');
       const res = await createDocument(selectedFile, inputLang, docType);
       startSession({
         documentId: res.document_id,
@@ -153,7 +164,7 @@ export const LandingPage: React.FC = () => {
             {/* Trust Assurance Row */}
             <div className="trust">
               <span>Punjabi · Hindi · English</span>
-              <span>Deleted when you leave</span>
+              <span>Delete session or automatic expiry</span>
               <span>DLSA / NALSA links</span>
             </div>
 
@@ -166,6 +177,8 @@ export const LandingPage: React.FC = () => {
                     selectedFile={selectedFile}
                     onFileSelect={setSelectedFile}
                     disabled={isSubmitting || !isHealthReady}
+                    maxBytes={limits.max_upload_bytes}
+                    maxPages={limits.max_pdf_pages}
                   />
 
                   {/* Independent Language & DocType Controls */}
@@ -197,12 +210,17 @@ export const LandingPage: React.FC = () => {
                     variant="primary"
                     size="lg"
                     className="w-full text-base font-bold shadow-pop btn-sweep"
-                    disabled={!selectedFile || !isHealthReady || isSubmitting}
+                    disabled={!selectedFile || !isHealthReady || isSubmitting || !processingConsent}
                     isLoading={isSubmitting}
                   >
                     {isSubmitting ? t('upload.extractingButton') : t('upload.extractButton')}
                   </Button>
 
+                  <label className="flex items-start gap-2 text-xs text-mute leading-relaxed">
+                    <input type="checkbox" checked={processingConsent} onChange={e => setProcessingConsent(e.target.checked)} className="mt-1" />
+                    <span>I consent to temporary processing and storage on the processing computer. Use Delete session to request cleanup; abandoned sessions expire. Downloaded reports remain on my device.</span>
+                  </label>
+                  <p className="text-xs text-mute">PDF: up to {limits.max_pdf_pages} pages; file size: up to {Math.floor(limits.max_upload_bytes / 1024 / 1024)} MB.</p>
                   {/* Consent & Privacy Notice Line */}
                   <p className="text-[11px] text-mute leading-normal text-center pt-1">
                     {t('disclaimers.consent')}
@@ -281,11 +299,11 @@ export const LandingPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
           <div className="reveal space-y-4">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-navy tracking-tight">
-              Your document never leaves the moment
+              Temporary processing with your consent
             </h2>
             <p className="text-mute text-base leading-relaxed">
-              Processed temporarily, held in memory only, wiped with one tap. No accounts, no
-              tracking, no stored copies without your consent.
+              Uploaded files are held temporarily on the processing server. Use Delete session to
+              request cleanup; abandoned sessions expire. Downloaded reports remain on your device.
             </p>
             <div className="pt-2">
               <a href="#upload-console" className="btn p btn-sweep font-bold inline-block">

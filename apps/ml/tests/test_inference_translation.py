@@ -61,6 +61,8 @@ def test_generator_sends_schema_and_reports_server_usage() -> None:
         payload = seen["payload"]
         assert isinstance(payload, dict)
         assert payload["response_format"]["type"] == "json_schema"
+        assert payload["response_format"]["json_schema"]["schema"]["properties"]["ok"] == {"type":"boolean"}
+        assert payload["response_format"]["json_schema"]["strict"] is True
         assert payload["max_tokens"] == 32
         assert seen["url"] == "http://127.0.0.1:8080/v1/chat/completions"
 

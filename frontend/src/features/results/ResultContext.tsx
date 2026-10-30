@@ -10,6 +10,7 @@ import type {
   AnalysisStatus,
   AnalysisProgress,
   OutputLanguage,
+  QuestionAnswer,
 } from '../../lib/types';
 import { createAnalysis, getAnalysis, ApiClientError } from '../../lib/api';
 import { config } from '../../lib/config';
@@ -20,6 +21,13 @@ import {
 } from '../../lib/fixtures';
 
 export type ResultTab = 'overview' | 'clauses' | 'attention' | 'dates' | 'ask' | 'export';
+
+export interface QuestionHistoryEntry {
+  id: string; question: string; clientRequestId: string;
+  answer: QuestionAnswer | null;
+  error?: { code: string; message: string; retryable: boolean };
+  timestamp: number;
+}
 
 interface ResultError {
   code: string;
@@ -43,6 +51,8 @@ interface ResultContextValue {
   retryAnalysis: () => Promise<void>;
   documentType: string;
   analysisId: string | null;
+  questionHistory: QuestionHistoryEntry[];
+  setQuestionHistory: React.Dispatch<React.SetStateAction<QuestionHistoryEntry[]>>;
 }
 
 const ResultContext = createContext<ResultContextValue | null>(null);
@@ -74,6 +84,8 @@ export const ResultProvider: React.FC<ResultProviderProps> = ({
   const [activeTab, setActiveTab] = useState<ResultTab>('overview');
   const [error, setError] = useState<ResultError | null>(null);
   const [analysisId, setAnalysisId] = useState<string | null>(null);
+  const [questionHistory, setQuestionHistory] = useState<QuestionHistoryEntry[]>([]);
+  useEffect(() => { setQuestionHistory([]); }, [documentId, revision, analysisId, outputLanguage]);
 
   // Key tracking to ignore stale responses
   const activeKeyRef = useRef<string>('');
@@ -346,6 +358,8 @@ export const ResultProvider: React.FC<ResultProviderProps> = ({
         retryAnalysis,
         documentType: result?.document_type ?? documentType,
         analysisId,
+        questionHistory,
+        setQuestionHistory,
       }}
     >
       {children}

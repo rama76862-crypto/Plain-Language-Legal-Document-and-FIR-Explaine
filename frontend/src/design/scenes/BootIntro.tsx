@@ -92,9 +92,9 @@ export const BootIntro: React.FC<BootIntroProps> = ({ onDone, ready }) => {
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span>Hardware Acceleration</span>
+                <span>Visual effects</span>
                 <span className={ready.webgl ? 'text-ok font-bold' : 'text-mute'}>
-                  {ready.webgl ? '3D Active ✓' : 'CSS Mode'}
+                  {ready.webgl ? 'CSS ready ✓' : 'Basic mode'}
                 </span>
               </div>
             </div>

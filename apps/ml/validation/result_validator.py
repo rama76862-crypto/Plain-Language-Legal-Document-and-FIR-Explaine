@@ -37,6 +37,11 @@ _MONTHS = {
     "sept": "09", "september": "09", "oct": "10", "october": "10",
     "nov": "11", "november": "11", "dec": "12", "december": "12",
 }
+for names in (
+    "जनवरी फरवरी मार्च अप्रैल मई जून जुलाई अगस्त सितंबर अक्टूबर नवंबर दिसंबर",
+    "ਜਨਵਰੀ ਫਰਵਰੀ ਮਾਰਚ ਅਪ੍ਰੈਲ ਮਈ ਜੂਨ ਜੁਲਾਈ ਅਗਸਤ ਸਤੰਬਰ ਅਕਤੂਬਰ ਨਵੰਬਰ ਦਸੰਬਰ",
+):
+    _MONTHS.update({name:f"{index:02d}" for index,name in enumerate(names.split(),1)})
 _MONTH_NAME_PATTERN = "|".join(sorted(_MONTHS, key=len, reverse=True))
 _MONTH_FIRST_DATE = re.compile(
     rf"\b({_MONTH_NAME_PATTERN})\.?\s+(\d{{1,2}})(?:st|nd|rd|th)?[,]?\s+(\d{{4}})\b",
@@ -50,9 +55,9 @@ _AMOUNT = re.compile(
     r"(?ix)(?:₹|rs\.?|inr|usd|us\$|\$|€|eur|£|gbp)\s*"
     r"(?P<value>\d[\d,]*(?:\.\d+)?)"
     r"|\b(?P<value_words>\d[\d,]*(?:\.\d+)?)\s*"
-    r"(?P<currency_words>rupees?|inr|usd|dollars?|euros?|pounds?)\b"
+    r"(?P<currency_words>rupees?|inr|usd|dollars?|euros?|pounds?|रुपये|रुपया|रुपयों|ਰੁਪਏ|ਰੁਪਿਆ)(?![\w\u0900-\u097F\u0A00-\u0A7F])"
 )
-_PERCENT = re.compile(r"(?i)\b(\d[\d,]*(?:\.\d+)?)\s*(?:%|percent)(?!\w)")
+_PERCENT = re.compile(r"(?i)\b(\d[\d,]*(?:\.\d+)?)\s*(?:%|percent|प्रतिशत|ਫੀਸਦੀ|ਪ੍ਰਤੀਸ਼ਤ)(?!\w)")
 _DURATION = re.compile(
     r"(?i)(?<!\w)(\d[\d,]*(?:\.\d+)?)[\s-]*("
     r"days?|weeks?|months?|years?|hours?|"
@@ -87,7 +92,7 @@ _DURATION_UNIT = {
     "ਘੰਟਾ": "hour", "ਘੰਟੇ": "hour", "ਘੰਟਿਆਂ": "hour",
 }
 _SECTION = re.compile(
-    r"(?i)\b(section|sec\.?|article|art\.?|§)\s*(?:no\.?\s*)?"
+    r"(?i)\b(section|sec\.?|article|art\.?|§|धारा|ਧਾਰਾ|अनुच्छेद|ਅਨੁਛੇਦ)\s*(?:no\.?\s*)?"
     r"(\d+[a-z]?(?:\s*\([\w.-]+\))?)"
 )
 _RECEIPT_ANCHOR = re.compile(r"(?i)\b(?:of|after|from)\s+(?:the\s+)?receipt\b")
@@ -180,7 +185,7 @@ def _date_signatures(text: str) -> set[str]:
 
 def _currency_code(token: str) -> str:
     lowered = token.casefold().replace(".", "").strip()
-    if token in {"₹"} or lowered in {"rs", "inr", "rupee", "rupees"}:
+    if token in {"₹"} or lowered in {"rs", "inr", "rupee", "rupees", "रुपये", "रुपया", "रुपयों", "ਰੁਪਏ", "ਰੁਪਿਆ"}:
         return "INR"
     if token in {"$"} or lowered in {"usd", "us$", "dollar", "dollars"}:
         return "USD"
@@ -213,7 +218,7 @@ def _critical_mentions(text: str) -> set[str]:
             mentions.add(f"duration:{_normalized_number(value)}:{canonical_unit}")
     for match in _SECTION.finditer(normalized):
         kind, identifier = match.groups()
-        section_kind = "article" if kind.casefold().startswith("art") else "section"
+        section_kind = "article" if kind.casefold().startswith("art") or kind in {"अनुच्छेद","ਅਨੁਛੇਦ"} else "section"
         compact = re.sub(r"\s+", "", identifier).casefold()
         mentions.add(f"{section_kind}:{compact}")
         context_start = max(0, match.start() - 28)

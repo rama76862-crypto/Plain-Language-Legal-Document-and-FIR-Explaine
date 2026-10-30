@@ -177,6 +177,16 @@ export const OverviewSummaryPanel: React.FC<OverviewSummaryPanelProps> = ({
         </div>
       </GlassCard>
 
+      {!!result.next_steps?.length && (
+        <GlassCard className="p-5 space-y-3">
+          <h3 className="font-bold text-navy">Clarification and next steps</h3>
+          <p className="text-xs text-mute">General information. Check these points against the source and with legal aid.</p>
+          {result.next_steps.map((step,index) => <div key={index} className="text-sm text-navy space-y-1">
+            <p>{step.text}</p>
+            {step.clause_ids?.map(id => <Button key={id} size="sm" variant="secondary" onClick={() => onNavigateEvidence(id)}>Show {id} in source</Button>)}
+          </div>)}
+        </GlassCard>
+      )}
       {/* Needs Review or Skipped Clauses Section (if any) */}
       {needsReviewItems.length > 0 && (
         <GlassCard className="p-5 border-amber-500/30 bg-amber-500/5">
@@ -264,8 +274,8 @@ export const OverviewSummaryPanel: React.FC<OverviewSummaryPanelProps> = ({
               Important: Information only · Not legal advice
             </h4>
             <p className="text-mute leading-relaxed">
-              No detected attention cue is not a clean legal bill of health. Antigravity and NyayaSarathi
-              help explain language in legal papers, but do not replace a qualified advocate. Always read
+              No detected attention cue is not a clean legal bill of health. NyayaSarathi
+              helps explain language in legal papers, but does not replace a qualified advocate. Always read
               every clause carefully.
             </p>
           </div>

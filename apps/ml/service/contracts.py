@@ -132,6 +132,9 @@ class AnalysisResult(StrictModel):
     # Additive Contract v1 metadata: identify clauses counted as failed in
     # AnalysisProgress.failed_clauses so BE1 can validate partial coverage.
     failed_clauses: list[FailedClause] = Field(default_factory=list)
+    structured_facts: list[dict[str, Any]] = Field(default_factory=list)
+    next_steps: list[dict[str, Any]] = Field(default_factory=list)
+    document_profile: str | None = None
 
 
 class AnalysisProgress(StrictModel):
@@ -197,6 +200,7 @@ class TranslationResult(StrictModel):
     version: str | None = None
     review_status: ReviewStatus
     checks: list[str] = Field(default_factory=list)
+    automated_checks_passed: bool = False
 
 
 class GenerationRequest(StrictModel):
@@ -219,6 +223,8 @@ class RetrievalHit(StrictModel):
     score: float
     source_kind: Literal["document", "official_reference"]
     reference: ReferenceRecord | None = None
+    semantic_score: float | None = None
+    retrieval_methods: list[str] = Field(default_factory=list)
 
 
 class ValidationIssue(StrictModel):

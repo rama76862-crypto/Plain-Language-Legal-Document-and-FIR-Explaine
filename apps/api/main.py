@@ -5,6 +5,8 @@ import asyncio
 import contextlib
 import logging
 import secrets
+import hashlib
+import os
 import time
 from contextlib import asynccontextmanager
 from copy import deepcopy
@@ -28,6 +30,7 @@ from apps.api.schemas import ErrorResponse, UploadAccepted, Metadata, Extraction
 from apps.api.ml_client.validation import Snapshot, Answer
 from apps.api.limits import UploadBodyLimit
 from apps.api.sessions import SessionStore
+from apps.api.reports import build_report, render_markdown, render_html
 
 log = logging.getLogger('nyayalens.api')
 ACTIVE = {'queued', 'running'}
@@ -53,6 +56,8 @@ def create_app(settings: Settings | None = None, ml_client=None, extractor=None)
     question_tasks: dict[tuple[str, str], asyncio.Task] = {}
     capabilities: dict = {}
     cleanup_lock=asyncio.Lock()
+    upload_windows: dict[str, tuple[float, int]] = {}
+    rate_salt=secrets.token_bytes(32)
 
     def schedule_cleanup(ids):
         for aid in ids:
@@ -147,6 +152,18 @@ def create_app(settings: Settings | None = None, ml_client=None, extractor=None)
     @app.middleware('http')
     async def privacy_headers(request, call_next):
         request.state.request_id = 'req_' + secrets.token_hex(8)
+        if request.method=='POST' and request.url.path=='/api/v1/documents':
+            now=time.monotonic()
+            for key, (started, _) in list(upload_windows.items()):
+                if now-started>=60:
+                    upload_windows.pop(key,None)
+            client=request.client.host if request.client else 'unknown'
+            key=hashlib.sha256(rate_salt+client.encode()).hexdigest()
+            started,count=upload_windows.get(key,(now,0))
+            if count>=settings.upload_rate_limit or (len(upload_windows)>=1024 and key not in upload_windows):
+                response=JSONResponse({'error':{'code':'RATE_LIMITED','message':'Upload rate limit reached. Retry later.','retryable':True},'request_id':request.state.request_id},status_code=429,headers={'Retry-After':'60','Cache-Control':'no-store'})
+                return response
+            upload_windows[key]=(started,count+1)
         try:
             response = await call_next(request)
         except Exception:
@@ -156,6 +173,7 @@ def create_app(settings: Settings | None = None, ml_client=None, extractor=None)
         response.headers['Cache-Control'] = 'no-store'
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['X-Request-ID'] = request.state.request_id
+        response.headers['Referrer-Policy'] = 'no-referrer'
         return response
 
     def error_response(request, error):
@@ -250,10 +268,18 @@ def create_app(settings: Settings | None = None, ml_client=None, extractor=None)
                 isolation=dict(mode='subprocess',timeout_seconds=settings.extraction_timeout_seconds,memory_mb=settings.extraction_memory_mb)),ml=model,
             cleanup=dict(pending=sum(not x['exhausted'] for x in cleanup.values()),exhausted=sum(x['exhausted'] for x in cleanup.values()),local=store.cleanup_status()))
 
+    @app.get('/api/v1/capabilities',tags=['health'])
+    async def public_capabilities():
+        return {'limits':{'max_upload_bytes':settings.max_upload_mb*1024*1024,'max_pdf_pages':settings.max_pdf_pages,'max_extracted_chars':settings.max_extracted_chars,'max_analysis_seconds':settings.max_analysis_seconds},
+                'processing':{'explicit_consent_required':True,'session_ttl_minutes':settings.session_ttl_minutes,'temporary_server_storage':True,'external_ai_inference':False},
+                'reports':['json','md','html'],'languages':{'en':'experimental','hi':'experimental','pa':'experimental'},
+                'legal_advice':False,'blockchain':False}
+
     @app.post('/api/v1/documents',status_code=202,tags=['documents'],response_model=UploadAccepted)
     async def upload(file: Annotated[UploadFile,File()],
         input_language: Annotated[Literal['auto','en','hi','pa'],Form()]='auto',
-        document_type: Annotated[Literal['auto','agreement','fir','notice','other'],Form()]='auto'):
+        document_type: Annotated[Literal['auto','agreement','fir','notice','other'],Form()]='auto',
+        processing_consent: Annotated[bool, Form()]=False):
         record=None
         try:
             if len(store.records)>=128 or len(cleanup)>=128:
@@ -266,6 +292,8 @@ def create_app(settings: Settings | None = None, ml_client=None, extractor=None)
                 '.docx':('docx',{'application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/zip','application/octet-stream'})}
             if suffix not in kinds or file.content_type not in kinds[suffix][1]:
                 raise ApiError('UNSUPPORTED_FILE','Upload a PDF or DOCX with a matching content type.',415)
+            if not processing_consent:
+                raise ApiError('CONSENT_REQUIRED','Explicit consent to temporary document processing is required.',422)
             kind=kinds[suffix][0]
             record,token=await store.create(filename,kind,input_language,document_type)
             total=0
@@ -360,7 +388,7 @@ def create_app(settings: Settings | None = None, ml_client=None, extractor=None)
     async def run_analysis(record,payload):
         aid=payload['analysis_id']; revision=payload['document_revision']
         try:
-            async with asyncio.timeout(settings.model_timeout_seconds):
+            async with asyncio.timeout(min(settings.max_analysis_seconds, settings.model_timeout_seconds * max(1,len(payload['clauses'])))):
                 while True:
                     snapshot=validate_snapshot(await ml.poll(aid),payload)
                     async with record.lock:
@@ -373,6 +401,8 @@ def create_app(settings: Settings | None = None, ml_client=None, extractor=None)
                             raise ApiError('INVALID_MODEL_OUTPUT','Local ML status moved backwards.',502)
                         record.analyses[aid]=snapshot
                         set_analysis_status(record,snapshot['status'])
+                        if snapshot.get('result') and snapshot['status'] not in ACTIVE:
+                            snapshot['_review_report']=build_report(record,snapshot)
                     log.info('Analysis progress completed_clauses=%d total_clauses=%d status=%s',
                         snapshot['progress']['completed_clauses'],snapshot['progress']['total_clauses'],snapshot['status'])
                     if snapshot['status'] not in ACTIVE:
@@ -461,7 +491,46 @@ def create_app(settings: Settings | None = None, ml_client=None, extractor=None)
             snapshot=record.analyses.get(analysis_id)
             if snapshot is None or snapshot['document_revision']!=record.revision:
                 raise ApiError('NOT_FOUND','Analysis not found in the current revision.',404)
-            return deepcopy(snapshot)
+            value=deepcopy(snapshot)
+            value.pop('_review_report',None)
+            value['report_available']=bool(snapshot.get('_review_report'))
+            return value
+
+    @app.get('/api/v1/documents/{document_id}/analyses/{analysis_id}/report',tags=['reports'])
+    async def report(document_id: str,analysis_id: str,format: Literal['json','md','html']='json',
+                     include_questions: bool=False,x_session_token: Token=None):
+        record=await store.get(document_id,x_session_token)
+        async with record.lock:
+            snapshot=record.analyses.get(analysis_id)
+            if not alive(record) or not snapshot or snapshot['document_revision']!=record.revision:
+                raise ApiError('NOT_FOUND','Current analysis not found.',404)
+            if snapshot['status'] not in {'complete','needs_review'} or not snapshot.get('result'):
+                raise ApiError('ANALYSIS_NOT_READY','The review report is not ready.',409,True)
+            value=build_report(record,snapshot,include_questions=include_questions) if include_questions else deepcopy(snapshot.get('_review_report') or build_report(record,snapshot))
+        headers={'Content-Disposition':f'attachment; filename="review-r{value["document_revision"]}.{format}"'}
+        if format=='json':
+            return JSONResponse(value,headers=headers)
+        if format=='html':
+            headers['Content-Security-Policy']="default-src 'none'; style-src 'unsafe-inline'; font-src data:; base-uri 'none'; form-action 'none'"
+        return Response(render_markdown(value) if format=='md' else render_html(value),media_type='text/markdown' if format=='md' else 'text/html',headers=headers)
+
+    @app.delete('/api/v1/documents/{document_id}/analyses/{analysis_id}',status_code=204,tags=['analyses'])
+    async def cancel_analysis(document_id: str,analysis_id: str,x_session_token: Token=None):
+        record=await store.get(document_id,x_session_token)
+        async with record.lock:
+            snapshot=record.analyses.pop(analysis_id,None)
+            if not alive(record) or snapshot is None:
+                raise ApiError('NOT_FOUND','Analysis not found.',404)
+            task=analysis_tasks.get(analysis_id)
+            if task:
+                task.cancel()
+            for key,task in list(question_tasks.items()):
+                if key[0]==document_id:
+                    task.cancel()
+            record.question_cache.clear()
+            record.status='awaiting_review'
+            schedule_cleanup([analysis_id])
+        return Response(status_code=204)
 
     @app.post('/api/v1/documents/{document_id}/questions',tags=['questions'],response_model=Answer,response_model_exclude_unset=True)
     async def question(document_id: str,body: QuestionRequest,x_session_token: Token=None):
@@ -526,6 +595,23 @@ def create_app(settings: Settings | None = None, ml_client=None, extractor=None)
         await asyncio.shield(finish())
         return Response(status_code=204)
 
+    web_root=Path(os.environ.get('WEB_DIST_DIR',Path(__file__).resolve().parents[2]/'frontend'/'dist')).resolve()
+    if (web_root/'index.html').is_file():
+        @app.get('/{web_path:path}',include_in_schema=False)
+        async def web_application(web_path: str):
+            if web_path.startswith('api/'):
+                raise ApiError('NOT_FOUND','API route not found.',404)
+            candidate=(web_root/web_path).resolve()
+            if not candidate.is_relative_to(web_root):
+                raise ApiError('NOT_FOUND','Asset not found.',404)
+            if candidate.is_file():
+                response=FileResponse(candidate)
+            elif web_path in {'','workspace','privacy-check'}:
+                response=FileResponse(web_root/'index.html')
+            else:
+                raise ApiError('NOT_FOUND','Asset not found.',404)
+            response.headers['Content-Security-Policy']="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' blob: data:; worker-src 'self' blob:; connect-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+            return response
     return app
 
 

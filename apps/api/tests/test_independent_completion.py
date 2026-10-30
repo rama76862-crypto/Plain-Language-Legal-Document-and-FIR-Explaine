@@ -21,7 +21,7 @@ async def test_real_parser_timeout_public_error_health_and_next_upload(tmp_path)
     app=create_app(settings)
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url='http://test') as client:
-            response=await client.post('/api/v1/documents',files={'file':('synthetic.pdf',pdf_bytes(),'application/pdf')})
+            response=await client.post('/api/v1/documents',files={'file':('synthetic.pdf',pdf_bytes(),'application/pdf')},data={'processing_consent':'true'})
             assert response.status_code==202
             doc=response.json(); headers={'X-Session-Token':doc['session_token']}; base='/api/v1/documents/'+doc['document_id']
             for _ in range(100):
@@ -47,7 +47,7 @@ async def test_delete_terminates_real_running_parser_process(tmp_path,monkeypatc
     app=create_app(settings)
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url='http://test') as client:
-            response=await client.post('/api/v1/documents',files={'file':('synthetic.pdf',pdf_bytes(),'application/pdf')})
+            response=await client.post('/api/v1/documents',files={'file':('synthetic.pdf',pdf_bytes(),'application/pdf')},data={'processing_consent':'true'})
             doc=response.json(); base='/api/v1/documents/'+doc['document_id']; headers={'X-Session-Token':doc['session_token']}
             await asyncio.wait_for(started.wait(),5)
             assert (await client.delete(base,headers=headers)).status_code==204
@@ -74,7 +74,7 @@ async def test_interrupted_upload_does_not_leave_session_or_source(tmp_path,monk
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url='http://test') as client:
             # Starlette normalizes an inner cancellation into a no-response
             # error; either way our boundary must clear the partial upload.
-            response=await client.post('/api/v1/documents',files={'file':('synthetic.pdf',pdf_bytes(),'application/pdf')})
+            response=await client.post('/api/v1/documents',files={'file':('synthetic.pdf',pdf_bytes(),'application/pdf')},data={'processing_consent':'true'})
             assert response.status_code==500 and response.json()['error']['code']=='INTERNAL_ERROR'
             assert not app.state.store.records
             assert not list(settings.runtime_dir.glob('doc_*'))

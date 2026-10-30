@@ -220,6 +220,9 @@ export interface ResultObject {
   warnings: string[];
   legal_aid: LegalAidLink[];
   references?: Reference[];
+  document_profile?: string | null;
+  structured_facts?: Record<string, unknown>[];
+  next_steps?: {kind: string; text: string; clause_ids?: string[]; review_status?: string}[];
   provenance: Provenance;
   __fixture?: boolean;
 }

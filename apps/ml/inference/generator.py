@@ -102,7 +102,7 @@ class LocalGenerator:
             if request.response_schema is not None:
                 payload["response_format"] = {
                     "type": "json_schema",
-                    "schema": request.response_schema,
+                    "json_schema": {"name": "nyayalens_response", "strict": True, "schema": request.response_schema},
                 }
 
             try:

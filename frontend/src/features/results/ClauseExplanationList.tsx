@@ -221,7 +221,7 @@ export const ClauseExplanationList: React.FC<ClauseExplanationListProps> = ({
                 : 'bg-amber-500/10 text-amber-800 hover:bg-amber-500/20'
             }`}
           >
-            <span>Potential concerns</span>
+            <span>Attention items</span>
             <span className="text-[10px] font-mono font-bold">({attentionCount})</span>
           </button>
 

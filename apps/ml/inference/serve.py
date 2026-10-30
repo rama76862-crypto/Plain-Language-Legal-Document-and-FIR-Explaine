@@ -17,6 +17,7 @@ def main() -> int:
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--ctx-size", type=int, default=4096)
     parser.add_argument("--gpu-layers", type=int, default=99)
+    parser.add_argument("--executable", type=Path, default=os.environ.get("LLAMA_SERVER"), help="Explicit official llama-server binary for another platform")
     args = parser.parse_args()
     if args.host not in {"127.0.0.1", "localhost", "::1"}:
         parser.error("the model server must bind to loopback only")
@@ -26,11 +27,11 @@ def main() -> int:
     ml_root = Path(__file__).resolve().parents[1]
     model_path = ml_root / "models" / MODEL_FILENAME
     runtime_root = ml_root / "runtime" / "llama-b12000"
-    server_candidates = list(runtime_root.rglob("llama-server.exe"))
+    server_candidates = [Path(args.executable)] if args.executable else list(runtime_root.rglob("llama-server.exe" if os.name=="nt" else "llama-server"))
     if not model_path.is_file():
         print(f"MODEL_UNAVAILABLE: verified model file is missing at {model_path}", file=sys.stderr)
         return 2
-    if len(server_candidates) != 1:
+    if len(server_candidates) != 1 or not server_candidates[0].is_file():
         print(
             "MODEL_UNAVAILABLE: expected exactly one verified llama-server.exe under "
             f"{runtime_root}; found {len(server_candidates)}",
@@ -40,7 +41,7 @@ def main() -> int:
 
     server = server_candidates[0]
     environment = os.environ.copy()
-    environment["PATH"] = f"{server.parent};{environment.get('PATH', '')}"
+    environment["PATH"] = str(server.parent) + os.pathsep + environment.get('PATH', '')
     command = [
         str(server),
         "--model",

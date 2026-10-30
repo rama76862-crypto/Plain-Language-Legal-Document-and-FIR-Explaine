@@ -1,3 +1,5 @@
+> Update, 30 October 2026: the completion work and current evidence are documented in apps/ml/COMPLETION.md and BACKEND-COMPLETION.md. Earlier counts and language results below are historical snapshots.
+
 # Backend 2 progress
 
 The checklist bar counts completed milestones only; it is not a time estimate

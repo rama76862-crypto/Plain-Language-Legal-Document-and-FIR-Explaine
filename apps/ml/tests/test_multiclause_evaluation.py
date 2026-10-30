@@ -237,9 +237,8 @@ def test_ordinary_agreement_multi_clause_coverage_and_source_bound_evidence() ->
     assert result.coverage.analysed == 3
     assert len({text for text in classifier.calls}) == 3
     assert all(item.kind == "explanation" for item in result.items)
-    assert result.warnings == [
-        "Generated explanations passed schema and source-evidence checks, but semantic entailment has not been independently reviewed."
-    ]
+    assert "Generated explanations passed schema and source-evidence checks, but semantic entailment has not been independently reviewed." in result.warnings
+    assert any("referenced clause/annexure 4 is missing" in warning for warning in result.warnings)
 
 
 def test_planted_attention_negation_exception_and_untrusted_instruction_routes() -> None:
@@ -335,7 +334,8 @@ def test_indic_day_deadline_matches_english_display_and_keeps_receipt_unresolved
     assert len(deadlines) == 1
     deadline = deadlines[0]
     assert deadline.source_quote == expected["source_quote"]
-    assert deadline.display_text == "15 days after receipt"
+    assert deadline.display_text.startswith("15 days;")
+    assert deadline.source_quote in deadline.display_text
     assert deadline.anchor == "receipt"
     assert deadline.resolved_date is None
     assert deadline.status == "needs_information"

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import uuid
+import os
+import hmac
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -37,8 +39,12 @@ def create_app(
     @app.middleware("http")
     async def request_id_middleware(request: Request, call_next: Any) -> Response:
         request.state.request_id = uuid.uuid4().hex
+        expected=os.environ.get('ML_SERVICE_TOKEN','')
+        if expected and request.url.path!='/internal/health' and not hmac.compare_digest(request.headers.get('X-ML-Service-Token',''),expected):
+            return JSONResponse({'error':{'code':'UNAUTHORIZED','message':'Private service authentication required.','retryable':False},'request_id':request.state.request_id},status_code=401,headers={'Cache-Control':'no-store'})
         response = await call_next(request)
         response.headers["X-Request-ID"] = request.state.request_id
+        response.headers['Cache-Control']='no-store'
         return response
 
     @app.exception_handler(ServiceProblem)

@@ -9,4 +9,4 @@ if __name__=='__main__':
     (ROOT/'contracts'/'v1-examples.json').write_text(json.dumps(examples(),ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     # Preserve the singular handoff path expected by FE1/FE2 as one result example.
     (ROOT/'contracts'/'v1-example.json').write_text(json.dumps(examples()['analysis_snapshots']['complete']['result'],ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
-    print('Exported OpenAPI (10 public operations) and synthetic examples.')
+    print('Exported OpenAPI and synthetic examples for the current public operations.')

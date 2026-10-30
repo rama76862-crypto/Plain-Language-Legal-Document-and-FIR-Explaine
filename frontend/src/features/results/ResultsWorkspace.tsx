@@ -208,7 +208,7 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
             {/* Needs Review Amber Banner */}
             {status === 'needs_review' && (
               <Banner variant="warn" title="Needs Review">
-                Usable partial results — some clauses or translations require manual verification.
+                Automated results require manual verification. Check the coverage count and original text.
               </Banner>
             )}
 
