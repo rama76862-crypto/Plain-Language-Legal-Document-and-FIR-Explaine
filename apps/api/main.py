@@ -271,7 +271,7 @@ def create_app(settings: Settings | None = None, ml_client=None, extractor=None)
     @app.get('/api/v1/capabilities',tags=['health'])
     async def public_capabilities():
         return {'limits':{'max_upload_bytes':settings.max_upload_mb*1024*1024,'max_pdf_pages':settings.max_pdf_pages,'max_extracted_chars':settings.max_extracted_chars,'max_analysis_seconds':settings.max_analysis_seconds},
-                'processing':{'explicit_consent_required':True,'session_ttl_minutes':settings.session_ttl_minutes,'temporary_server_storage':True,'external_ai_inference':False},
+                'processing':{'explicit_consent_required':True,'session_ttl_minutes':settings.session_ttl_minutes,'temporary_server_storage':True,'external_ai_inference':settings.inference_mode=='hosted','inference_mode':settings.inference_mode,'providers':['Groq'] if settings.inference_mode=='hosted' else []},
                 'reports':['json','md','html'],'languages':{'en':'experimental','hi':'experimental','pa':'experimental'},
                 'legal_advice':False,'blockchain':False}
 
@@ -279,7 +279,8 @@ def create_app(settings: Settings | None = None, ml_client=None, extractor=None)
     async def upload(file: Annotated[UploadFile,File()],
         input_language: Annotated[Literal['auto','en','hi','pa'],Form()]='auto',
         document_type: Annotated[Literal['auto','agreement','fir','notice','other'],Form()]='auto',
-        processing_consent: Annotated[bool, Form()]=False):
+        processing_consent: Annotated[bool, Form()]=False,
+        external_ai_consent: Annotated[bool, Form()]=False):
         record=None
         try:
             if len(store.records)>=128 or len(cleanup)>=128:
@@ -294,8 +295,12 @@ def create_app(settings: Settings | None = None, ml_client=None, extractor=None)
                 raise ApiError('UNSUPPORTED_FILE','Upload a PDF or DOCX with a matching content type.',415)
             if not processing_consent:
                 raise ApiError('CONSENT_REQUIRED','Explicit consent to temporary document processing is required.',422)
+            if settings.inference_mode=='hosted' and not external_ai_consent:
+                raise ApiError('CONSENT_REQUIRED','Explicit consent to sending admitted text to Groq is required for this deployment.',422)
             kind=kinds[suffix][0]
             record,token=await store.create(filename,kind,input_language,document_type)
+            record.inference_mode=settings.inference_mode
+            record.external_ai_consent=external_ai_consent
             total=0
             with record.path.open('xb') as stream:
                 while chunk:=await file.read(64*1024):
@@ -506,7 +511,7 @@ def create_app(settings: Settings | None = None, ml_client=None, extractor=None)
                 raise ApiError('NOT_FOUND','Current analysis not found.',404)
             if snapshot['status'] not in {'complete','needs_review'} or not snapshot.get('result'):
                 raise ApiError('ANALYSIS_NOT_READY','The review report is not ready.',409,True)
-            value=build_report(record,snapshot,include_questions=include_questions) if include_questions else deepcopy(snapshot.get('_review_report') or build_report(record,snapshot))
+            value=build_report(record,snapshot,include_questions=include_questions)
         headers={'Content-Disposition':f'attachment; filename="review-r{value["document_revision"]}.{format}"'}
         if format=='json':
             return JSONResponse(value,headers=headers)
@@ -595,6 +600,8 @@ def create_app(settings: Settings | None = None, ml_client=None, extractor=None)
         await asyncio.shield(finish())
         return Response(status_code=204)
 
+    from apps.api.features import install_feature_routes
+    install_feature_routes(app,store,alive)
     web_root=Path(os.environ.get('WEB_DIST_DIR',Path(__file__).resolve().parents[2]/'frontend'/'dist')).resolve()
     if (web_root/'index.html').is_file():
         @app.get('/{web_path:path}',include_in_schema=False)

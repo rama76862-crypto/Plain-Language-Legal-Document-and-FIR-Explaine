@@ -11,6 +11,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { LiveBackground } from '../design/LiveBackground';
+import { ProcessingDisclosure } from './ProcessingDisclosure';
 import { BootIntro } from '../design/scenes/BootIntro';
 import { Button, Tooltip, MarqueeBand } from '../design/primitives';
 import { InactivityModal } from './InactivityModal';
@@ -174,6 +175,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
       </header>
 
       {/* Assurance Marquee Band */}
+      <ProcessingDisclosure/>
       <MarqueeBand text={t('landing.marquee')} />
 
       {/* Main Content View */}

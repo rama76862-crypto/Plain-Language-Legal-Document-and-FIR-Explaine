@@ -14,7 +14,7 @@ import type {
 } from '../../lib/types';
 import { createAnalysis, getAnalysis, cancelAnalysis as deleteAnalysis, ApiClientError } from '../../lib/api';
 
-export type ResultTab = 'overview' | 'clauses' | 'attention' | 'dates' | 'legalAid' | 'ask' | 'export';
+export type ResultTab = 'overview' | 'clauses' | 'attention' | 'dates' | 'legalAid' | 'ask' | 'export' | 'actionPack' | 'compare';
 
 export interface QuestionHistoryEntry {
   id: string;

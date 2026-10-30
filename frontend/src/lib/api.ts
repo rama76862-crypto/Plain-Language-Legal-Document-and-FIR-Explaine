@@ -133,7 +133,8 @@ export async function createDocument(
   file: File,
   inputLanguage: InputLanguage,
   documentType: InputDocumentType,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  externalAiConsent = false
 ): Promise<DocumentCreateResponse> {
   try {
     const formData = new FormData();
@@ -141,6 +142,7 @@ export async function createDocument(
     formData.append('input_language', inputLanguage);
     formData.append('document_type', documentType);
     formData.append('processing_consent', 'true');
+    formData.append('external_ai_consent', String(externalAiConsent));
 
     const res = await fetch(`${config.apiBaseUrl}/documents`, {
       method: 'POST',

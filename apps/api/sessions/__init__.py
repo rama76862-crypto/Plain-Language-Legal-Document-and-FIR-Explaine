@@ -46,9 +46,12 @@ class DocumentRecord:
     extraction_progress: dict[str, Any] = field(default_factory=dict)
     analyses: dict[str, dict[str, Any]] = field(default_factory=dict)
     question_cache: dict[str, Any] = field(default_factory=dict)
+    verification_cache: dict[str, Any] = field(default_factory=dict)
     analysis_ids: set[str] = field(default_factory=set)
     invalidated_analysis_ids: set[str] = field(default_factory=set)
     deleted: bool = False
+    inference_mode: str = 'local'
+    external_ai_consent: bool = False
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
 

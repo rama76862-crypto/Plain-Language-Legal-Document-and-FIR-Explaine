@@ -29,12 +29,14 @@ export const LandingPage: React.FC = () => {
   const [outputLang, setOutputLang] = useState<OutputLanguage>('en');
   const [docType, setDocType] = useState<InputDocumentType>('auto');
   const [processingConsent, setProcessingConsent] = useState(false);
+  const [hostedMode,setHostedMode]=useState(false);
+  const [externalConsent,setExternalConsent]=useState(false);
   const [limits, setLimits] = useState({ max_upload_bytes: 25 * 1024 * 1024, max_pdf_pages: 50 });
   useEffect(() => {
     const controller = new AbortController();
     fetch(`${config.apiBaseUrl}/capabilities`, { signal: controller.signal })
       .then(r => r.ok ? r.json() : null)
-      .then(value => { if (value?.limits) setLimits(value.limits); })
+      .then(value => { if (value?.limits) setLimits(value.limits);setHostedMode(value?.processing?.external_ai_inference===true); })
       .catch(() => {});
     return () => controller.abort();
   }, []);
@@ -67,14 +69,14 @@ export const LandingPage: React.FC = () => {
 
   const handleExtractSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedFile || !healthData || !processingConsent) return;
+    if (!selectedFile || !healthData || !processingConsent || (hostedMode&&!externalConsent)) return;
 
     setIsSubmitting(true);
     setUploadError(null);
 
     try {
       if (!processingConsent) throw new Error('Consent to temporary processing is required.');
-      const res = await createDocument(selectedFile, inputLang, docType);
+      const res = await createDocument(selectedFile, inputLang, docType,undefined,externalConsent);
       startSession({
         documentId: res.document_id,
         sessionToken: res.session_token,
@@ -184,7 +186,7 @@ export const LandingPage: React.FC = () => {
                     variant="primary"
                     size="lg"
                     className="w-full text-base font-bold shadow-pop btn-sweep"
-                    disabled={!selectedFile || !healthData || isSubmitting || !processingConsent}
+                    disabled={!selectedFile || !healthData || isSubmitting || !processingConsent || (hostedMode&&!externalConsent)}
                     isLoading={isSubmitting}
                   >
                     {isSubmitting
@@ -198,6 +200,7 @@ export const LandingPage: React.FC = () => {
                     <input type="checkbox" checked={processingConsent} onChange={e => setProcessingConsent(e.target.checked)} className="mt-1" />
                     <span>{t('upload.processingConsent')}</span>
                   </label>
+                  {hostedMode&&<label className="flex items-start gap-2 text-xs text-mute leading-relaxed"><input type="checkbox" checked={externalConsent} onChange={e=>setExternalConsent(e.target.checked)} className="mt-1"/><span>I also consent to admitted document text being sent to Groq for AI analysis on this hosted deployment. Direct identifier masking is limited, not complete anonymization. Provider data policies apply.</span></label>}
                   <p className="text-xs text-mute">{t('upload.limitsDynamic',{pages:limits.max_pdf_pages,mb:Math.floor(limits.max_upload_bytes/1024/1024)})}</p>
                   {/* Consent & Privacy Notice Line */}
                   <p className="text-[11px] text-mute leading-normal text-center pt-1">
@@ -279,7 +282,7 @@ export const LandingPage: React.FC = () => {
               {t('landing.privacyTitle')}
             </h2>
             <p className="text-mute text-base leading-relaxed">
-              {t('landing.privacySub')}
+              {hostedMode?'Temporary server storage after consent; Groq provides hosted AI inference.':t('landing.privacySub')}
             </p>
             <div className="pt-2">
               <a href="#upload-console" className="btn p btn-sweep font-bold inline-block">

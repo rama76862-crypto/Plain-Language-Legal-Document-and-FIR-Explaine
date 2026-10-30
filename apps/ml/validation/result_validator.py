@@ -338,6 +338,10 @@ _ALLEGATION_MARKERS = re.compile(
     r"report(?:s|ed)?|(?:the\s+)?(?:fir|complaint)\s+(?:states|records|alleges|reports))\b|"
     r"आरोप|कथित|शिकायत|आरोपित|ਇਲਜ਼ਾਮ|ਦੋਸ਼|ਕਥਿਤ|ਸ਼ਿਕਾਇਤ|ਮੁਲਜ਼ਮ"
 )
+
+
+def allegation_framing_present(text: str) -> bool:
+    return _ALLEGATION_MARKERS.search(text) is not None
 _RECEIPT_DATE_IN_TEXT = re.compile(
     r"(?i)(?:receipt|received|रसीद|प्राप्त|ਪ੍ਰਾਪਤੀ|ਮਿਲਣ)\D{0,24}"
     r"(?:\d{1,4}[./-]\d{1,2}[./-]\d{1,4}|\d{4}-\d{1,2}-\d{1,2})"

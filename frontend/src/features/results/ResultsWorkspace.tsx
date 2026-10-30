@@ -5,6 +5,9 @@
  */
 
 import React from 'react';
+import { ActionPackPanel } from './ActionPackPanel';
+import { ComparePanel } from './ComparePanel';
+import { SourceVerificationPanel } from './SourceVerificationPanel';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText,
@@ -61,6 +64,8 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
 
   const tabs: { id: ResultTab; label: string; icon: React.FC<{ className?: string }>; badge?: number }[] = [
     { id: 'overview', label: t('tabs.overview'), icon: Layers },
+    { id: 'actionPack', label: 'Action Pack', icon: Layers },
+    { id: 'compare', label: 'Compare versions', icon: Layers },
     { id: 'clauses', label: t('tabs.clauses'), icon: FileText },
     {
       id: 'attention',
@@ -100,7 +105,7 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
           <div>
             <h2 className="text-sm font-bold text-navy">{t('results.headerTitle')}</h2>
             <div className="text-[11px] font-mono text-mute">
-              {t('review.revisionLabel', { rev: revision })} · {t('nav.localProcessing')}
+              {t('review.revisionLabel', { rev: revision })} · Server processing
             </div>
           </div>
         </div>
@@ -140,7 +145,7 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
                 Analyse document
               </Button>
               <p className="text-[11px] text-mute font-mono">
-                Runs on your local machine · No cloud tracking
+                Uses the processing mode disclosed by this server
               </p>
             </GlassCard>
           </div>
@@ -264,6 +269,8 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
 
             {/* Active Tab Panel */}
             <div className="pt-2">
+              <div hidden={activeTab!=='actionPack'} className="space-y-4"><ActionPackPanel onNavigateEvidence={onNavigateEvidence}/><SourceVerificationPanel onNavigateEvidence={onNavigateEvidence}/></div>
+              <div hidden={activeTab!=='compare'}><ComparePanel onNavigateEvidence={onNavigateEvidence}/></div>
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeTab}

@@ -104,6 +104,7 @@ class AnalysisPipeline:
     find_official_references: Callable[..., list[Any]] | None = None
     tested_languages: dict[str, bool] = field(default_factory=lambda: {"en": False, "hi": False, "pa": False})
     enforce_grounding: bool = False
+    concise_generation: bool = False
     _translation_traces: dict[str, dict[str, list[TranslationResult]]] = field(default_factory=dict, init=False)
     _document_indexes: dict[str, DocumentIndex] = field(default_factory=dict, init=False)
     _pivot_segments: dict[str, dict[str, list[str]]] = field(default_factory=dict, init=False)
@@ -226,6 +227,14 @@ class AnalysisPipeline:
                                     candidate_detectors[prediction.label] = "classifier"
                         for candidate in rule_candidates:
                             candidate_detectors[candidate.category] = "rule"
+                        if self.concise_generation:
+                            # Source/classifier review cues survive independently
+                            # of optional generated prose, using exact source text.
+                            existing={item.category for item in literal_rules}
+                            for category,detector in candidate_detectors.items():
+                                if category not in existing:
+                                    prediction=next((p for p in predictions.predictions if p.label==category),None) if predictions else None
+                                    literal_rules.append(AnalysisItem(item_id=f'cue:{clause.clause_id}:{category}',clause_id=clause.clause_id,kind='attention',category=category,explanation=_attention_review_message(request.output_language),evidence=[Evidence(clause_id=clause.clause_id,quote=clause.reviewed_text)],review_status='needs_review',detector=detector,model_score=prediction.score if prediction else None,limitations=['source_candidate_only_not_a_legal_assessment']))
 
                         windows = _text_windows(clause.reviewed_text)
                         for window_index, window in enumerate(windows, start=1):
@@ -490,7 +499,7 @@ class AnalysisPipeline:
             evidence=answer_evidence,
             reference_ids=parsed.reference_ids,
             review_status="needs_review",
-            limitations=list(dict.fromkeys([*parsed.limitations, _SEMANTIC_REVIEW_LIMITATION])),
+            limitations=[_SEMANTIC_REVIEW_LIMITATION],
         )
 
     async def _translate_clause(self, request: AnalysisRequest, clause: ClauseInput) -> TranslationResult:
@@ -616,6 +625,9 @@ class AnalysisPipeline:
             },
         }
         response_schema=GeneratedClause.model_json_schema()
+        if self.concise_generation:
+            for field in ('attention','facts','limitations'):response_schema['properties'][field]['maxItems']=0
+            payload['concise_instruction']='Return a concise faithful summary only. Leave attention, facts and limitations empty; source review flags and ledgers are created by the service. Preserve every operative amount, trigger, exception and allegation.'
         if candidate_detectors:
             response_schema["$defs"]["AttentionExplanation"]["properties"]["category"]["enum"]=list(candidate_detectors)
         else:
@@ -628,13 +640,13 @@ class AnalysisPipeline:
             system_prompt=_SYSTEM_PROMPT,
             user_prompt=json.dumps(payload, ensure_ascii=False),
             response_schema=response_schema,
-            max_new_tokens=512,
+            max_new_tokens=256 if self.concise_generation else 512,
         )
         generated = await self._call_generator(request_payload)
         try:
             parsed = _parse_generated(generated.text, request)
             self._check_generated(parsed, candidate_detectors, set(trusted_ref_ids))
-            self._check_grounding(parsed, working_text, generation_language)
+            self._check_grounding(parsed, working_text, generation_language, document_type=request.document_type)
             return await self._translate_generated(parsed, request.output_language) if dedicated_output else parsed
         except (ValueError, ValidationError, json.JSONDecodeError) as first_error:
             self._record_generation_diagnostic(request.analysis_id, clause.clause_id, first_error)
@@ -643,6 +655,8 @@ class AnalysisPipeline:
                 user_prompt=(
                     "Repair this candidate once so it matches the required JSON schema. "
                     "Do not add facts, categories, IDs, references, or quotations. Preserve every source amount, duration, exception, actor and trigger. Source evidence is attached verbatim by the service.\n"
+                    "If unsupported_consent_claim is reported, remove every consent, permission or approval inference from all fields. State only the source amendment and notice mechanism.\n"
+                    "For fir_allegation_framing_missing, explicitly frame details as what the FIR states or alleges; never imply proven guilt or guess the law behind a bare section number.\n"
                     f"Validation failures: {str(first_error) if isinstance(first_error, ValueError) and str(first_error).startswith('grounding:') else 'schema or reference check'}\n"
                     f"Requested output language: {generation_language}\n"
                     f"Source facts: {json.dumps(payload['source_fact_ledger'], ensure_ascii=False)}\n"
@@ -654,13 +668,13 @@ class AnalysisPipeline:
                     f"Candidate: {generated.text}"
                 ),
                 response_schema=response_schema,
-                max_new_tokens=512,
+                max_new_tokens=256 if self.concise_generation else 512,
             )
             repaired = await self._call_generator(repair)
             try:
                 parsed = _parse_generated(repaired.text, request)
                 self._check_generated(parsed, candidate_detectors, set(trusted_ref_ids))
-                self._check_grounding(parsed, working_text, generation_language)
+                self._check_grounding(parsed, working_text, generation_language, document_type=request.document_type)
                 return await self._translate_generated(parsed, request.output_language) if dedicated_output else parsed
             except (ValueError, ValidationError, json.JSONDecodeError) as repair_error:
                 self._record_generation_diagnostic(request.analysis_id, clause.clause_id, repair_error)
@@ -702,15 +716,28 @@ class AnalysisPipeline:
         parsed.limitations.append("dedicated_output_translation_needs_fluent_review")
         return parsed
 
-    def _check_grounding(self, parsed: GeneratedClause, source: str, language: Language) -> None:
+    def _check_grounding(self, parsed: GeneratedClause, source: str, language: Language, *, document_type: DocumentType | None = None) -> None:
         if not self.enforce_grounding:
             return
+        # Model-authored caveats can themselves invent dates or legal facts.
+        # Publish only service-owned limitations, added after validation.
+        parsed.limitations=[]
         output = parsed.summary
         issues = grounding_issues(source, output, output_language=language)
+        if document_type=='fir':
+            from apps.ml.validation.result_validator import allegation_framing_present
+            if not allegation_framing_present(output):issues.append('fir_allegation_framing_missing')
         for fact in parsed.facts:
             issues.extend(grounding_issues(source,fact.value,output_language=language,require_coverage=False))
         for attention in parsed.attention:
-            issues.extend(grounding_issues(source, attention.explanation, output_language=language, require_coverage=False))
+            attention_issues=grounding_issues(source, attention.explanation, output_language=language, require_coverage=False)
+            if attention_issues:
+                # The category was already admitted from source cues/classifier
+                # checks. An unsupported optional description must not replace
+                # a validated summary or be published as a new legal assertion.
+                attention.explanation=_attention_review_message(language)
+                marker='attention_description_rejected_source_cue_only'
+                if marker not in parsed.limitations:parsed.limitations.append(marker)
         if language in {"hi", "pa"}:
             low, high = (0x0900, 0x097F) if language == "hi" else (0x0A00, 0x0A7F)
             letters = [c for c in parsed.summary if c.isalpha()]

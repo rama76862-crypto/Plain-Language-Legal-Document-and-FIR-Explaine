@@ -8,6 +8,10 @@ from apps.ml.service.contracts import AnalysisItem, ClauseInput, DocumentType, E
 
 _CUES: tuple[tuple[str, re.Pattern[str]], ...] = (
     (
+        "unilateral_change",
+        re.compile(r"\b(?:provider|landlord|lender|bank|company|seller|employer)\b.{0,35}\b(?:may|can|reserves?\s+the\s+right\s+to)\s+(?:change|amend|vary|alter|modify|revise|update)\b.{0,45}\b(?:terms|fees|charges|interest\s+rates?)\b",re.I),
+    ),
+    (
         "automatic_renewal",
         re.compile(
             r"\b(?:automatic(?:ally)?\s*[- ]?\s*renew(?:s|ed|ing|al)?|"
@@ -94,11 +98,15 @@ def agreement_attention_items(
         )
         if match is None:
             continue
+        if category == "unilateral_change" and re.search(r"(?:only\s+if|subject\s+to|with|requires?)\s+(?:the\s+)?(?:mutual|both\s+parties'|both\s+parties\s+to\s+give|customer's?\s+written)\s+(?:consent|agreement|approval)",clause.reviewed_text,re.I):
+            continue
         if category == "automatic_renewal":
             explanation = (
                 "This wording describes automatic renewal; review the renewal term "
                 "and any cancellation steps."
             )
+        elif category == "unilateral_change":
+            explanation = "This wording allows the named party to change terms or charges; check the stated notice, conditions and any approval requirement."
         elif category == "waived_rights":
             explanation = (
                 "This wording refers to giving up a right or claim; review exactly "

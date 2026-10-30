@@ -18,7 +18,6 @@ def build_default_pipeline() -> AnalysisPipeline | None:
         from apps.ml.inference.generator import LocalGenerator
         from apps.ml.retrieval.document_index import build_document_index
         from apps.ml.retrieval.reference_index import find_official_references
-        from apps.ml.training.model import UnfairToSClassifier
         from apps.ml.translation.local_translator import LocalTranslator
         from apps.ml.validation.agreement_rules import agreement_attention_items
         from apps.ml.validation.result_validator import validate_analysis_result, validate_question_answer
@@ -26,13 +25,23 @@ def build_default_pipeline() -> AnalysisPipeline | None:
         return None
 
     classifier = None
+    hosted=os.environ.get('INFERENCE_MODE','local')=='hosted'
     artifact_dir = Path(os.environ.get("ML_CLASSIFIER_DIR", ML_DIR / "training" / "artifacts"))
     try:
-        classifier = UnfairToSClassifier.load(artifact_dir)
+        if hosted:
+            from apps.ml.service.contracts import ClassifierResult
+            class SourceRulesOnly:
+                version=classifier_version='source-rules-only-v1'
+                metadata={}
+                def predict(self,text):return ClassifierResult(classifier_version=self.version,predictions=[])
+            classifier=SourceRulesOnly()
+        else:
+            from apps.ml.training.model import UnfairToSClassifier
+            classifier = UnfairToSClassifier.load(artifact_dir)
     except (FileNotFoundError, OSError, ValueError, ImportError):
         classifier = None
     indian_dir = ML_DIR / "training" / "indian_artifacts"
-    if os.environ.get("ML_CLASSIFIER_MODE", "indian") == "indian" and (indian_dir / "classifier.joblib").is_file():
+    if not hosted and os.environ.get("ML_CLASSIFIER_MODE", "indian") == "indian" and (indian_dir / "classifier.joblib").is_file():
         from apps.ml.training.indian import IndianClauseClassifier
         classifier = IndianClauseClassifier(indian_dir)
 
@@ -45,8 +54,11 @@ def build_default_pipeline() -> AnalysisPipeline | None:
             model_name=os.environ.get("ML_LLM_MODEL_NAME", MODEL_NAME),
             timeout_seconds=float(os.environ.get("MODEL_TIMEOUT_SECONDS", "180")),
         )
+        if hosted:
+            from apps.ml.inference.hosted import HostedGenerator
+            generator=HostedGenerator()
         translator = LocalTranslator(generator)
-        if os.environ.get("ML_TRANSLATOR", "auto") != "qwen":
+        if not hosted and os.environ.get("ML_TRANSLATOR", "auto") != "qwen":
             from apps.ml.translation.indic_translator import IndicTranslator
             dedicated = IndicTranslator()
             if dedicated.available():
@@ -94,6 +106,7 @@ def build_default_pipeline() -> AnalysisPipeline | None:
         find_official_references=find_official_references,
         tested_languages=tested_languages,
         enforce_grounding=True,
+        concise_generation=os.environ.get('ML_GENERATION_PROFILE','concise')=='concise',
     )
 
 

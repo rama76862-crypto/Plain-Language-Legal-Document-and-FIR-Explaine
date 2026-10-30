@@ -18,6 +18,7 @@ class Settings:
     session_ttl_minutes: float = 30
     model_timeout_seconds: float = 120
     ml_mode: str = 'real'
+    inference_mode: str = 'local'
     extraction_workers: int = 2
     extraction_queue_size: int = 8
     extraction_timeout_seconds: float = 120
@@ -34,6 +35,7 @@ class Settings:
     upload_rate_limit: int = 30
 
     def __post_init__(self):
+        if self.inference_mode not in {'local','hosted'}:raise ValueError('INFERENCE_MODE must be local or hosted')
         # Preserve lexical path until SessionStore checks links/junctions.
         self.runtime_dir = Path(self.runtime_dir).absolute()
         if self.ml_mode not in {'real', 'fixture'}:

@@ -138,9 +138,56 @@ async def test_failed_explanation_preserves_cue_without_breaking_public_contract
 
 
 
+@pytest.mark.parametrize('text,expected',[
+    ('The provider may change these terms at any time by posting notice on its website.',True),
+    ('The bank may revise interest rates after written notice.',True),
+    ('Both parties may change these terms by mutual agreement.',False),
+    ('The provider may not change these terms.',False),
+    ('The provider may change these terms only if mutual consent is given.',False),
+])
+def test_change_right_cues_are_present_without_classifier_confidence(text,expected):
+    cues=agreement_attention_items(ClauseInput(clause_id='change',reviewed_text=text))
+    assert any(c.category=='unilateral_change' for c in cues) is expected
+
+
 def test_receipt_deadline_must_not_become_submission_deadline():
     source="The landlord must return INR 20,000 within 15 days of receipt of the written refund request."
     wrong="The landlord must return INR 20,000 within 15 days after the written refund request is submitted."
     correct="The landlord must return INR 20,000 within 15 days after receiving the written refund request."
     assert "omitted_anchor:receipt" in grounding_issues(source,wrong)
     assert not grounding_issues(source,correct)
+
+
+def test_indic_amount_loss_is_rejected_and_working_digits_keep_the_value():
+    from apps.ml.translation.indic_translator import normalize_decimal_digits
+    from apps.ml.translation.local_translator import assess_protected_text
+    source='₹१२,५०० की राशि; १५ दिन'
+    assert assess_protected_text(source,'₹1,500; 15 days','hi','en')['numbers']=='changed'
+    assert assess_protected_text(source,'₹12,500; 15 days','hi','en')['numbers']=='preserved'
+    assert '₹12,500' in normalize_decimal_digits(source)
+    assert '१२,५००' in source
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('bad_summary',[False,True])
+async def test_optional_risk_prose_cannot_publish_consent_or_caveat_inventions(bad_summary):
+    from apps.ml.tests.test_multiclause_evaluation import _pipeline
+    from apps.ml.service.contracts import AnalysisRequest,GenerationResult
+    source='The provider may change these terms at any time by posting a notice on its website.'
+    invented='The provider may change terms without customer consent.'
+    class Generator:
+        model_name='controlled-grounding-test'
+        async def health(self):return True
+        async def generate(self,request):
+            return GenerationResult(text=json.dumps({'summary':invented if bad_summary else source,'attention':[{'category':'unilateral_change','explanation':invented}],'limitations':['The payment is due 15 days after signing.']}),model=self.model_name,latency_ms=0)
+    engine,*_= _pipeline();engine.enforce_grounding=True;engine.generator=Generator()
+    request=AnalysisRequest(document_id='synthetic-test',analysis_id='synthetic-optional-prose',document_revision=1,input_language='en',output_language='en',document_type='agreement',clauses=[ClauseInput(clause_id='c1',reviewed_text=source)])
+    async def progress(value):pass
+    result=await engine.analyze(request,progress)
+    assert result.coverage.analysed==(0 if bad_summary else 1)
+    assert any(i.category=='unilateral_change' for i in result.items)
+    assert all('consent' not in i.explanation for i in result.items)
+    assert all('15 days' not in ' '.join(i.limitations) for i in result.items)
+    if not bad_summary:
+        assert any('attention_description_rejected_source_cue_only' in i.limitations for i in result.items)
+    engine.discard_analysis(request.analysis_id)

@@ -51,13 +51,16 @@ def _show_clause_progress(completed: int, total: int, status: str) -> None:
     print(f"  clauses [{bar}] {completed}/{total} status={status}", flush=True)
 
 
-def run(base: str, private_base: str, kind: str, mode: str, extraction_only: bool = False) -> bool:
+def run(base: str, private_base: str, kind: str, mode: str, extraction_only: bool = False,allow_hosted:bool=False) -> bool:
     _loopback(base)
     _loopback(private_base)
     with httpx.Client(base_url=base.rstrip("/"), timeout=180, trust_env=False) as client:
         health = client.get("/api/v1/health")
         health.raise_for_status()
         health_body = health.json()
+        capabilities=client.get('/api/v1/capabilities');capabilities.raise_for_status()
+        hosted=capabilities.json().get('processing',{}).get('external_ai_inference') is True
+        if hosted and not allow_hosted:raise SystemExit('This server uses hosted AI. Rerun with --allow-hosted to consent to the synthetic probe.')
         if health_body["mode"] != mode:
             raise SystemExit("Server mode differs from explicit smoke expectation.")
         if mode == "real" and not health_body["ml"].get("available") and not extraction_only:
@@ -72,7 +75,7 @@ def run(base: str, private_base: str, kind: str, mode: str, extraction_only: boo
         response = client.post(
             "/api/v1/documents",
             files={"file": ("synthetic." + kind, data, mime)},
-            data={"input_language": "en", "document_type": "agreement", "processing_consent": "true"},
+            data={"input_language": "en", "document_type": "agreement", "processing_consent": "true","external_ai_consent":"true" if allow_hosted else "false"},
         )
         response.raise_for_status()
         upload = response.json()
@@ -246,7 +249,7 @@ def run(base: str, private_base: str, kind: str, mode: str, extraction_only: boo
                         raise RuntimeError("Private deletion tombstone was not confirmed.")
                     time.sleep(0.25)
         _show_step(9, "public session deleted; public and private job tombstones confirmed")
-        print("Real local service journey completed. Generated analysis remains needs_review until semantic review.")
+        print(f"Real {'hosted' if hosted else 'local'} service journey completed. Generated analysis remains needs_review until semantic review.")
         return True
 
 
@@ -257,6 +260,7 @@ if __name__ == "__main__":
     parser.add_argument("--kind", choices=["pdf", "docx"], default="pdf")
     parser.add_argument("--mode", choices=["real", "fixture"], default="real")
     parser.add_argument("--extraction-only", action="store_true")
+    parser.add_argument('--allow-hosted',action='store_true',help='Explicitly consent to sending this synthetic probe through configured hosted AI')
     arguments = parser.parse_args()
     raise SystemExit(
         0
@@ -266,6 +270,7 @@ if __name__ == "__main__":
             arguments.kind,
             arguments.mode,
             arguments.extraction_only,
+            arguments.allow_hosted,
         )
         else 2
     )

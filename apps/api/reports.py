@@ -19,7 +19,9 @@ def build_report(record, snapshot: dict, *, include_questions: bool = False) -> 
         "analysis_status":snapshot["status"],
         "disclaimer":DISCLAIMER,
         "independent_review":"not_performed",
-        "processing_consent":"temporary_processing_only",
+        "processing_consent":"temporary_processing_and_Groq_inference" if record.inference_mode=='hosted' else "temporary_processing_only",
+        "inference_mode":record.inference_mode,
+        "external_ai_disclosure":"Groq receives admitted, identifier-masked text. An optional, separately consented source check sends selected claims/excerpts to Cloudflare." if record.inference_mode=='hosted' else "Primary inference runs locally. An optional source check contacts Cloudflare only after separate explicit consent.",
         "retention":"In memory for the temporary session; downloaded copies remain with the user.",
         "analysis":result,
         "clauses":[{"clause_id":c.clause_id,"reviewed_text":c.reviewed_text,"source_ref":c.source_ref.model_dump()} for c in record.clauses],
@@ -29,6 +31,9 @@ def build_report(record, snapshot: dict, *, include_questions: bool = False) -> 
         for entry in record.question_cache.values():
             if entry.get("fingerprint",{}).get("analysis_id")==result["analysis_id"] and entry.get("answer"):
                 report["questions"].append({"question":entry["fingerprint"]["question"],"answer":deepcopy(entry["answer"])})
+    from apps.api.features import action_pack
+    report['action_pack']=action_pack(record,snapshot)
+    report['selected_source_verification']=record.verification_cache.get(snapshot['analysis_id'])
     return report
 
 def _safe_text(value) -> str:
@@ -61,6 +66,13 @@ def render_markdown(report: dict) -> str:
         lines += ["- "+_safe_text(deadline["display_text"])+f" [{deadline['status']}]", "  Original: "+_safe_text(deadline["source_quote"]), "  Missing: "+_safe_text(", ".join(deadline.get("missing_information",[])))]
     lines += ["", "## Clarification and next steps"]
     lines += ["- "+_safe_text(step["text"]) for step in result.get("next_steps",[])]
+    lines += ['', '## Action Pack - source obligation checklist']
+    for entry in report.get('action_pack',{}).get('checklist',[]):
+        lines += ['- [ ] '+_safe_text(entry['statement']), '  Party: '+_safe_text(entry['party'])+'; source: '+_safe_text(entry['clause_id'])]
+    lines += ['', '## Questions for legal aid']
+    for entry in report.get('action_pack',{}).get('lawyer_questions',[]):lines.append('- '+_safe_text(entry['question']))
+    if report.get('selected_source_verification'):
+        lines += ['', '## Optional selected-claim source check',_safe_text(json.dumps(report['selected_source_verification'],ensure_ascii=False))]
     lines += ["", "## Free legal aid"]
     for resource in result.get("legal_aid",[]):
         lines.append("- "+_safe_text(resource["title"])+": "+_safe_text(resource["url"]))

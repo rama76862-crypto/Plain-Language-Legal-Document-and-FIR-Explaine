@@ -13,11 +13,16 @@ import os
 from pathlib import Path
 import re
 import threading
+import unicodedata
 from apps.ml.service.contracts import ClauseInput, TranslationResult
 from .local_translator import assess_protected_text, _checks_from_assessment
 
 ROOT=Path(__file__).resolve().parents[3]
 TAGS={"en":"eng_Latn","hi":"hin_Deva","pa":"pan_Guru"}
+
+def normalize_decimal_digits(text):
+    """Use equivalent ASCII digits in the working copy; retain original evidence."""
+    return ''.join(str(unicodedata.decimal(c)) if c.isdecimal() else c for c in text)
 
 class IndicTranslator:
     def __init__(self):
@@ -79,6 +84,7 @@ class IndicTranslator:
             model,tokenizer,factory,en_tokenizer,en_detokenizer=self._load(direction)
             chunks,owners=[],[]
             for owner,text in enumerate(texts):
+                text=normalize_decimal_digits(text)
                 rest=text.strip()
                 while rest:
                     lo,hi=1,len(rest)

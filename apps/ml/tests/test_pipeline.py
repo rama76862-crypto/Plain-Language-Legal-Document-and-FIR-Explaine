@@ -237,7 +237,7 @@ def test_agreement_runs_cpu_classifier_rules_and_validated_local_schema() -> Non
     assert len(classifier.calls) == 3  # one routing pass plus scores for the two emitted cues
     assert generator.calls == 1
     attention = {item.category: item for item in result.items if item.kind == "attention"}
-    assert attention["unilateral_change"].detector == "classifier"
+    assert attention["unilateral_change"].detector == "rule"
     assert attention["automatic_renewal"].detector == "rule"
     assert all(item.evidence[0].quote == text for item in result.items)
     assert all(item.review_status == "needs_review" for item in result.items)

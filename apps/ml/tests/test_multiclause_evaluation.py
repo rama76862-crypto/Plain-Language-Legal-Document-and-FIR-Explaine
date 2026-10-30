@@ -256,7 +256,7 @@ def test_planted_attention_negation_exception_and_untrusted_instruction_routes()
         for clause in fixture["clauses"]
     }
     assert by_clause["agreement-renewal-1"]["automatic_renewal"].detector == "rule"
-    assert by_clause["agreement-change-2"]["unilateral_change"].detector == "classifier"
+    assert by_clause["agreement-change-2"]["unilateral_change"].detector == "rule"
     assert by_clause["agreement-renewal-negated-3"] == {}
     assert by_clause["agreement-penalty-exception-4"] == {}
 
