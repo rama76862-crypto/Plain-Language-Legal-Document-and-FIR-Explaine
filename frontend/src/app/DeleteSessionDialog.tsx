@@ -31,7 +31,12 @@ export const DeleteSessionDialog: React.FC<{
     setShowShred(true);
 
     try {
-      const confirmed = await resetSession(true);
+      const deletePromise = resetSession(true);
+      // Let the particle dissolution animation play so user sees physical erasure feedback
+      const [confirmed] = await Promise.all([
+        deletePromise,
+        new Promise((resolve) => setTimeout(resolve, 1100)),
+      ]);
       showToast(
         confirmed ? t('privacy.sessionDeletedToast') : t('privacy.serverUnconfirmedToast'),
         confirmed ? 'info' : 'warn'
@@ -40,6 +45,7 @@ export const DeleteSessionDialog: React.FC<{
       showToast(t('privacy.serverUnconfirmedToast'), 'warn');
     } finally {
       setIsDeleting(false);
+      setShowShred(false);
       onClose();
       navigate('/');
     }

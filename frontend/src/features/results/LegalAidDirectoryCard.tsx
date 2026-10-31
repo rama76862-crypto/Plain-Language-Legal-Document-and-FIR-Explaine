@@ -183,9 +183,18 @@ export const LegalAidDirectoryCard: React.FC<LegalAidDirectoryCardProps> = ({
         </div>
       </div>
 
-      <a href="https://nalsa.gov.in/faqs/" target="_blank" rel="noopener noreferrer" className="text-sm text-blue underline">
-        {t('legalAid.officialFaq')} ({t('legalAid.internetNeeded')})
-      </a>
+      <div className="pt-1">
+        <a
+          href="https://nalsa.gov.in/faqs/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-blue/5 border border-blue/20 text-xs font-semibold text-blue hover:bg-blue/10 transition-colors"
+        >
+          <span>{t('legalAid.officialFaq')}</span>
+          <span className="text-[10px] text-mute font-mono">({t('legalAid.internetNeeded')})</span>
+          <ExternalLink className="w-3.5 h-3.5" />
+        </a>
+      </div>
 
       {/* Directory Links */}
       <div className="space-y-2 pt-1">

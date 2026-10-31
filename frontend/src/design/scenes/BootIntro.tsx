@@ -41,7 +41,18 @@ export const BootIntro: React.FC<BootIntroProps> = ({ onDone, ready }) => {
       handleFinish();
     }, 1400);
 
-    return () => clearTimeout(timer);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        handleFinish();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [reduced]);
 
   if (reduced) return null;

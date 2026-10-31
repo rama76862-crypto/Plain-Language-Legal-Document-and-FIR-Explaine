@@ -53,10 +53,19 @@ export const ExtractionReviewList: React.FC<ExtractionReviewListProps> = ({
   // In-memory corrections buffer: clause_id -> corrected text
   const [corrections, setCorrections] = useState<Record<string, string>>({});
   const [confirmedChecked, setConfirmedChecked] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'needs_review' | 'ocr' | 'edited'>('all');
 
   const textCount = clauses.filter((c) => c.extraction_method === 'text').length;
   const ocrCount = clauses.filter((c) => c.extraction_method === 'ocr').length;
   const reviewRequiredCount = clauses.filter((c) => c.review_required).length;
+  const editedCount = Object.keys(corrections).length;
+
+  const displayedClauses = clauses.filter((c) => {
+    if (activeFilter === 'needs_review') return c.review_required;
+    if (activeFilter === 'ocr') return c.extraction_method === 'ocr';
+    if (activeFilter === 'edited') return corrections[c.clause_id] !== undefined;
+    return true;
+  });
 
   const handleSaveCorrection = (clauseId: string, newText: string) => {
     setCorrections((prev) => ({
@@ -145,19 +154,66 @@ export const ExtractionReviewList: React.FC<ExtractionReviewListProps> = ({
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-mute pt-1">
+        {/* Filter Chips Bar */}
+        <div className="flex flex-wrap items-center gap-2 pt-2">
+          <button
+            type="button"
+            onClick={() => setActiveFilter('all')}
+            className={`px-3 py-1 rounded-pill text-xs font-semibold transition-all ${
+              activeFilter === 'all'
+                ? 'bg-navy text-white shadow-sm'
+                : 'bg-bg2 text-mute hover:text-navy hover:bg-bg2/80'
+            }`}
+          >
+            {t('results.filterAll', { count: clauses.length })}
+          </button>
+          {reviewRequiredCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setActiveFilter('needs_review')}
+              className={`px-3 py-1 rounded-pill text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                activeFilter === 'needs_review'
+                  ? 'bg-caution text-navy font-bold shadow-sm'
+                  : 'bg-caution-bg text-caution-ink hover:opacity-90'
+              }`}
+            >
+              <AlertTriangle className="w-3 h-3 text-caution" />
+              <span>{t('review.reviewRequiredCount', { count: reviewRequiredCount })}</span>
+            </button>
+          )}
+          {ocrCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setActiveFilter('ocr')}
+              className={`px-3 py-1 rounded-pill text-xs font-semibold transition-all ${
+                activeFilter === 'ocr'
+                  ? 'bg-cyan text-navy font-bold shadow-sm'
+                  : 'bg-deadline-bg text-deadline-ink hover:opacity-90'
+              }`}
+            >
+              <span>{t('review.breakdownOcr', { count: ocrCount })}</span>
+            </button>
+          )}
+          {editedCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setActiveFilter('edited')}
+              className={`px-3 py-1 rounded-pill text-xs font-semibold transition-all ${
+                activeFilter === 'edited'
+                  ? 'bg-ok text-white font-bold shadow-sm'
+                  : 'bg-ok-bg text-ok-ink hover:opacity-90'
+              }`}
+            >
+              <span>{t('review.editedBadge')} ({editedCount})</span>
+            </button>
+          )}
+        </div>
+
+        {/* Text vs OCR Breakdown Telemetry */}
+        <div className="flex flex-wrap items-center gap-3 text-xs font-mono text-mute pt-1">
           <span>{t('review.breakdownText', { count: textCount })}</span>
           <span>·</span>
           <span>{t('review.breakdownOcr', { count: ocrCount })}</span>
-          {reviewRequiredCount > 0 && (
-            <>
-              <span>·</span>
-              <span className="text-caution-ink font-bold flex items-center gap-1">
-                <AlertTriangle className="w-3.5 h-3.5 text-caution" />
-                {t('review.reviewRequiredCount', { count: reviewRequiredCount })}
-              </span>
-            </>
-          )}
         </div>
       </div>
 
@@ -191,24 +247,30 @@ export const ExtractionReviewList: React.FC<ExtractionReviewListProps> = ({
       )}
 
       {/* Clause Cards List */}
-      <div className="space-y-3">
-        {clauses.map((clause) => (
-          <ClauseReviewCard
-            key={clause.clause_id}
-            clause={clause}
-            editedText={corrections[clause.clause_id]}
-            isActive={selectedClauseId === clause.clause_id}
-            onSelect={onSelectClause}
-            onSaveCorrection={handleSaveCorrection}
-            onResetCorrection={handleResetCorrection}
-          />
-        ))}
+      <div className="flex-1 space-y-3 pb-8">
+        {displayedClauses.length === 0 ? (
+          <div className="p-8 text-center text-xs text-mute font-mono bg-bg2/40 rounded-xl border border-line">
+            {t('results.noMatches')}
+          </div>
+        ) : (
+          displayedClauses.map((clause) => (
+            <ClauseReviewCard
+              key={clause.clause_id}
+              clause={clause}
+              editedText={corrections[clause.clause_id]}
+              isActive={selectedClauseId === clause.clause_id}
+              onSelect={onSelectClause}
+              onSaveCorrection={handleSaveCorrection}
+              onResetCorrection={handleResetCorrection}
+            />
+          ))
+        )}
       </div>
 
-      {/* Confirmation & Submit Action Bar */}
-      <div className="pt-6 border-t border-line space-y-4">
+      {/* Sticky Bottom Confirmation & Submit Action Bar */}
+      <div className="sticky bottom-0 z-20 bg-paper/95 backdrop-blur-md p-4 -mx-6 -mb-6 border-t border-line shadow-[0_-8px_20px_-6px_rgba(20,48,107,0.1)] space-y-3">
         {/* Explicit confirmation checkbox */}
-        <label className="flex items-start gap-3 p-3.5 rounded-lg border border-line bg-bg2/40 cursor-pointer select-none">
+        <label className="flex items-start gap-3 p-3 rounded-lg border border-line bg-bg2/50 cursor-pointer select-none hover:bg-bg2/70 transition-colors">
           <input
             type="checkbox"
             checked={confirmedChecked}

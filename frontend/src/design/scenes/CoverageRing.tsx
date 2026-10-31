@@ -8,6 +8,7 @@
 
 import React, { useState } from 'react';
 import { useReducedMotion } from '../motion';
+import { useT } from '../../lib/i18n';
 
 interface CoverageRingProps {
   analysed: number;
@@ -20,6 +21,7 @@ export const CoverageRing: React.FC<CoverageRingProps> = ({
   total,
   className = '',
 }) => {
+  const { t } = useT();
   const reduced = useReducedMotion();
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
 
@@ -173,10 +175,10 @@ export const CoverageRing: React.FC<CoverageRingProps> = ({
               <span className="text-mute text-sm font-normal">/{count}</span>
             </span>
             <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-navy mt-1">
-              Clauses Analysed
+              {t('coverageRing.clausesAnalysed')}
             </span>
             <span className="text-[8px] font-mono text-mute">
-              Coverage only
+              {t('coverageRing.coverageOnly')}
             </span>
           </div>
         </div>

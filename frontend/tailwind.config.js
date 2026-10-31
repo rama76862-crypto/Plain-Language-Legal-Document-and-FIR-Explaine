@@ -13,6 +13,7 @@ export default {
         navy: 'var(--navy)',
         blue: 'var(--blue)',
         cyan: 'var(--cyan)',
+        error: 'var(--concern)',
         concern: {
           DEFAULT: 'var(--concern)',
           bg: 'var(--concern-bg)',

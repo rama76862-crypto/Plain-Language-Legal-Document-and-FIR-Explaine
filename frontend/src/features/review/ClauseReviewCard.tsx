@@ -116,7 +116,7 @@ export const ClauseReviewCard: React.FC<ClauseReviewCardProps> = ({
           </span>
           {/* Edited Badge */}
           {isModified && (
-            <span className="px-1.5 py-0.5 rounded bg-cyan/15 text-cyan-ink font-mono text-[10px] font-bold">
+            <span className="px-1.5 py-0.5 rounded bg-cyan/15 text-deadline-ink font-mono text-[10px] font-bold">
               {t('review.editedBadge')}
             </span>
           )}

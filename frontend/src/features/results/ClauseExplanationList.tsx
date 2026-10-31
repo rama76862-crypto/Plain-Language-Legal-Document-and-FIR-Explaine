@@ -163,8 +163,18 @@ export const ClauseExplanationList: React.FC<ClauseExplanationListProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t('results.searchPlaceholder')}
-              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-md border border-line bg-bg focus:outline-hidden focus:ring-2 focus:ring-blue"
+              className="w-full pl-9 pr-8 py-1.5 text-xs rounded-md border border-line bg-bg focus:outline-none focus:ring-2 focus:ring-blue"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-mute hover:text-ink text-xs p-0.5 rounded transition-colors"
+                aria-label="Clear search"
+              >
+                ✕
+              </button>
+            )}
           </div>
 
           {/* View Mode Toggle */}

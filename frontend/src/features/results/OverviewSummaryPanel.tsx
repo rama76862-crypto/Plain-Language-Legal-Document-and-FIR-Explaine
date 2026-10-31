@@ -367,7 +367,7 @@ export const OverviewSummaryPanel: React.FC<OverviewSummaryPanelProps> = ({
               href="https://nalsa.gov.in/legal-aid/"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded bg-blue text-white hover:bg-blue2 transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded bg-blue text-white hover:bg-[#2558d6] transition-colors"
             >
               <span>NALSA Portal</span>
               <ExternalLink className="w-3.5 h-3.5" />

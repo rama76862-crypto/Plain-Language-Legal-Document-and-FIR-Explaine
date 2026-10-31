@@ -10,6 +10,7 @@
 import React from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useSession } from '../lib/session';
+import { useT } from '../lib/i18n';
 import { PipelineStepBar } from './PipelineStepBar';
 import { Banner } from '../design/primitives';
 
@@ -19,6 +20,7 @@ import { ReviewWorkspace } from '../features/review/ReviewWorkspace';
 import { ResultsContainer } from '../features/results/ResultsContainer';
 
 export const WorkspaceRouter: React.FC = () => {
+  const { t } = useT();
   const { documentId, documentStatus, reviewConfirmed } = useSession();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -32,10 +34,10 @@ export const WorkspaceRouter: React.FC = () => {
       <main className="p-8 max-w-xl mx-auto">
         <Banner
           variant="warn"
-          title="No Active Session"
-          action={{ label: 'Return to Upload', onClick: () => navigate('/') }}
+          title={t('errors.expiredTitle')}
+          action={{ label: t('errors.returnToUpload'), onClick: () => navigate('/') }}
         >
-          Sessions end when the page is refreshed or deleted. Upload a new document to start.
+          {t('errors.NOT_FOUND')}
         </Banner>
       </main>
     );

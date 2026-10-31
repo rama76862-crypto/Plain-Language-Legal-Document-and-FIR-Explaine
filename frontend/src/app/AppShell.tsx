@@ -21,12 +21,14 @@ import { useT } from '../lib/i18n';
 import { config } from '../lib/config';
 import { ShieldCheck, Clock, ExternalLink } from 'lucide-react';
 
+let hasBootedOnce = false;
+
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { documentId, inactivityRemainingSeconds, serverExpiresAt } = useSession();
   const { t, uiLanguage, setUiLanguage } = useT();
   const location = useLocation();
 
-  const [bootDone, setBootDone] = useState(false);
+  const [bootDone, setBootDone] = useState(() => hasBootedOnce);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [bootReady, setBootReady] = useState(() => ({
     fonts: !document.fonts,
@@ -63,17 +65,21 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
       {/* Boot sequence for initial load */}
       {isLanding && !bootDone && (
-        <BootIntro onDone={() => setBootDone(true)} ready={bootReady} />
+        <BootIntro
+          onDone={() => {
+            hasBootedOnce = true;
+            setBootDone(true);
+          }}
+          ready={bootReady}
+        />
       )}
-
-
 
       {/* Floating Glass Header */}
       <header className="sticky top-0 z-40 my-3 mx-auto w-[min(1120px,94%)] flex items-center justify-between gap-3 px-4 py-2.5 rounded-[18px] bg-[rgba(255,255,255,0.74)] backdrop-blur-md border border-[rgba(14,26,61,0.1)] shadow-[0_18px_50px_-18px_rgba(20,48,107,0.35)]">
         {/* Logo / Brand */}
         <Link
           to="/"
-          className="flex items-center gap-2.5 text-navy hover:opacity-95 transition-opacity focus:outline-hidden"
+          className="flex items-center gap-2.5 text-navy hover:opacity-95 transition-opacity focus:outline-none focus:ring-2 focus:ring-blue rounded-md"
         >
           <i className="w-[34px] h-[34px] rounded-[10px] grid place-items-center bg-gradient-to-br from-navy to-blue text-white not-italic shadow-[0_6px_16px_-4px_var(--blue)] font-bold text-sm">
             ⚖
@@ -92,13 +98,13 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
         {isLanding && (
           <nav aria-label="Quick links" className="hidden md:flex items-center gap-1 text-sm font-semibold text-mute">
             <a href="#docs" className="px-2.5 py-1 hover:text-blue transition-colors">
-              Benchmark
+              {t('nav.documents')}
             </a>
             <a href="#privacy" className="px-2.5 py-1 hover:text-blue transition-colors">
-              Privacy
+              {t('nav.privacy')}
             </a>
             <a href="#aid" className="px-2.5 py-1 hover:text-blue transition-colors">
-              Legal aid
+              {t('nav.legalAid')}
             </a>
           </nav>
         )}
@@ -134,11 +140,13 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
           )}
 
           {/* UI Language Switcher */}
-          <div className="lang">
+          <div className="lang" role="group" aria-label="Interface language">
             <button
               type="button"
               className={uiLanguage === 'en' ? 'on' : ''}
               onClick={() => setUiLanguage('en')}
+              aria-pressed={uiLanguage === 'en'}
+              title="English"
             >
               EN
             </button>
@@ -146,6 +154,8 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
               type="button"
               className={uiLanguage === 'hi' ? 'on' : ''}
               onClick={() => setUiLanguage('hi')}
+              aria-pressed={uiLanguage === 'hi'}
+              title="हिन्दी (Hindi)"
             >
               हिं
             </button>
@@ -153,6 +163,8 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
               type="button"
               className={uiLanguage === 'pa' ? 'on' : ''}
               onClick={() => setUiLanguage('pa')}
+              aria-pressed={uiLanguage === 'pa'}
+              title="ਪੰਜਾਬੀ (Punjabi)"
             >
               ਪੰ
             </button>

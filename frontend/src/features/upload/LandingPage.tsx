@@ -114,10 +114,21 @@ export const LandingPage: React.FC = () => {
 
             {/* H1 Heading with gradient shimmer */}
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-navy tracking-tight leading-[1.12]">
-              Legal papers,{' '}
-              <span className="bg-gradient-to-r from-blue via-cyan to-blue bg-clip-text text-transparent bg-[length:200%_auto] animate-shimmer">
-                in plain language
-              </span>
+              {(() => {
+                const title = t('landing.heroTitle');
+                const commaIdx = title.indexOf(',');
+                if (commaIdx !== -1) {
+                  return (
+                    <>
+                      {title.slice(0, commaIdx + 1)}{' '}
+                      <span className="bg-gradient-to-r from-blue via-cyan to-blue bg-clip-text text-transparent bg-[length:200%_auto] animate-shimmer">
+                        {title.slice(commaIdx + 1).trim()}
+                      </span>
+                    </>
+                  );
+                }
+                return title;
+              })()}
             </h1>
 
             {/* Sub copy */}
@@ -173,6 +184,31 @@ export const LandingPage: React.FC = () => {
                     disabled={isSubmitting}
                   />
 
+                  {/* Explicit Reassuring Consent Box (Placed before primary submit button) */}
+                  <div className="p-3.5 rounded-xl bg-blue/5 border border-blue/20 space-y-2.5">
+                    <label className="flex items-start gap-2.5 text-xs text-navy font-semibold leading-relaxed cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={processingConsent}
+                        onChange={(e) => setProcessingConsent(e.target.checked)}
+                        className="mt-0.5 rounded text-blue focus:ring-blue border-line"
+                      />
+                      <span>{t('upload.processingConsent')}</span>
+                    </label>
+
+                    {hostedMode && (
+                      <label className="flex items-start gap-2.5 text-xs text-navy font-semibold leading-relaxed cursor-pointer select-none pt-2 border-t border-blue/15">
+                        <input
+                          type="checkbox"
+                          checked={externalConsent}
+                          onChange={(e) => setExternalConsent(e.target.checked)}
+                          className="mt-0.5 rounded text-blue focus:ring-blue border-line"
+                        />
+                        <span>{t('upload.hostedConsent')}</span>
+                      </label>
+                    )}
+                  </div>
+
                   {/* Upload Error Banner */}
                   {uploadError && (
                     <Banner
@@ -200,16 +236,14 @@ export const LandingPage: React.FC = () => {
                       : t('upload.extractButton')}
                   </Button>
 
-                  <label className="flex items-start gap-2 text-xs text-mute leading-relaxed">
-                    <input type="checkbox" checked={processingConsent} onChange={e => setProcessingConsent(e.target.checked)} className="mt-1" />
-                    <span>{t('upload.processingConsent')}</span>
-                  </label>
-                  {hostedMode&&<label className="flex items-start gap-2 text-xs text-mute leading-relaxed"><input type="checkbox" checked={externalConsent} onChange={e=>setExternalConsent(e.target.checked)} className="mt-1"/><span>{t('upload.hostedConsent')}</span></label>}
-                  <p className="text-xs text-mute">{t('upload.limitsDynamic',{pages:limits.max_pdf_pages,mb:Math.floor(limits.max_upload_bytes/1024/1024)})}</p>
-                  {/* Consent & Privacy Notice Line */}
-                  <p className="text-[11px] text-mute leading-normal text-center pt-1">
-                    {t('disclaimers.consent')}
-                  </p>
+                  <div className="text-center space-y-1">
+                    <p className="text-[11px] font-mono text-mute">
+                      {t('upload.limitsDynamic', { pages: limits.max_pdf_pages, mb: Math.floor(limits.max_upload_bytes / 1024 / 1024) })}
+                    </p>
+                    <p className="text-[11px] text-mute leading-normal">
+                      {t('disclaimers.consent')}
+                    </p>
+                  </div>
                 </form>
               </GlassCard>
             </div>

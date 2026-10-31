@@ -252,7 +252,7 @@ export function ComparePanel({
           </Button>
         </div>
         {error && (
-          <p role="alert" className="text-xs text-error font-medium">
+          <p role="alert" className="text-xs text-concern font-medium">
             {error}
           </p>
         )}
@@ -264,7 +264,7 @@ export function ComparePanel({
                 <label key={c.clause_id} className="block text-xs text-mute">
                   {t("compare.clauseLabel", { index: i + 1 })}
                   <textarea
-                    className="block w-full p-3 rounded border border-line bg-paper text-navy mt-1 focus:ring-1 focus:ring-blue focus:outline-hidden"
+                    className="block w-full p-3 rounded border border-line bg-paper text-navy mt-1 focus:ring-1 focus:ring-blue focus:outline-none"
                     rows={4}
                     maxLength={10000}
                     disabled={busy}
@@ -337,11 +337,19 @@ export function ComparePanel({
                 </div>
                 <div className="grid md:grid-cols-2 gap-3">
                   {(["before", "after"] as const).map((side) => (
-                    <div key={side} className="p-3 bg-bg2/60 border border-line rounded">
-                      <strong className="text-xs font-semibold text-navy">
+                    <div
+                      key={side}
+                      className={`p-3 rounded border transition-colors ${
+                        side === "before"
+                          ? "bg-concern-bg/35 border-concern/25"
+                          : "bg-ok-bg/35 border-ok/25"
+                      }`}
+                    >
+                      <strong className={`text-xs font-semibold flex items-center gap-1.5 ${side === "before" ? "text-concern-ink" : "text-ok-ink"}`}>
+                        <span className={`w-2 h-2 rounded-full ${side === "before" ? "bg-concern" : "bg-ok"}`} />
                         {side === "before" ? t("compare.beforeA") : t("compare.afterB")}
                       </strong>
-                      <blockquote className="text-xs text-navy/90 whitespace-pre-wrap mt-2 font-serif italic border-l-2 border-line pl-2">
+                      <blockquote className="text-xs text-navy/90 whitespace-pre-wrap mt-2 font-serif italic border-l-2 border-line/60 pl-2">
                         {change[side]?.quote ?? t("compare.noMatchingPassage")}
                       </blockquote>
                       {change[side] && (

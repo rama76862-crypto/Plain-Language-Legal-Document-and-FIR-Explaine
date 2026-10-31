@@ -1,10 +1,12 @@
 import React, { useRef } from 'react';
+import { useT } from '../../lib/i18n';
 
 interface DocumentPrismProps {
   className?: string;
 }
 
 export const DocumentPrism: React.FC<DocumentPrismProps> = ({ className = '' }) => {
+  const { t } = useT();
   const stageRef = useRef<HTMLDivElement | null>(null);
   const sceneRef = useRef<HTMLDivElement | null>(null);
 
@@ -37,20 +39,20 @@ export const DocumentPrism: React.FC<DocumentPrismProps> = ({ className = '' }) 
         <div className="sheet s1" />
         <div className="sheet s2">
           <div className="beam" />
-          <h4>RENT AGREEMENT · PAGE 2</h4>
+          <h4>{t('prism.docTitle')}</h4>
           <div className="ln" style={{ width: '92%' }} />
           <div className="ln" style={{ width: '70%' }} />
-          <div className="hl r">3% weekly penalty on late rent</div>
+          <div className="hl r">{t('prism.hlPenalty')}</div>
           <div className="ln" style={{ width: '85%' }} />
-          <div className="hl a">Auto-renews unless 60 days’ notice</div>
+          <div className="hl a">{t('prism.hlRenewal')}</div>
           <div className="ln" style={{ width: '78%' }} />
           <div className="ln" style={{ width: '55%' }} />
-          <div className="hl c">Deposit due back in 30 days</div>
+          <div className="hl c">{t('prism.hlDeposit')}</div>
           <div className="ln" style={{ width: '88%' }} />
         </div>
-        <div className="chip r">⚠ Potential concern</div>
-        <div className="chip a">🔁 Auto-renewal</div>
-        <div className="chip c">⏱ Deadline found</div>
+        <div className="chip r">{t('prism.chipConcern')}</div>
+        <div className="chip a">{t('prism.chipRenewal')}</div>
+        <div className="chip c">{t('prism.chipDeadline')}</div>
         <div className="shield">🛡</div>
       </div>
     </div>

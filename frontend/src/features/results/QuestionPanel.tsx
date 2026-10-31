@@ -435,7 +435,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
               }}
               placeholder={t('qa.placeholder')}
               disabled={isSubmitting}
-              className="w-full p-3 pr-24 text-xs rounded-lg border border-line bg-paper text-navy focus:outline-hidden focus:ring-2 focus:ring-blue resize-none leading-relaxed"
+              className="w-full p-3 pr-28 pb-10 sm:pb-3 sm:pr-28 text-xs rounded-lg border border-line bg-paper text-navy focus:outline-none focus:ring-2 focus:ring-blue resize-none leading-relaxed"
             />
 
             <div className="absolute right-2 bottom-3 flex items-center gap-2">

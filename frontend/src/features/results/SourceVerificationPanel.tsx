@@ -79,7 +79,7 @@ export function SourceVerificationPanel({
       </div>
 
       {error && (
-        <p role="alert" className="text-xs text-error font-medium">
+        <p role="alert" className="text-xs text-concern font-medium">
           {error}
         </p>
       )}

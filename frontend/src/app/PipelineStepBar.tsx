@@ -77,7 +77,7 @@ export const PipelineStepBar: React.FC<PipelineStepBarProps> = ({
                       if (st.id === 'review') onNavigateStep?.('review');
                       if (st.id === 'results') onNavigateStep?.('results');
                     }}
-                    className={`relative px-3 py-1.5 rounded-pill text-xs font-semibold flex items-center gap-1.5 transition-all select-none ${
+                    className={`relative px-2 sm:px-3 py-1.5 rounded-pill text-xs font-semibold flex items-center gap-1 sm:gap-1.5 transition-all select-none ${
                       isActive
                         ? 'text-white font-bold'
                         : isDone
@@ -92,9 +92,9 @@ export const PipelineStepBar: React.FC<PipelineStepBarProps> = ({
                         transition={{ type: 'spring', bounce: 0.2, duration: 0.35 }}
                       />
                     )}
-                    <span className="relative z-10 flex items-center gap-1.5">
+                    <span className="relative z-10 flex items-center gap-1 sm:gap-1.5 min-w-0">
                       <span
-                        className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-mono ${
+                        className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-mono shrink-0 ${
                           isActive
                             ? 'bg-cyan text-navy font-bold'
                             : isDone
@@ -104,7 +104,7 @@ export const PipelineStepBar: React.FC<PipelineStepBarProps> = ({
                       >
                         {isDone ? '✓' : ''}
                       </span>
-                      <span>{st.label}</span>
+                      <span className="truncate max-w-[62px] sm:max-w-none">{st.label}</span>
                     </span>
                   </button>
                 </li>

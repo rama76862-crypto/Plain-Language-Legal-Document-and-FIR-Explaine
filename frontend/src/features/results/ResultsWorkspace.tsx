@@ -230,19 +230,20 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
                   </div>
                 </div>
               )}
-            </GlassCard>
-          </div>
-        )}
 
-        {isAnalyzing && analysisId && (
-          <div className="px-6 pb-4">
-            <Button
-              variant="secondary"
-              disabled={isCancelling}
-              onClick={() => void cancelAnalysis()}
-            >
-              {t('upload.cancelAnalysis')}
-            </Button>
+              {analysisId && (
+                <div className="pt-2 border-t border-line">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={isCancelling}
+                    onClick={() => void cancelAnalysis()}
+                  >
+                    {t('upload.cancelAnalysis')}
+                  </Button>
+                </div>
+              )}
+            </GlassCard>
           </div>
         )}
 
@@ -284,25 +285,59 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
             )}
 
             {/* Navigation Tabs Bar */}
-            <div className="flex items-center gap-1 border-b border-line pb-1 overflow-x-auto">
-              {tabs.map((tab) => {
+            <div
+              role="tablist"
+              aria-label="Result Sections"
+              className="flex items-center gap-1 border-b border-line pb-1 overflow-x-auto select-none"
+            >
+              {tabs.map((tab, tabIdx) => {
                 const isSelected = activeTab === tab.id;
                 const Icon = tab.icon;
                 return (
                   <button
                     key={tab.id}
+                    id={`tab-${tab.id}`}
+                    role="tab"
+                    aria-selected={isSelected}
+                    aria-controls={`tabpanel-${tab.id}`}
+                    tabIndex={isSelected ? 0 : -1}
+                    onKeyDown={(e) => {
+                      if (e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        const nextTab = tabs[(tabIdx + 1) % tabs.length];
+                        setActiveTab(nextTab.id);
+                        document.getElementById(`tab-${nextTab.id}`)?.focus();
+                      } else if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        const prevTab = tabs[(tabIdx - 1 + tabs.length) % tabs.length];
+                        setActiveTab(prevTab.id);
+                        document.getElementById(`tab-${prevTab.id}`)?.focus();
+                      }
+                    }}
                     type="button"
                     onClick={() => setActiveTab(tab.id)}
-                    className={`relative px-3.5 py-2 text-xs font-semibold rounded-t-md transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                    className={`relative px-3.5 py-2 text-xs font-semibold rounded-t-md transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
                       isSelected
-                        ? 'text-blue font-bold border-b-2 border-blue'
+                        ? 'text-blue font-bold border-b-2 border-blue bg-blue/5'
                         : 'text-mute hover:text-navy hover:bg-bg2/40'
                     }`}
                   >
                     <Icon className="w-3.5 h-3.5" />
                     <span>{tab.label}</span>
                     {tab.badge !== undefined && (
-                      <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full bg-blue/10 text-blue">
+                      <span
+                        className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full border ${
+                          tab.id === 'attention'
+                            ? 'bg-concern-bg text-concern-ink border-concern/30'
+                            : tab.id === 'dates'
+                            ? 'bg-deadline-bg text-deadline-ink border-deadline/30'
+                            : tab.id === 'actionPack'
+                            ? 'bg-blue/10 text-blue border-blue/20'
+                            : tab.id === 'verify'
+                            ? 'bg-caution-bg text-caution-ink border-caution/30'
+                            : 'bg-bg2 text-navy border-line'
+                        }`}
+                      >
                         {tab.badge}
                       </span>
                     )}
@@ -312,7 +347,12 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
             </div>
 
             {/* Active Tab Panel */}
-            <div className="pt-2">
+            <div
+              id={`tabpanel-${activeTab}`}
+              role="tabpanel"
+              aria-labelledby={`tab-${activeTab}`}
+              className="pt-2"
+            >
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeTab}

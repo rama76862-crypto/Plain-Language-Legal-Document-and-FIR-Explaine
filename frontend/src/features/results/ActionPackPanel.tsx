@@ -122,7 +122,7 @@ export function ActionPackPanel({
         </div>
 
         {error && (
-          <p role="alert" className="text-xs text-error font-medium">
+          <p role="alert" className="text-xs text-concern font-medium">
             {error}
           </p>
         )}
@@ -131,6 +131,30 @@ export function ActionPackPanel({
           <p role="status" className="text-xs text-mute font-mono">
             {t("actionPack.loading")}
           </p>
+        )}
+
+        {pack && pack.checklist.length > 0 && (
+          <div className="p-3 bg-bg2/60 border border-line rounded-lg space-y-1.5">
+            <div className="flex items-center justify-between text-xs font-mono">
+              <span className="font-semibold text-navy">
+                {t('actionPack.reviewedCount', {
+                  completed: pack.checklist.filter((it) => checkedObligations.has(it.id)).length,
+                  total: pack.checklist.length,
+                })}
+              </span>
+              <span className="font-bold text-blue">
+                {Math.round((pack.checklist.filter((it) => checkedObligations.has(it.id)).length / pack.checklist.length) * 100)}%
+              </span>
+            </div>
+            <div className="h-2 w-full bg-line rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-blue to-cyan transition-all duration-300 rounded-full"
+                style={{
+                  width: `${(pack.checklist.filter((it) => checkedObligations.has(it.id)).length / pack.checklist.length) * 100}%`,
+                }}
+              />
+            </div>
+          </div>
         )}
 
         {pack?.checklist.length === 0 && (

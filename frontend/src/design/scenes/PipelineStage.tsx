@@ -12,6 +12,7 @@ import { RoundedBox } from '@react-three/drei';
 import * as THREE from 'three';
 import { isWebGLAvailable } from '../webglUtils';
 import { useReducedMotion } from '../motion';
+import { useT } from '../../lib/i18n';
 
 interface PipelineStageProps {
   activeStep?: number; // 0 to 4
@@ -269,16 +270,18 @@ function PipelineRailScene({
  * Accessible CSS Fallback
  */
 function CssPipelineFallback({
+  stages,
   activeStep,
   onStepSelect,
 }: {
+  stages: { id: number; title: string; sub: string; description: string }[];
   activeStep: number;
   onStepSelect?: (s: number) => void;
 }) {
   return (
     <div className="w-full flex items-center justify-between relative px-4 py-5" aria-hidden="true">
       <div className="absolute left-8 right-8 top-1/2 -translate-y-1/2 h-[3px] bg-line z-0" />
-      {STAGES.map((s, idx) => {
+      {stages.map((s, idx) => {
         const isActive = idx === activeStep;
         const isPast = idx < activeStep;
         return (
@@ -315,24 +318,67 @@ function CssPipelineFallback({
 }
 
 export const PipelineStage: React.FC<PipelineStageProps> = ({
-  activeStep = 0,
+  activeStep: controlledStep,
   onStepSelect,
   className = '',
 }) => {
+  const { t } = useT();
   const reduced = useReducedMotion();
   const webglOk = isWebGLAvailable();
+  const [internalStep, setInternalStep] = useState(0);
   const [hoveredStep, setHoveredStep] = useState<number | null>(null);
 
-  const selectedStage = STAGES[activeStep] || STAGES[0];
+  const activeStep = controlledStep !== undefined ? controlledStep : internalStep;
+  const handleSelect = (idx: number) => {
+    if (controlledStep === undefined) {
+      setInternalStep(idx);
+    }
+    onStepSelect?.(idx);
+  };
+
+  const localizedStages = [
+    {
+      id: 0,
+      title: t('pipelineStage.step1Title'),
+      sub: t('pipelineStage.step1Sub'),
+      description: t('pipelineStage.step1Desc'),
+    },
+    {
+      id: 1,
+      title: t('pipelineStage.step2Title'),
+      sub: t('pipelineStage.step2Sub'),
+      description: t('pipelineStage.step2Desc'),
+    },
+    {
+      id: 2,
+      title: t('pipelineStage.step3Title'),
+      sub: t('pipelineStage.step3Sub'),
+      description: t('pipelineStage.step3Desc'),
+    },
+    {
+      id: 3,
+      title: t('pipelineStage.step4Title'),
+      sub: t('pipelineStage.step4Sub'),
+      description: t('pipelineStage.step4Desc'),
+    },
+    {
+      id: 4,
+      title: t('pipelineStage.step5Title'),
+      sub: t('pipelineStage.step5Sub'),
+      description: t('pipelineStage.step5Desc'),
+    },
+  ];
+
+  const selectedStage = localizedStages[activeStep] || localizedStages[0];
 
   return (
     <div className={`space-y-4 ${className}`}>
       {/* 3D Rail Canvas */}
       <div className="h-[180px] w-full select-none cursor-pointer" aria-hidden="true">
         {reduced || !webglOk ? (
-          <CssPipelineFallback activeStep={activeStep} onStepSelect={onStepSelect} />
+          <CssPipelineFallback stages={localizedStages} activeStep={activeStep} onStepSelect={handleSelect} />
         ) : (
-          <Suspense fallback={<CssPipelineFallback activeStep={activeStep} onStepSelect={onStepSelect} />}>
+          <Suspense fallback={<CssPipelineFallback stages={localizedStages} activeStep={activeStep} onStepSelect={handleSelect} />}>
             <Canvas
               camera={{ position: [0, 0.9, 3.8], fov: 36 }}
               dpr={[1, 1.5]}
@@ -343,7 +389,7 @@ export const PipelineStage: React.FC<PipelineStageProps> = ({
               <directionalLight position={[-4, -2, 2]} intensity={0.8} color="#07B3D1" />
               <PipelineRailScene
                 activeStep={activeStep}
-                onStepSelect={onStepSelect}
+                onStepSelect={handleSelect}
                 hoveredStep={hoveredStep}
                 setHoveredStep={setHoveredStep}
               />
@@ -355,14 +401,14 @@ export const PipelineStage: React.FC<PipelineStageProps> = ({
       {/* Unified Stage Control Strip & Description */}
       <div className="p-4 rounded-xl bg-paper/95 border border-line shadow-sm space-y-3">
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-          {STAGES.map((s, idx) => {
+          {localizedStages.map((s, idx) => {
             const isActive = idx === activeStep;
             const isPast = idx < activeStep;
             return (
               <button
                 key={s.id}
                 type="button"
-                onClick={() => onStepSelect?.(idx)}
+                onClick={() => handleSelect(idx)}
                 className={`p-2.5 rounded-lg border text-left transition-all ${
                   isActive
                     ? 'bg-cyan/10 border-cyan text-navy font-bold ring-2 ring-cyan/20'
@@ -392,14 +438,14 @@ export const PipelineStage: React.FC<PipelineStageProps> = ({
         <div className="pt-2 border-t border-line/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan/15 text-cyan uppercase shrink-0">
-              STAGE 0{activeStep + 1}
+              {t('pipelineStage.stageBadge', { num: activeStep + 1 })}
             </span>
             <span className="text-xs text-navy font-medium leading-relaxed">
               {selectedStage.description}
             </span>
           </div>
           <span className="text-[10px] font-mono text-mute shrink-0">
-            Interactive 3D stages
+            {t('pipelineStage.interactiveStages')}
           </span>
         </div>
       </div>
