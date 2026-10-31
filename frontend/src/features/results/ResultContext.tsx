@@ -11,10 +11,22 @@ import type {
   AnalysisProgress,
   OutputLanguage,
   QuestionAnswer,
+  ActionPackResponse,
+  VerifySourceResponse,
 } from '../../lib/types';
 import { createAnalysis, getAnalysis, cancelAnalysis as deleteAnalysis, ApiClientError } from '../../lib/api';
 
-export type ResultTab = 'overview' | 'clauses' | 'attention' | 'dates' | 'legalAid' | 'ask' | 'export' | 'actionPack' | 'compare';
+export type ResultTab =
+  | 'overview'
+  | 'actionPack'
+  | 'compare'
+  | 'verify'
+  | 'clauses'
+  | 'attention'
+  | 'dates'
+  | 'legalAid'
+  | 'ask'
+  | 'export';
 
 export interface QuestionHistoryEntry {
   id: string;
@@ -53,6 +65,14 @@ interface ResultContextValue {
   addQaHistory: (entry: QuestionHistoryEntry) => void;
   updateQaHistory: (id: string, update: Partial<QuestionHistoryEntry>) => void;
   clearQaHistory: () => void;
+  checkedObligations: Set<string>;
+  toggleObligation: (id: string) => void;
+  verificationResult: VerifySourceResponse | null;
+  setVerificationResult: (res: VerifySourceResponse | null) => void;
+  prefilledQuestion: string | null;
+  setPrefilledQuestion: (q: string | null) => void;
+  actionPack: ActionPackResponse | null;
+  setActionPack: (pack: ActionPackResponse | null) => void;
 }
 
 const ResultContext = createContext<ResultContextValue | null>(null);
@@ -86,10 +106,26 @@ export const ResultProvider: React.FC<ResultProviderProps> = ({
   const [analysisId, setAnalysisId] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const [qaHistory, setQaHistory] = useState<QuestionHistoryEntry[]>([]);
+  const [checkedObligations, setCheckedObligations] = useState<Set<string>>(new Set());
+  const [verificationResult, setVerificationResult] = useState<VerifySourceResponse | null>(null);
+  const [prefilledQuestion, setPrefilledQuestion] = useState<string | null>(null);
+  const [actionPack, setActionPack] = useState<ActionPackResponse | null>(null);
   const historyBinding = [documentId, revision, analysisId, outputLanguage].join(":");
   const currentHistoryBinding = useRef(historyBinding);
   currentHistoryBinding.current = historyBinding;
   useEffect(() => { setQaHistory([]); }, [historyBinding]);
+
+  const toggleObligation = useCallback((id: string) => {
+    setCheckedObligations((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
 
   const addQaHistory = useCallback((entry: QuestionHistoryEntry) => {
     if (currentHistoryBinding.current !== historyBinding) return;
@@ -139,6 +175,10 @@ export const ResultProvider: React.FC<ResultProviderProps> = ({
       setAnalysisId(null);
       setPendingLanguage(null);
       setQaHistory([]);
+      setCheckedObligations(new Set());
+      setVerificationResult(null);
+      setPrefilledQuestion(null);
+      setActionPack(null);
       clearPollTimer();
     }
   }, [revision]);
@@ -148,6 +188,10 @@ export const ResultProvider: React.FC<ResultProviderProps> = ({
     return () => {
       clearPollTimer();
       abortControllerRef.current?.abort();
+      setCheckedObligations(new Set());
+      setVerificationResult(null);
+      setPrefilledQuestion(null);
+      setActionPack(null);
     };
   }, []);
 
@@ -400,6 +444,14 @@ export const ResultProvider: React.FC<ResultProviderProps> = ({
         addQaHistory,
         updateQaHistory,
         clearQaHistory,
+        checkedObligations,
+        toggleObligation,
+        verificationResult,
+        setVerificationResult,
+        prefilledQuestion,
+        setPrefilledQuestion,
+        actionPack,
+        setActionPack,
       }}
     >
       {children}

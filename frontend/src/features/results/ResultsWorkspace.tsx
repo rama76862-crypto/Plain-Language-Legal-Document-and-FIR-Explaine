@@ -19,6 +19,9 @@ import {
   Layers,
   ShieldAlert,
   Scale,
+  ClipboardList,
+  GitCompare,
+  ShieldCheck,
 } from 'lucide-react';
 import type { ResultsWorkspaceProps, OutputLanguage } from '../../lib/types';
 import { ResultProvider, useResult, ResultTab } from './ResultContext';
@@ -54,6 +57,8 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
     cancelAnalysis,
     isCancelling,
     analysisId,
+    actionPack,
+    verificationResult,
   } = useResult();
 
   const attentionCount = result?.items.filter(
@@ -62,10 +67,27 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
 
   const datesCount = result?.deadlines.length ?? 0;
 
+  const actionPackCount = actionPack?.checklist ? actionPack.checklist.length : undefined;
+  const verifyIssuesCount =
+    verificationResult?.issues && verificationResult.issues.length > 0
+      ? verificationResult.issues.length
+      : undefined;
+
   const tabs: { id: ResultTab; label: string; icon: React.FC<{ className?: string }>; badge?: number }[] = [
     { id: 'overview', label: t('tabs.overview'), icon: Layers },
-    { id: 'actionPack', label: 'Action Pack', icon: Layers },
-    { id: 'compare', label: 'Compare versions', icon: Layers },
+    {
+      id: 'actionPack',
+      label: t('tabs.actionPack'),
+      icon: ClipboardList,
+      badge: actionPackCount && actionPackCount > 0 ? actionPackCount : undefined,
+    },
+    { id: 'compare', label: t('tabs.compare'), icon: GitCompare },
+    {
+      id: 'verify',
+      label: t('tabs.verify'),
+      icon: ShieldCheck,
+      badge: verifyIssuesCount,
+    },
     { id: 'clauses', label: t('tabs.clauses'), icon: FileText },
     {
       id: 'attention',
@@ -105,7 +127,7 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
           <div>
             <h2 className="text-sm font-bold text-navy">{t('results.headerTitle')}</h2>
             <div className="text-[11px] font-mono text-mute">
-              {t('review.revisionLabel', { rev: revision })} · Server processing
+              {t('review.revisionLabel', { rev: revision })} · {t('results.serverProcessingNote')}
             </div>
           </div>
         </div>
@@ -130,10 +152,9 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
                 <Sparkles className="w-6 h-6" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-base font-bold text-navy">Ready to Explain Document</h3>
+                <h3 className="text-base font-bold text-navy">{t('results.readyTitle')}</h3>
                 <p className="text-xs text-mute leading-relaxed">
-                  Click below to generate plain-language explanations, attention cues, and timelines in{' '}
-                  <strong className="text-navy uppercase">{outputLanguage}</strong>.
+                  {t('results.readyDescription', { lang: outputLanguage.toUpperCase() })}
                 </p>
               </div>
               <Button
@@ -142,10 +163,10 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
                 className="w-full"
                 onClick={() => startAnalysis()}
               >
-                Analyse document
+                {t('results.analyseNow')}
               </Button>
               <p className="text-[11px] text-mute font-mono">
-                Uses the processing mode disclosed by this server
+                {t('results.serverProcessingNote')}
               </p>
             </GlassCard>
           </div>
@@ -158,14 +179,18 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
               <div className="flex items-center justify-center">
                 <RotateCw className="w-8 h-8 text-blue animate-spin" />
               </div>
+
               <div className="space-y-1">
                 <h3 className="text-base font-bold text-navy">
                   {status === 'queued'
-                    ? 'Preparing local explanation models…'
-                    : `Analysing clause ${progress.completed_clauses} of ${progress.total_clauses}…`}
+                    ? t('review.submitting')
+                    : t('results.processedSummary', {
+                        completed: progress.completed_clauses,
+                        total: progress.total_clauses,
+                      })}
                 </h3>
                 <p className="text-xs text-mute font-mono">
-                  Evaluating legal cues and definitions
+                  {t('results.evaluatingCues')}
                 </p>
               </div>
 
@@ -191,9 +216,17 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
                     })}
                   </div>
                   <div className="text-[11px] font-mono text-mute flex justify-between">
-                    <span>Clause 1</span>
-                    <span>{progress.completed_clauses}/{progress.total_clauses} processed{progress.failed_clauses ? ` · ${progress.failed_clauses} failed` : ''}</span>
-                    <span>Clause {progress.total_clauses}</span>
+                    <span>{t('results.clauseItem', { num: 1 })}</span>
+                    <span>
+                      {t('results.processedSummary', {
+                        completed: progress.completed_clauses,
+                        total: progress.total_clauses,
+                      })}
+                      {progress.failed_clauses
+                        ? ` · ${t('results.failedSummary', { count: progress.failed_clauses })}`
+                        : ''}
+                    </span>
+                    <span>{t('results.clauseItem', { num: progress.total_clauses })}</span>
                   </div>
                 </div>
               )}
@@ -201,16 +234,27 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
           </div>
         )}
 
-        {isAnalyzing && analysisId && <div className="px-6 pb-4"><Button variant="secondary" disabled={isCancelling} onClick={() => void cancelAnalysis()}>{t('upload.cancelAnalysis')}</Button></div>}
+        {isAnalyzing && analysisId && (
+          <div className="px-6 pb-4">
+            <Button
+              variant="secondary"
+              disabled={isCancelling}
+              onClick={() => void cancelAnalysis()}
+            >
+              {t('upload.cancelAnalysis')}
+            </Button>
+          </div>
+        )}
+
         {/* State 3: Error Banner */}
         {error && (
           <div className="mb-6">
             <Banner
               variant="error"
-              title="Analysis Error"
+              title={t('results.analysisErrorTitle')}
               action={
                 error.retryable
-                  ? { label: 'Retry Analysis', onClick: retryAnalysis }
+                  ? { label: t('results.retryAnalysisBtn'), onClick: retryAnalysis }
                   : undefined
               }
             >
@@ -224,8 +268,8 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
           <div className="space-y-6">
             {/* Needs Review Amber Banner */}
             {status === 'needs_review' && (
-              <Banner variant="warn" title="Needs Review">
-                Automated results require manual verification. Check the coverage count and original text.
+              <Banner variant="warn" title={t('results.needsReviewBannerTitle')}>
+                {t('results.needsReviewBannerBody')}
               </Banner>
             )}
 
@@ -234,13 +278,13 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
               <div className="absolute inset-0 bg-paper/60 backdrop-blur-xs flex items-center justify-center z-20">
                 <div className="p-4 rounded-lg bg-navy text-white shadow-card flex items-center gap-3 text-xs font-mono">
                   <RotateCw className="w-4 h-4 animate-spin text-cyan" />
-                  <span>Loading {pendingLanguage?.toUpperCase()} explanation…</span>
+                  <span>{t('results.loadingLanguage', { lang: pendingLanguage?.toUpperCase() || '' })}</span>
                 </div>
               </div>
             )}
 
             {/* Navigation Tabs Bar */}
-            <div className="flex items-center gap-1 border-b border-line pb-1">
+            <div className="flex items-center gap-1 border-b border-line pb-1 overflow-x-auto">
               {tabs.map((tab) => {
                 const isSelected = activeTab === tab.id;
                 const Icon = tab.icon;
@@ -249,7 +293,7 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
                     key={tab.id}
                     type="button"
                     onClick={() => setActiveTab(tab.id)}
-                    className={`relative px-3.5 py-2 text-xs font-semibold rounded-t-md transition-colors flex items-center gap-1.5 ${
+                    className={`relative px-3.5 py-2 text-xs font-semibold rounded-t-md transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
                       isSelected
                         ? 'text-blue font-bold border-b-2 border-blue'
                         : 'text-mute hover:text-navy hover:bg-bg2/40'
@@ -269,8 +313,6 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
 
             {/* Active Tab Panel */}
             <div className="pt-2">
-              <div hidden={activeTab!=='actionPack'} className="space-y-4"><ActionPackPanel onNavigateEvidence={onNavigateEvidence}/><SourceVerificationPanel onNavigateEvidence={onNavigateEvidence}/></div>
-              <div hidden={activeTab!=='compare'}><ComparePanel onNavigateEvidence={onNavigateEvidence}/></div>
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeTab}
@@ -284,6 +326,15 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
                       onNavigateEvidence={onNavigateEvidence}
                       onGoToClauses={() => setActiveTab('clauses')}
                     />
+                  )}
+                  {activeTab === 'actionPack' && (
+                    <ActionPackPanel onNavigateEvidence={onNavigateEvidence} />
+                  )}
+                  {activeTab === 'compare' && (
+                    <ComparePanel onNavigateEvidence={onNavigateEvidence} />
+                  )}
+                  {activeTab === 'verify' && (
+                    <SourceVerificationPanel onNavigateEvidence={onNavigateEvidence} />
                   )}
                   {activeTab === 'clauses' && (
                     <ClauseExplanationList
@@ -308,9 +359,7 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
                     />
                   )}
                   {activeTab === 'ask' && (
-                    <QuestionPanel
-                      onNavigateEvidence={onNavigateEvidence}
-                    />
+                    <QuestionPanel onNavigateEvidence={onNavigateEvidence} />
                   )}
                   {activeTab === 'export' && <ResultExport />}
                 </motion.div>

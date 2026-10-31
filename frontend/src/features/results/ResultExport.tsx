@@ -25,8 +25,15 @@ import { useT } from '../../lib/i18n';
 
 export const ResultExport: React.FC = () => {
   const { t } = useT();
-  const { result, outputLanguage, qaHistory } = useResult();
-  const analysisId=result?.analysis_id??null;
+  const {
+    result,
+    outputLanguage,
+    qaHistory,
+    actionPack,
+    checkedObligations,
+    verificationResult,
+  } = useResult();
+  const analysisId = result?.analysis_id ?? null;
   const { filename, revision, inputLanguage, documentId, sessionToken } = useSession();
   const [includeQuestions, setIncludeQuestions] = useState<boolean>(true);
   const [downloadSuccess, setDownloadSuccess] = useState<boolean>(false);
@@ -35,14 +42,27 @@ export const ResultExport: React.FC = () => {
 
   const downloadReport = async (format: 'json' | 'md' | 'html') => {
     if (!documentId || !sessionToken || !analysisId) return;
-    setReportBusy(true); setReportError(null);
+    setReportBusy(true);
+    setReportError(null);
     try {
-      const blob = await downloadReviewReport(documentId, sessionToken, analysisId, format, includeQuestions);
+      const blob = await downloadReviewReport(
+        documentId,
+        sessionToken,
+        analysisId,
+        format,
+        includeQuestions
+      );
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = `review-r${revision}-${outputLanguage}.${format}`;
-      a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (error) { setReportError(error instanceof Error ? error.message : 'Report download failed.'); }
-    finally { setReportBusy(false); }
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `review-r${revision}-${outputLanguage}.${format}`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      setReportError(error instanceof Error ? error.message : t('export.reportUnavailable'));
+    } finally {
+      setReportBusy(false);
+    }
   };
 
   if (!result) return null;
@@ -56,10 +76,6 @@ export const ResultExport: React.FC = () => {
   };
 
   const handleDownloadMarkdown = () => {
-    if (documentId && sessionToken && analysisId) {
-      void downloadReport('md');
-      return;
-    }
     const cleanName = sanitizeFilename(filename);
     const downloadFilename = `nyayasarathi-${cleanName}-r${revision}-${outputLanguage}.md`;
 
@@ -88,6 +104,49 @@ export const ResultExport: React.FC = () => {
     if (result.warnings && result.warnings.length > 0) {
       lines.push('### Analysis Notices');
       result.warnings.forEach((w) => lines.push(`- ${w}`));
+      lines.push('');
+    }
+
+    // Action Pack obligations checklist (if available)
+    if (actionPack && actionPack.checklist.length > 0) {
+      lines.push('## Action Pack & Obligations Checklist\n');
+      actionPack.checklist.forEach((item) => {
+        const isChecked = checkedObligations.has(item.id);
+        const mark = isChecked ? '[x]' : '[ ]';
+        const party = item.party === 'not_detected' ? 'No role identified' : item.party;
+        lines.push(`- ${mark} **${item.statement}**`);
+        lines.push(`  - Role: ${party}`);
+        if (item.due_or_trigger.length > 0) {
+          lines.push(`  - Trigger/Period: ${item.due_or_trigger.join(', ')}`);
+        }
+        lines.push(`  - Clause ID: ${item.clause_id}`);
+      });
+      if (actionPack.lawyer_questions.length > 0) {
+        lines.push('\n### Questions for a Legal Professional\n');
+        actionPack.lawyer_questions.forEach((q, idx) => {
+          lines.push(`${idx + 1}. **${q.question}**`);
+          if (q.clause_ids.length > 0) {
+            lines.push(`   - Associated Clauses: ${q.clause_ids.join(', ')}`);
+          }
+        });
+      }
+      lines.push('');
+    }
+
+    // Source Verification status (if available)
+    if (verificationResult) {
+      lines.push('## Source Verification Summary\n');
+      lines.push(`- **Status**: ${verificationResult.status}`);
+      lines.push(`- **Claims Checked**: ${verificationResult.checked_claims} of ${verificationResult.selected_claims}`);
+      if (verificationResult.issues && verificationResult.issues.length > 0) {
+        lines.push('- **Review Issues Detected**:');
+        verificationResult.issues.forEach((iss) => {
+          lines.push(`  - [${iss.verdict.toUpperCase()}] Clause ${iss.clause_id}: ${iss.message}`);
+        });
+      }
+      if (verificationResult.limitation) {
+        lines.push(`- **Limitation**: ${verificationResult.limitation}`);
+      }
       lines.push('');
     }
 
@@ -241,12 +300,24 @@ export const ResultExport: React.FC = () => {
       </div>
 
       <GlassCard className="p-6 space-y-3">
-        <h4 className="text-sm font-bold text-navy">Analysis review report</h4>
-        <p className="text-xs text-mute">Automatically prepared by the backend. Includes source facts, failed coverage, uncertainty, deadlines and optional questions. This is an automated report, not approval by a legal reviewer.</p>
+        <h4 className="text-sm font-bold text-navy">{t('export.reportTitle')}</h4>
+        <p className="text-xs text-mute">{t('export.reportSub')}</p>
         <div className="flex flex-wrap gap-2">
-          {(['md', 'json', 'html'] as const).map(format => <Button key={format} disabled={reportBusy} onClick={() => downloadReport(format)}>{format.toUpperCase()}</Button>)}
+          {(['md', 'json', 'html'] as const).map((format) => (
+            <Button
+              key={format}
+              disabled={reportBusy}
+              onClick={() => downloadReport(format)}
+            >
+              {format.toUpperCase()}
+            </Button>
+          ))}
         </div>
-        {reportError && <Banner variant="error" title="Report unavailable">{reportError}</Banner>}
+        {reportError && (
+          <Banner variant="error" title={t('export.reportUnavailable')}>
+            {reportError}
+          </Banner>
+        )}
       </GlassCard>
 
       {/* Export Options Card */}
@@ -255,14 +326,18 @@ export const ResultExport: React.FC = () => {
           <div className="space-y-1">
             <h4 className="text-sm font-bold text-navy">{t('export.downloadMd')}</h4>
             <p className="text-xs text-mute">
-              Plain text with headings, source quotations, review warnings and any admitted references.
+              {t('export.mdDesc')}
             </p>
           </div>
 
           <Button
             variant="primary"
             size="md"
-            onClick={() => analysisId && documentId && sessionToken ? downloadReport('md') : handleDownloadMarkdown()}
+            onClick={() =>
+              analysisId && documentId && sessionToken
+                ? downloadReport('md')
+                : handleDownloadMarkdown()
+            }
             className="shrink-0"
           >
             <Download className="w-4 h-4" />
@@ -271,8 +346,8 @@ export const ResultExport: React.FC = () => {
         </div>
 
         {downloadSuccess && (
-          <Banner variant="info" title="Download Complete">
-            Markdown file downloaded. It is stored directly on your device.
+          <Banner variant="info" title={t('export.downloadCompleteTitle')}>
+            {t('export.downloadCompleteBody')}
           </Banner>
         )}
 
@@ -290,9 +365,7 @@ export const ResultExport: React.FC = () => {
             )}
             <span>
               {t('export.includeQa')}
-              {qaHistory.length > 0
-                ? ` (${qaHistory.length})`
-                : ''}
+              {qaHistory.length > 0 ? ` (${qaHistory.length})` : ''}
             </span>
           </button>
         </div>
@@ -309,7 +382,7 @@ export const ResultExport: React.FC = () => {
           <div className="space-y-1">
             <h4 className="text-sm font-bold text-navy">{t('export.printButton')}</h4>
             <p className="text-xs text-mute">
-              Formatted clean layout optimized for A4/Letter paper with high-contrast text.
+              {t('export.printDesc')}
             </p>
           </div>
 
@@ -329,11 +402,10 @@ export const ResultExport: React.FC = () => {
       <div className="p-4 rounded-lg bg-bg2/60 border border-line text-xs space-y-2">
         <div className="flex items-center gap-2 font-bold text-navy">
           <ShieldCheck className="w-4 h-4 text-ok" />
-          <span>No Session Leaks</span>
+          <span>{t('export.noSessionLeaksTitle')}</span>
         </div>
         <p className="text-mute leading-relaxed">
-          Reports contain your document text and generated results. Keep downloaded copies private.
-          Session tokens and internal service addresses are excluded from the report format.
+          {t('export.noSessionLeaksBody')}
         </p>
       </div>
 
@@ -353,6 +425,23 @@ export const ResultExport: React.FC = () => {
             <div><strong>Date:</strong> {new Date().toLocaleDateString()}</div>
           </div>
         </div>
+
+        {/* Action Pack in Print if present */}
+        {actionPack && actionPack.checklist.length > 0 && (
+          <div className="space-y-2">
+            <h2 className="text-sm font-bold uppercase tracking-wider border-b border-gray-300 pb-1">
+              Action Pack Checklist
+            </h2>
+            {actionPack.checklist.map((item) => (
+              <div key={item.id} className="text-xs space-y-0.5">
+                <span className="font-semibold">
+                  [{checkedObligations.has(item.id) ? 'X' : ' '}] {item.statement}
+                </span>{' '}
+                (Clause {item.clause_id})
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Clauses */}
         <div className="space-y-4">

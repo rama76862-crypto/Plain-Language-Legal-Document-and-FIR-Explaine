@@ -1,7 +1,7 @@
 /**
  * EvidenceBeam Component
- * Draws an animated SVG beam with traveling pulses between
- * an evidence button on the right pane and the highlighted source passage on the left pane.
+ * Draws a glowing energetic SVG beam with traveling photon pulses between
+ * an evidence citation button on the right pane and the highlighted source passage on the left pane.
  * Automatically recalculates coordinates on scroll or resize.
  */
 
@@ -60,27 +60,57 @@ export const EvidenceBeam: React.FC<EvidenceBeamProps> = ({
   if (reduced || !coords) return null;
 
   const dx = coords.x2 - coords.x1;
-  const pathD = `M ${coords.x1} ${coords.y1} C ${coords.x1 + dx * 0.5} ${coords.y1}, ${
-    coords.x2 - dx * 0.5
+  const pathD = `M ${coords.x1} ${coords.y1} C ${coords.x1 + dx * 0.45} ${coords.y1}, ${
+    coords.x2 - dx * 0.45
   } ${coords.y2}, ${coords.x2} ${coords.y2}`;
 
   return (
     <svg
-      className="fixed inset-0 w-full h-full pointer-events-none z-40 overflow-visible"
+      className="fixed inset-0 w-full h-full pointer-events-none z-50 overflow-visible"
       aria-hidden="true"
     >
+      <defs>
+        <linearGradient id="beamGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#2F6BFF" stopOpacity="0.3" />
+          <stop offset="50%" stopColor="#07B3D1" stopOpacity="0.9" />
+          <stop offset="100%" stopColor="#00FFFF" stopOpacity="0.4" />
+        </linearGradient>
+        <filter id="beamGlow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+      </defs>
+
+      {/* Soft Ambient Glow Halo */}
       <path
         d={pathD}
         fill="none"
-        stroke="var(--cyan)"
-        strokeWidth="2"
-        strokeDasharray="6 6"
-        opacity="0.8"
+        stroke="url(#beamGradient)"
+        strokeWidth="6"
+        opacity="0.25"
       />
-      <circle r="4" fill="var(--blue)">
+
+      {/* Core Glowing Dashed Line */}
+      <path
+        d={pathD}
+        fill="none"
+        stroke="url(#beamGradient)"
+        strokeWidth="2.5"
+        strokeDasharray="8 6"
+        filter="url(#beamGlow)"
+      />
+
+      {/* Leading Traveling Photon Dot 1 */}
+      <circle r="4.5" fill="#00FFFF" filter="url(#beamGlow)">
         <animateMotion path={pathD} dur="1.2s" repeatCount="indefinite" />
+      </circle>
+
+      {/* Trailing Photon Dot 2 */}
+      <circle r="3" fill="#2F6BFF" opacity="0.8">
+        <animateMotion path={pathD} dur="1.2s" begin="0.3s" repeatCount="indefinite" />
       </circle>
     </svg>
   );
 };
+
 export default EvidenceBeam;

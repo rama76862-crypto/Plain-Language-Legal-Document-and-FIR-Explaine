@@ -13,10 +13,12 @@ import { LanguageDocTypeSelector } from './LanguageDocTypeSelector';
 import { Button, GlassCard, TiltCard, Banner } from '../../design/primitives';
 import { useSession } from '../../lib/session';
 import { useT } from '../../lib/i18n';
-import { createDocument } from '../../lib/api';
-import { config } from '../../lib/config';
+import { createDocument, getCapabilities } from '../../lib/api';
 import type { InputLanguage, OutputLanguage, InputDocumentType, HealthResponse } from '../../lib/types';
-import { ExternalLink, FileText, ShieldCheck } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
+import { DocumentPrism } from '../../design/scenes/DocumentPrism';
+import { PrivacyCube } from '../../design/scenes/PrivacyCube';
+import { DotGridField } from '../../design/DotGridField';
 
 export const LandingPage: React.FC = () => {
   const { startSession } = useSession();
@@ -34,9 +36,11 @@ export const LandingPage: React.FC = () => {
   const [limits, setLimits] = useState({ max_upload_bytes: 25 * 1024 * 1024, max_pdf_pages: 50 });
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`${config.apiBaseUrl}/capabilities`, { signal: controller.signal })
-      .then(r => r.ok ? r.json() : null)
-      .then(value => { if (value?.limits) setLimits(value.limits);setHostedMode(value?.processing?.external_ai_inference===true); })
+    getCapabilities(controller.signal)
+      .then((value) => {
+        if (value?.limits) setLimits(value.limits);
+        setHostedMode(value?.processing?.external_ai_inference === true);
+      })
       .catch(() => {});
     return () => controller.abort();
   }, []);
@@ -127,13 +131,13 @@ export const LandingPage: React.FC = () => {
                 href="#upload-console"
                 className="btn p btn-sweep font-bold"
               >
-                Upload a document
+                {t('landing.uploadDocBtn')}
               </a>
               <a
                 href="#aid"
                 className="btn s font-bold"
               >
-                Free legal aid
+                {t('landing.freeLegalAidBtn')}
               </a>
             </div>
 
@@ -192,7 +196,7 @@ export const LandingPage: React.FC = () => {
                     {isSubmitting
                       ? t('upload.extractingButton')
                       : !healthData && selectedFile
-                      ? 'Connecting to local engine…'
+                      ? t('landing.connectingEngine')
                       : t('upload.extractButton')}
                   </Button>
 
@@ -200,7 +204,7 @@ export const LandingPage: React.FC = () => {
                     <input type="checkbox" checked={processingConsent} onChange={e => setProcessingConsent(e.target.checked)} className="mt-1" />
                     <span>{t('upload.processingConsent')}</span>
                   </label>
-                  {hostedMode&&<label className="flex items-start gap-2 text-xs text-mute leading-relaxed"><input type="checkbox" checked={externalConsent} onChange={e=>setExternalConsent(e.target.checked)} className="mt-1"/><span>I also consent to admitted document text being sent to Groq for AI analysis on this hosted deployment. Direct identifier masking is limited, not complete anonymization. Provider data policies apply.</span></label>}
+                  {hostedMode&&<label className="flex items-start gap-2 text-xs text-mute leading-relaxed"><input type="checkbox" checked={externalConsent} onChange={e=>setExternalConsent(e.target.checked)} className="mt-1"/><span>{t('upload.hostedConsent')}</span></label>}
                   <p className="text-xs text-mute">{t('upload.limitsDynamic',{pages:limits.max_pdf_pages,mb:Math.floor(limits.max_upload_bytes/1024/1024)})}</p>
                   {/* Consent & Privacy Notice Line */}
                   <p className="text-[11px] text-mute leading-normal text-center pt-1">
@@ -214,17 +218,17 @@ export const LandingPage: React.FC = () => {
             <HealthStatusBar onHealthStatusChange={handleHealthChange} />
           </div>
 
-          {/* Right Column: Document workflow guide */}
-          <div className="lg:col-span-5 relative hidden lg:flex items-center justify-center">
-            <GlassCard className="p-10 space-y-5 text-center"><FileText className="w-20 h-20 mx-auto text-blue" aria-hidden="true" /><h2 className="text-xl font-bold">{t('landing.howItWorksTitle')}</h2><p className="text-mute">{t('landing.howItWorksSub')}</p></GlassCard>
+          {/* Right Column: 3D Document Prism with DotGrid background */}
+          <div className="lg:col-span-5 relative flex items-center justify-center">
+            <div className="absolute inset-0 pointer-events-none opacity-30 overflow-hidden rounded-2xl">
+              <DotGridField performanceTier="medium" glow={true} />
+            </div>
+            <DocumentPrism />
           </div>
         </div>
       </section>
 
-      {/* 2. DOCUMENT WORKFLOW (#try) */}
-
-
-      {/* 3. CITIZEN DOCUMENT TYPES (#docs) */}
+      {/* 2. CITIZEN DOCUMENT TYPES (#docs) */}
       <section id="docs" className="py-16 px-4 sm:px-6 max-w-6xl mx-auto space-y-8">
         <div className="space-y-2">
           <h2 className="reveal text-2xl sm:text-3xl font-extrabold text-navy tracking-tight">
@@ -241,35 +245,35 @@ export const LandingPage: React.FC = () => {
             index="01"
             icon="🏠"
             title={t('docTypes.agreement')}
-            description="Penalties, lock-in, auto-renewal"
+            description={t('landing.agreementDesc')}
           />
           <TiltCard
             className="reveal"
             index="02"
             icon="💰"
-            title="Loan paper"
-            description="Interest, default, waived rights"
+            title={t('landing.loanPaper')}
+            description={t('landing.loanPaperDesc')}
           />
           <TiltCard
             className="reveal"
             index="03"
             icon="🗺"
-            title="Land document"
-            description="Ownership, encumbrance, dates"
+            title={t('landing.landDoc')}
+            description={t('landing.landDocDesc')}
           />
           <TiltCard
             className="reveal"
             index="04"
             icon="📨"
             title={t('docTypes.notice')}
-            description="Hearing dates, action demanded"
+            description={t('landing.noticeDesc')}
           />
           <TiltCard
             className="reveal"
             index="05"
             icon="🚔"
             title={t('docTypes.fir')}
-            description="Allegations recorded, who said what"
+            description={t('landing.firDesc')}
           />
         </div>
       </section>
@@ -286,13 +290,13 @@ export const LandingPage: React.FC = () => {
             </p>
             <div className="pt-2">
               <a href="#upload-console" className="btn p btn-sweep font-bold inline-block">
-                See it work
+                {t('landing.seeItWork')}
               </a>
             </div>
           </div>
 
           <div className="reveal flex items-center justify-center">
-            <ShieldCheck className="w-32 h-32 text-cyan" aria-hidden="true" />
+            <PrivacyCube />
           </div>
         </div>
       </section>
@@ -314,7 +318,7 @@ export const LandingPage: React.FC = () => {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-white hover:underline"
               >
-                <span>Visit Official NALSA Portal</span>
+                <span>{t('landing.visitNalsa')}</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             </div>

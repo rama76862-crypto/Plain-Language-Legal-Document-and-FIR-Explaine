@@ -11,6 +11,7 @@ import { config } from './config';
 import { normalizeHealth } from './health';
 import type {
   HealthResponse,
+  CapabilitiesResponse,
   DocumentCreateResponse,
   DocumentSummary,
   ExtractionResponse,
@@ -21,6 +22,11 @@ import type {
   AnalysisStatusResponse,
   QuestionRequest,
   QuestionAnswer,
+  ActionPackResponse,
+  CompareRequest,
+  CompareResponse,
+  VerifySourceRequest,
+  VerifySourceResponse,
   ErrorCode,
   ApiError,
   InputLanguage,
@@ -120,6 +126,24 @@ export async function getHealth(signal?: AbortSignal): Promise<HealthResponse> {
       signal,
     });
     return normalizeHealth(await handleResponse<unknown>(res));
+  } catch (err) {
+    return catchNetworkError(err);
+  }
+}
+
+/**
+ * GET /capabilities
+ */
+export async function getCapabilities(signal?: AbortSignal): Promise<CapabilitiesResponse> {
+  try {
+    const res = await fetch(`${config.apiBaseUrl}/capabilities`, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+      },
+      signal,
+    });
+    return await handleResponse<CapabilitiesResponse>(res);
   } catch (err) {
     return catchNetworkError(err);
   }
@@ -368,3 +392,102 @@ export async function downloadReviewReport(
   if (!response.ok) await handleResponse(response);
   return response.blob();
 }
+
+/**
+ * 11. GET /documents/{id}/analyses/{analysis_id}/action-pack
+ */
+export async function getActionPack(
+  documentId: string,
+  sessionToken: string,
+  analysisId: string,
+  signal?: AbortSignal
+): Promise<ActionPackResponse> {
+  try {
+    const res = await fetch(
+      `${config.apiBaseUrl}/documents/${encodeURIComponent(documentId)}/analyses/${encodeURIComponent(analysisId)}/action-pack`,
+      {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          'X-Session-Token': sessionToken,
+        },
+        signal,
+      }
+    );
+    return await handleResponse<ActionPackResponse>(res);
+  } catch (err) {
+    return catchNetworkError(err);
+  }
+}
+
+/**
+ * 12. POST /documents/{id}/compare
+ */
+export async function compareDocuments(
+  documentIdA: string,
+  sessionTokenA: string,
+  documentIdB: string,
+  sessionTokenB: string,
+  revisionA: number,
+  revisionB: number,
+  signal?: AbortSignal
+): Promise<CompareResponse> {
+  try {
+    const body: CompareRequest = {
+      document_b_id: documentIdB,
+      expected_revision_a: revisionA,
+      expected_revision_b: revisionB,
+    };
+    const res = await fetch(
+      `${config.apiBaseUrl}/documents/${encodeURIComponent(documentIdA)}/compare`,
+      {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-Session-Token': sessionTokenA,
+          'X-Compare-Session-Token': sessionTokenB,
+        },
+        body: JSON.stringify(body),
+        signal,
+      }
+    );
+    return await handleResponse<CompareResponse>(res);
+  } catch (err) {
+    return catchNetworkError(err);
+  }
+}
+
+/**
+ * 13. POST /documents/{id}/analyses/{analysis_id}/verify-source
+ */
+export async function verifySource(
+  documentId: string,
+  sessionToken: string,
+  analysisId: string,
+  externalAiConsent: boolean,
+  signal?: AbortSignal
+): Promise<VerifySourceResponse> {
+  try {
+    const body: VerifySourceRequest = {
+      external_ai_consent: externalAiConsent,
+    };
+    const res = await fetch(
+      `${config.apiBaseUrl}/documents/${encodeURIComponent(documentId)}/analyses/${encodeURIComponent(analysisId)}/verify-source`,
+      {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-Session-Token': sessionToken,
+        },
+        body: JSON.stringify(body),
+        signal,
+      }
+    );
+    return await handleResponse<VerifySourceResponse>(res);
+  } catch (err) {
+    return catchNetworkError(err);
+  }
+}
+

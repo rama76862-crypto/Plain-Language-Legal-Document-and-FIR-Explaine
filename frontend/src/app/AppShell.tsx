@@ -91,9 +91,6 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
         {/* Landing Navigation Links */}
         {isLanding && (
           <nav aria-label="Quick links" className="hidden md:flex items-center gap-1 text-sm font-semibold text-mute">
-            <a href="#try" className="px-2.5 py-1 hover:text-blue transition-colors">
-              Inspector
-            </a>
             <a href="#docs" className="px-2.5 py-1 hover:text-blue transition-colors">
               Benchmark
             </a>

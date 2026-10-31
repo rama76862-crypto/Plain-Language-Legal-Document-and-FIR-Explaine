@@ -37,7 +37,7 @@ export const OverviewSummaryPanel: React.FC<OverviewSummaryPanelProps> = ({
   filename = 'Document',
 }) => {
   const { t } = useT();
-  const { result } = useResult();
+  const { result, actionPack, verificationResult, setActiveTab } = useResult();
   const [showTechDetails, setShowTechDetails] = useState<boolean>(false);
 
   if (!result) return null;
@@ -107,7 +107,7 @@ export const OverviewSummaryPanel: React.FC<OverviewSummaryPanelProps> = ({
                 <h3 className="text-base font-bold text-navy truncate max-w-xs">{filename}</h3>
               </div>
               <div className="flex items-center gap-2">
-                <MonoLabel>Revision {result.document_revision}</MonoLabel>
+                <MonoLabel>{t('review.revisionLabel', { rev: result.document_revision })}</MonoLabel>
                 <span className="px-2 py-0.5 text-[10px] font-mono font-bold uppercase rounded bg-bg2 text-navy border border-line">
                   {result.document_type}
                 </span>
@@ -116,15 +116,17 @@ export const OverviewSummaryPanel: React.FC<OverviewSummaryPanelProps> = ({
 
             {/* Language Flow */}
             <div className="flex items-center gap-2 text-xs text-mute">
-              <span>Input: <strong className="text-navy uppercase">{result.input_language}</strong></span>
+              <span>{t('overview.inputLabel')} <strong className="text-navy uppercase">{result.input_language}</strong></span>
               <span>&rarr;</span>
-              <span>Explained in: <strong className="text-blue uppercase">{result.output_language}</strong></span>
+              <span>{t('overview.explainedInLabel')} <strong className="text-blue uppercase">{result.output_language}</strong></span>
             </div>
 
             {/* Metrics Breakdown Matrix */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2">
               <div className="p-2.5 rounded bg-bg2/60 border border-line">
-                <div className="text-[11px] font-mono text-mute uppercase">Explanations</div>
+                <div className="text-[11px] font-mono text-mute uppercase truncate">
+                  {t('overview.explanationsMetric')}
+                </div>
                 <div className="text-xl font-bold font-mono text-navy mt-1">
                   {explanationCount}
                 </div>
@@ -132,21 +134,27 @@ export const OverviewSummaryPanel: React.FC<OverviewSummaryPanelProps> = ({
 
               {result.document_type === 'fir' ? (
                 <div className="p-2.5 rounded bg-blue/5 border border-blue/20">
-                  <div className="text-[11px] font-mono text-blue uppercase">Allegations</div>
+                  <div className="text-[11px] font-mono text-blue uppercase truncate">
+                    {t('overview.allegationsMetric')}
+                  </div>
                   <div className="text-xl font-bold font-mono text-blue mt-1">
                     {allegationCount}
                   </div>
                 </div>
               ) : result.document_type === 'notice' ? (
                 <div className="p-2.5 rounded bg-blue/5 border border-blue/20">
-                  <div className="text-[11px] font-mono text-blue uppercase">Demanded Actions</div>
+                  <div className="text-[11px] font-mono text-blue uppercase truncate">
+                    {t('overview.actionsMetric')}
+                  </div>
                   <div className="text-xl font-bold font-mono text-blue mt-1">
                     {noticeActionCount}
                   </div>
                 </div>
               ) : (
                 <div className="p-2.5 rounded bg-amber-500/10 border border-amber-500/20">
-                  <div className="text-[11px] font-mono text-amber-700 uppercase">Attention Cues</div>
+                  <div className="text-[11px] font-mono text-amber-700 uppercase truncate">
+                    {t('overview.attentionMetric')}
+                  </div>
                   <div className="text-xl font-bold font-mono text-amber-800 mt-1">
                     {attentionCount}
                   </div>
@@ -154,23 +162,67 @@ export const OverviewSummaryPanel: React.FC<OverviewSummaryPanelProps> = ({
               )}
 
               <div className="p-2.5 rounded bg-bg2/60 border border-line">
-                <div className="text-[11px] font-mono text-mute uppercase">Explicit Dates</div>
+                <div className="text-[11px] font-mono text-mute uppercase truncate">
+                  {t('overview.explicitDatesMetric')}
+                </div>
                 <div className="text-xl font-bold font-mono text-navy mt-1">
                   {explicitDeadlines}
                 </div>
               </div>
 
               <div className="p-2.5 rounded bg-bg2/60 border border-line">
-                <div className="text-[11px] font-mono text-mute uppercase">Unresolved Dates</div>
+                <div className="text-[11px] font-mono text-mute uppercase truncate">
+                  {t('overview.unresolvedDatesMetric')}
+                </div>
                 <div className="text-xl font-bold font-mono text-navy mt-1">
                   {unresolvedDeadlines}
                 </div>
               </div>
+
+              {/* Obligations Tile */}
+              <button
+                type="button"
+                onClick={() => setActiveTab('actionPack')}
+                className="p-2.5 rounded bg-bg2/60 border border-line hover:border-blue text-left transition-colors cursor-pointer group"
+              >
+                <div className="text-[11px] font-mono text-mute group-hover:text-blue uppercase truncate">
+                  {t('overview.obligations')}
+                </div>
+                <div className="text-xl font-bold font-mono text-navy mt-1">
+                  {actionPack?.checklist ? actionPack.checklist.length : '—'}
+                </div>
+              </button>
+
+              {/* Source Verification Tile */}
+              <button
+                type="button"
+                onClick={() => setActiveTab('verify')}
+                className="p-2.5 rounded bg-bg2/60 border border-line hover:border-blue text-left transition-colors cursor-pointer group"
+              >
+                <div className="text-[11px] font-mono text-mute group-hover:text-blue uppercase truncate">
+                  {t('overview.sourceVerification')}
+                </div>
+                <div className="mt-1">
+                  {verificationResult?.status === 'cross_checked' ? (
+                    <span className="text-xs font-mono font-bold text-ok px-1.5 py-0.5 rounded bg-ok/10">
+                      {t('overview.statusCrossChecked')}
+                    </span>
+                  ) : verificationResult?.status === 'needs_review' ? (
+                    <span className="text-xs font-mono font-bold text-amber-800 px-1.5 py-0.5 rounded bg-amber-500/10">
+                      {t('overview.statusNeedsReview')}
+                    </span>
+                  ) : (
+                    <span className="text-xs font-mono font-bold text-mute px-1.5 py-0.5 rounded bg-bg2">
+                      {t('overview.statusUnverified')}
+                    </span>
+                  )}
+                </div>
+              </button>
             </div>
 
             <div className="pt-2 flex justify-end">
               <Button size="sm" variant="secondary" onClick={onGoToClauses}>
-                View all clauses &rarr;
+                {t('overview.viewAllClauses')} &rarr;
               </Button>
             </div>
           </div>
@@ -179,21 +231,33 @@ export const OverviewSummaryPanel: React.FC<OverviewSummaryPanelProps> = ({
 
       {!!result.next_steps?.length && (
         <GlassCard className="p-5 space-y-3">
-          <h3 className="font-bold text-navy">Clarification and next steps</h3>
-          <p className="text-xs text-mute">General information. Check these points against the source and with legal aid.</p>
-          {result.next_steps.map((step,index) => <div key={index} className="text-sm text-navy space-y-1">
-            <p>{step.text}</p>
-            {step.clause_ids?.map(id => <Button key={id} size="sm" variant="secondary" onClick={() => onNavigateEvidence(id)}>Show {id} in source</Button>)}
-          </div>)}
+          <h3 className="font-bold text-navy">{t('overview.nextStepsTitle')}</h3>
+          <p className="text-xs text-mute">{t('overview.nextStepsSub')}</p>
+          {result.next_steps.map((step, index) => (
+            <div key={index} className="text-sm text-navy space-y-1">
+              <p>{step.text}</p>
+              {step.clause_ids?.map((id) => (
+                <Button
+                  key={id}
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => onNavigateEvidence(id)}
+                >
+                  {t('overview.showInSource', { id })}
+                </Button>
+              ))}
+            </div>
+          ))}
         </GlassCard>
       )}
+
       {/* Needs Review or Skipped Clauses Section (if any) */}
       {needsReviewItems.length > 0 && (
         <GlassCard className="p-5 border-amber-500/30 bg-amber-500/5">
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle className="w-4 h-4 text-amber-600" />
             <h4 className="text-sm font-bold text-amber-900">
-              {t('overview.reviewFindingsTitle',{count:needsReviewItems.length})}
+              {t('overview.reviewFindingsTitle', { count: needsReviewItems.length })}
             </h4>
           </div>
           <p className="text-xs text-amber-800 mb-3">
@@ -238,7 +302,7 @@ export const OverviewSummaryPanel: React.FC<OverviewSummaryPanelProps> = ({
         <button
           type="button"
           onClick={() => setShowTechDetails((prev) => !prev)}
-          className="w-full px-4 py-3 flex items-center justify-between text-xs font-mono font-medium text-mute hover:text-navy hover:bg-bg2/40 transition-colors"
+          className="w-full px-4 py-3 flex items-center justify-between text-xs font-mono font-medium text-mute hover:text-navy hover:bg-bg2/40 transition-colors cursor-pointer"
         >
           <span className="flex items-center gap-2">
             <Cpu className="w-3.5 h-3.5 text-blue" />

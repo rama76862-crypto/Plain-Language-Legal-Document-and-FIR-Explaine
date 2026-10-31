@@ -37,7 +37,18 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
   onNavigateEvidence,
 }) => {
   const { t } = useT();
-  const { status, result, outputLanguage, analysisId, documentType, qaHistory, addQaHistory } = useResult();
+  const {
+    status,
+    result,
+    outputLanguage,
+    analysisId,
+    documentType,
+    qaHistory,
+    addQaHistory,
+    prefilledQuestion,
+    setPrefilledQuestion,
+    actionPack,
+  } = useResult();
   const { documentId, sessionToken } = useSession();
 
   const [questionText, setQuestionText] = useState<string>('');
@@ -53,6 +64,14 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
+  // Auto-fill from prefilledQuestion if arriving from Action Pack
+  useEffect(() => {
+    if (prefilledQuestion) {
+      setQuestionText(prefilledQuestion);
+      setPrefilledQuestion(null);
+    }
+  }, [prefilledQuestion, setPrefilledQuestion]);
+
   // Clean up on unmount
   useEffect(() => {
     setIsSubmitting(false);
@@ -60,32 +79,20 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
     return () => {
       abortControllerRef.current?.abort();
     };
-  }, [documentId,analysisId,outputLanguage]);
+  }, [documentId, analysisId, outputLanguage]);
 
   // Scroll to bottom on new answer
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [qaHistory, isSubmitting]);
 
-  // Suggested questions
+  // Suggested questions based on document type
   const suggestedQuestions =
     documentType === 'fir'
-      ? [
-          'What offences are alleged in this FIR?',
-          'Who is assigned to investigate?',
-          'What is the alleged incident date?',
-        ]
+      ? [t('qa.firQ1'), t('qa.firQ2'), t('qa.firQ3')]
       : documentType === 'notice'
-      ? [
-          'What action is demanded by this notice?',
-          'What is the deadline for replying?',
-          'What amount is alleged to be due?',
-        ]
-      : [
-          'What does clause 3 mean?',
-          'What is the notice period for cancellation?',
-          'Can this agreement renew automatically?',
-        ];
+      ? [t('qa.noticeQ1'), t('qa.noticeQ2'), t('qa.noticeQ3')]
+      : [t('qa.sugg1'), t('qa.sugg2'), t('qa.sugg3')];
 
   const handleSendQuestion = useCallback(
     async (textToSend?: string, existingRequestId?: string) => {
@@ -134,13 +141,13 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
         setIsSubmitting(false);
       } catch (err: unknown) {
         setIsSubmitting(false);
-        if(err instanceof DOMException && err.name==='AbortError') return;
+        if (err instanceof DOMException && err.name === 'AbortError') return;
 
         if (err instanceof ApiClientError) {
           if (err.status === 429) {
             setLastError({
               code: 'MODEL_BUSY',
-              message: 'AI processor is currently busy with another task.',
+              message: t('qa.retryBusy'),
               retryable: true,
               question: q,
               requestId: reqId,
@@ -150,7 +157,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
           if (err.code === 'MODEL_TIMEOUT') {
             setLastError({
               code: 'MODEL_TIMEOUT',
-              message: 'Question request timed out. You may retry.',
+              message: t('errors.MODEL_TIMEOUT'),
               retryable: true,
               question: q,
               requestId: reqId,
@@ -161,7 +168,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
 
         setLastError({
           code: 'NETWORK_ERROR',
-          message: 'Unable to reach question answering service.',
+          message: t('errors.NETWORK_ERROR'),
           retryable: true,
           question: q,
           requestId: reqId,
@@ -176,6 +183,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
       analysisId,
       outputLanguage,
       addQaHistory,
+      t,
     ]
   );
 
@@ -219,7 +227,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
           <span>{t('qa.sub')}</span>
         </div>
         <span className="font-mono text-[11px] text-mute">
-          History: {qaHistory.length}/20 (In-Memory)
+          History: {qaHistory.length}/20
         </span>
       </div>
 
@@ -262,15 +270,15 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
                   {/* Status chip */}
                   <div className="flex items-center justify-between pb-2 border-b border-line">
                     <span className="text-[11px] font-mono font-bold uppercase text-blue">
-                      Document Grounded Answer
+                      {t('qa.groundedAnswer')}
                     </span>
                     {entry.answer.review_status === 'needs_review' ? (
                       <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-800 border border-amber-500/20">
-                        Unverified / Needs Review
+                        {t('qa.unverifiedBadge')}
                       </span>
                     ) : (
                       <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-ok/10 text-ok border border-ok/20">
-                        Verified Grounding
+                        {t('results.badgeVerified')}
                       </span>
                     )}
                   </div>
@@ -294,7 +302,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
                   {entry.answer.evidence.length > 0 && (
                     <div className="space-y-2 pt-2 border-t border-line/60">
                       <span className="text-[10px] font-mono uppercase text-mute font-semibold">
-                        Anchored Evidence ({entry.answer.evidence.length})
+                        {t('qa.anchoredEvidence', { count: entry.answer.evidence.length })}
                       </span>
                       {entry.answer.evidence.map((ev, idx) => (
                         <div
@@ -329,7 +337,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
                   {/* Answer Disclaimer */}
                   <div className="pt-2 border-t border-line/40 text-[10px] font-mono text-mute flex items-center justify-between">
                     <span>{t('disclaimers.footer')}</span>
-                    <span>Clause-grounded</span>
+                    <span>{t('qa.clauseGrounded')}</span>
                   </div>
                 </GlassCard>
               </div>
@@ -349,7 +357,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="text-xs text-mute hover:text-navy flex items-center gap-1 font-mono"
+                  className="text-xs text-mute hover:text-navy flex items-center gap-1 font-mono cursor-pointer"
                 >
                   <XCircle className="w-3.5 h-3.5" />
                   {t('privacy.cancel')}
@@ -372,15 +380,37 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
       {lastError && (
         <Banner
           variant="error"
-          title="Question Error"
+          title={t('results.analysisErrorTitle')}
           action={
             lastError.retryable
-              ? { label: 'Retry Question', onClick: handleRetry }
+              ? { label: t('results.retryAnalysisBtn'), onClick: handleRetry }
               : undefined
           }
         >
           {lastError.message}
         </Banner>
+      )}
+
+      {/* Action Pack Prompt Chips */}
+      {actionPack?.lawyer_questions && actionPack.lawyer_questions.length > 0 && (
+        <div className="space-y-2 pt-2 border-t border-line">
+          <span className="text-[11px] font-mono uppercase text-blue font-semibold flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5" />
+            {t('qa.actionPackQuestions')}
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {actionPack.lawyer_questions.map((lq, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => setQuestionText(lq.question)}
+                className="px-3 py-1.5 rounded-full text-xs bg-blue/5 border border-blue/20 hover:border-blue hover:text-blue transition-colors text-navy text-left font-medium cursor-pointer"
+              >
+                {lq.question}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Question Input Form */}
@@ -432,7 +462,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
           {/* Legal Advice Guard Persistent Notice */}
           <div className="flex items-center justify-between text-[11px] text-mute">
             <span>{t('disclaimers.answersNotAdvice')}</span>
-            <span className="font-mono text-[10px]">Enter to send · Shift+Enter newline</span>
+            <span className="font-mono text-[10px]">{t('qa.enterToSend')}</span>
           </div>
         </form>
       </div>

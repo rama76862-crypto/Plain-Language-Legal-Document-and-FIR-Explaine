@@ -25,6 +25,7 @@ import { EvidenceButton } from './EvidenceButton';
 import { LegalAidDirectoryCard } from './LegalAidDirectoryCard';
 import { GlassCard, Banner, MonoLabel } from '../../design/primitives';
 import { useT } from '../../lib/i18n';
+import { useReducedMotion } from '../../design/motion';
 
 interface DeadlinePanelProps {
   onNavigateEvidence: (clauseId: string) => void;
@@ -32,6 +33,7 @@ interface DeadlinePanelProps {
 
 export const DeadlinePanel: React.FC<DeadlinePanelProps> = ({ onNavigateEvidence }) => {
   const { t } = useT();
+  const reduced = useReducedMotion();
   const { result, outputLanguage } = useResult();
   const deadlines = result?.deadlines || [];
 
@@ -128,45 +130,53 @@ export const DeadlinePanel: React.FC<DeadlinePanelProps> = ({ onNavigateEvidence
         </div>
       </div>
 
-      {/* Time Ribbon Header */}
+      {/* 3D-Tilted Time Ribbon Header */}
       {deadlines.length > 0 && (
-        <div className="p-4 rounded-lg bg-bg2/80 border border-line space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-bold text-navy uppercase flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-blue" />
-              {t('deadlines.timelineRibbon')}
-            </span>
-            <span className="text-[10px] font-mono text-mute">{t('deadlines.ribbonSub')}</span>
-          </div>
+        <div className="[perspective:1000px]">
+          <div
+            className={`p-4 rounded-lg bg-bg2/80 border border-line space-y-3 shadow-sm transition-transform duration-500 ${
+              reduced ? '' : '[transform:rotateX(6deg)] hover:[transform:rotateX(0deg)]'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono font-bold text-navy uppercase flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-blue" />
+                {t('deadlines.timelineRibbon')}
+              </span>
+              <span className="text-[10px] font-mono text-mute">{t('deadlines.ribbonSub')}</span>
+            </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto py-2">
-            {explicitDeadlines.map((d) => (
-              <div
-                key={d.deadline_id}
-                className="px-2.5 py-1.5 rounded bg-paper border border-line text-xs font-mono shrink-0 shadow-xs flex items-center gap-1.5"
-              >
-                <div className="w-2 h-2 rounded-full bg-ok" />
-                <span className="font-bold text-navy">
-                  {d.resolved_date ? formatDate(d.resolved_date, outputLanguage) : d.display_text}
-                </span>
-                <MonoLabel>{d.clause_id}</MonoLabel>
-              </div>
-            ))}
-
-            {needsInfoDeadlines.map((d) => (
-              <div
-                key={d.deadline_id}
-                className="px-2.5 py-1.5 rounded bg-blue/5 border border-blue/30 text-xs font-mono shrink-0 flex items-center gap-1.5"
-              >
-                <div className="w-3.5 h-3.5 rounded-full border border-blue text-[10px] flex items-center justify-center font-bold text-blue">
-                  ?
+            <div className="flex items-center gap-2 overflow-x-auto py-2">
+              {explicitDeadlines.map((d) => (
+                <div
+                  key={d.deadline_id}
+                  className="px-2.5 py-1.5 rounded bg-paper border border-line text-xs font-mono shrink-0 shadow-xs flex items-center gap-1.5 hover:shadow-md transition-shadow"
+                >
+                  <div className="w-2 h-2 rounded-full bg-ok animate-pulse" />
+                  <span className="font-bold text-navy">
+                    {d.resolved_date ? formatDate(d.resolved_date, outputLanguage) : d.display_text}
+                  </span>
+                  <MonoLabel>{d.clause_id}</MonoLabel>
                 </div>
-                <span className="text-blue font-semibold">
-                  {d.anchor ? d.anchor.replace(/_/g, ' ') : t('deadlines.anchorEvent')}
-                </span>
-                <MonoLabel>{d.clause_id}</MonoLabel>
-              </div>
-            ))}
+              ))}
+
+              {needsInfoDeadlines.map((d) => (
+                <div
+                  key={d.deadline_id}
+                  className={`px-2.5 py-1.5 rounded bg-blue/5 border border-blue/30 text-xs font-mono shrink-0 flex items-center gap-1.5 shadow-xs ${
+                    reduced ? '' : 'animate-pulse'
+                  }`}
+                >
+                  <div className="w-3.5 h-3.5 rounded-full border border-blue text-[10px] flex items-center justify-center font-bold text-blue">
+                    ?
+                  </div>
+                  <span className="text-blue font-semibold">
+                    {d.anchor ? d.anchor.replace(/_/g, ' ') : t('deadlines.anchorEvent')}
+                  </span>
+                  <MonoLabel>{d.clause_id}</MonoLabel>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

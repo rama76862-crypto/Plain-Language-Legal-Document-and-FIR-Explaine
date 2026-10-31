@@ -25,7 +25,7 @@ import type { Clause } from '../../lib/types';
 import { useResult } from './ResultContext';
 import { useSession } from '../../lib/session';
 import { EvidenceCard } from './EvidenceCard';
-import { Banner, MonoLabel } from '../../design/primitives';
+import { Banner, MonoLabel, Button } from '../../design/primitives';
 import { useT } from '../../lib/i18n';
 
 interface ClauseExplanationListProps {
@@ -362,10 +362,72 @@ export const ClauseExplanationList: React.FC<ClauseExplanationListProps> = ({
         </div>
       )}
 
-      {/* Unanalysed Clauses (if any exist in external clauses but not in items) */}
+      {/* Failed Clauses from ML Analysis */}
+      {result?.failed_clauses && result.failed_clauses.length > 0 && (
+        <div className="space-y-3">
+          <Banner
+            variant="warn"
+            title={t('results.failedClauseTitle', { count: result.failed_clauses.length })}
+          >
+            {t('overview.partialBody', {
+              analysed: result.coverage.analysed,
+              total: result.coverage.total,
+            })}
+          </Banner>
+          <div className="space-y-2">
+            {result.failed_clauses.map((fc) => {
+              const reasonText =
+                fc.reason === 'translation_uncertain'
+                  ? t('results.reasonTranslation')
+                  : fc.reason === 'unsupported_language'
+                  ? t('results.reasonUnsupportedLanguage')
+                  : fc.reason === 'timeout'
+                  ? t('results.reasonTimeout')
+                  : t('results.reasonGeneric');
+
+              const matched = externalClauses?.find((c) => c.clause_id === fc.clause_id);
+
+              return (
+                <div
+                  key={fc.clause_id}
+                  className="p-4 rounded-lg border border-amber-500/30 bg-amber-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <MonoLabel>{fc.clause_id}</MonoLabel>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-900">
+                        {t('results.failedClauseReason', { reason: reasonText })}
+                      </span>
+                    </div>
+                    {matched && (
+                      <p className="text-mute line-clamp-2 text-xs italic font-serif">
+                        "{matched.reviewed_text}"
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => onNavigateEvidence(fc.clause_id)}
+                    className="shrink-0"
+                  >
+                    {t('results.inspectInSource')}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Unanalysed Clauses (if any exist in external clauses but not in items and not in failed_clauses) */}
       {externalClauses &&
         externalClauses
-          .filter((c) => !items.some((i) => i.clause_id === c.clause_id))
+          .filter(
+            (c) =>
+              !items.some((i) => i.clause_id === c.clause_id) &&
+              !(result?.failed_clauses?.some((fc) => fc.clause_id === c.clause_id))
+          )
           .map((c) => (
             <div
               key={c.clause_id}

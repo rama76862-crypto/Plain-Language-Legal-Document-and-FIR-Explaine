@@ -58,7 +58,10 @@ export type ErrorCode =
   | 'INVALID_CORRECTION'
   | 'INVALID_QUESTION'
   | 'NETWORK_ERROR'
-  | 'UNAUTHORIZED';
+  | 'UNAUTHORIZED'
+  | 'CONSENT_REQUIRED'
+  | 'REVIEW_REQUIRED'
+  | 'INVALID_REQUEST';
 
 export interface ApiError {
   error: {
@@ -78,6 +81,27 @@ export interface HealthResponse {
     input: string[];
     output: string[];
   };
+}
+
+export interface CapabilitiesResponse {
+  limits: {
+    max_upload_bytes: number;
+    max_pdf_pages: number;
+    max_extracted_chars: number;
+    max_analysis_seconds: number;
+  };
+  processing: {
+    explicit_consent_required: boolean;
+    session_ttl_minutes: number;
+    temporary_server_storage: boolean;
+    external_ai_inference: boolean;
+    inference_mode: 'local' | 'hosted';
+    providers: string[];
+  };
+  reports: ('json' | 'md' | 'html')[];
+  languages: Record<string, string>;
+  legal_advice: boolean;
+  blockchain: boolean;
 }
 
 export interface DocumentCreateResponse {
@@ -205,6 +229,11 @@ export interface Provenance {
   rules_version: string;
 }
 
+export interface FailedClause {
+  clause_id: string;
+  reason: string;
+}
+
 export interface ResultCoverage {
   analysed: number;
   total: number;
@@ -226,6 +255,7 @@ export interface ResultObject {
   document_profile?: string | null;
   structured_facts?: Record<string, unknown>[];
   next_steps?: {kind: string; text: string; clause_ids?: string[]; review_status?: string}[];
+  failed_clauses?: FailedClause[];
   provenance: Provenance;
 }
 
@@ -245,6 +275,7 @@ export interface AnalysisStatusResponse {
   output_language: OutputLanguage;
   result: ResultObject | null;
   warnings: string[];
+  report_available?: boolean;
 }
 
 export interface QuestionRequest {
@@ -270,3 +301,86 @@ export interface ResultsWorkspaceProps {
   onNavigateEvidence: (clauseId: string) => void;
   onDeleted: () => void;
 }
+
+export interface ActionPackItem {
+  id: string;
+  statement: string;
+  party: string;
+  due_or_trigger: string[];
+  clause_id: string;
+  source_ref: SourceRef;
+  review_status: 'needs_review' | 'supported';
+}
+
+export interface ActionPackLawyerQuestion {
+  question: string;
+  clause_ids: string[];
+  reason: string;
+}
+
+export interface ActionPackResponse {
+  document_id: string;
+  analysis_id: string;
+  document_revision: number;
+  checklist: ActionPackItem[];
+  lawyer_questions: ActionPackLawyerQuestion[];
+  limitations: string[];
+  independent_review: boolean;
+}
+
+export interface CompareRequest {
+  document_b_id: string;
+  expected_revision_a: number;
+  expected_revision_b: number;
+}
+
+export interface CompareEvidence {
+  document_id: string;
+  clause_id: string;
+  quote: string;
+  source_ref: SourceRef;
+}
+
+export interface CompareChange {
+  change_id: string;
+  change_type: 'modified' | 'added' | 'removed';
+  before: CompareEvidence | null;
+  after: CompareEvidence | null;
+  review_status: string;
+  why_review: string;
+}
+
+export interface CompareResponse {
+  document_a: string;
+  document_b: string;
+  revision_a: number;
+  revision_b: number;
+  unchanged_passages: number;
+  changes: CompareChange[];
+  method: string;
+  limitations: string[];
+  independent_review: boolean;
+}
+
+export interface VerifySourceRequest {
+  external_ai_consent: boolean;
+}
+
+export interface VerifySourceIssue {
+  item_id: string;
+  clause_id: string;
+  verdict: 'supported' | 'contradicts' | 'unclear';
+  message: string;
+}
+
+export interface VerifySourceResponse {
+  status: 'cross_checked' | 'needs_review' | 'unavailable';
+  provider: string;
+  checked_claims: number;
+  selected_claims: number;
+  issues: VerifySourceIssue[];
+  independent_review: boolean;
+  limitation: string;
+  reason?: string;
+}
+

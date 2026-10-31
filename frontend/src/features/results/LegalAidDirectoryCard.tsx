@@ -12,6 +12,34 @@ import { ExternalLink, Phone, ShieldCheck, Scale, Globe, Building2 } from 'lucid
 import type { LegalAidLink } from '../../lib/types';
 import { GlassCard } from '../../design/primitives';
 import { useT } from '../../lib/i18n';
+import { useReducedMotion } from '../../design/motion';
+
+const RotatingScalesEmblem: React.FC = () => {
+  const reduced = useReducedMotion();
+  return (
+    <div
+      className="relative w-8 h-8 [perspective:500px] flex items-center justify-center shrink-0 select-none"
+      aria-hidden="true"
+    >
+      <div
+        className="w-8 h-8 rounded-full bg-gradient-to-tr from-navy via-navy to-blue/80 text-cyan flex items-center justify-center shadow-md border border-cyan/50"
+        style={{
+          animation: reduced ? 'none' : 'scales-rock 4s ease-in-out infinite alternate',
+          transformStyle: 'preserve-3d',
+        }}
+      >
+        <Scale className="w-4 h-4 text-cyan drop-shadow-[0_0_4px_rgba(7,179,209,0.8)]" />
+      </div>
+      <style>{`
+        @keyframes scales-rock {
+          0% { transform: rotateY(-28deg) rotateX(8deg); }
+          50% { transform: rotateY(0deg) rotateX(0deg); }
+          100% { transform: rotateY(28deg) rotateX(-8deg); }
+        }
+      `}</style>
+    </div>
+  );
+};
 
 interface LegalAidDirectoryCardProps {
   legalAid?: LegalAidLink[];
@@ -83,7 +111,7 @@ export const LegalAidDirectoryCard: React.FC<LegalAidDirectoryCardProps> = ({
   }
 
   return (
-    <GlassCard className={`p-6 border-cyan/30 bg-paper space-y-5 shadow-card ${className}`}>
+    <GlassCard className={`p-6 border-cyan/40 bg-paper space-y-5 shadow-card hover:shadow-[0_0_30px_-5px_rgba(7,179,209,0.25)] transition-shadow duration-500 ${className}`}>
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
@@ -93,8 +121,8 @@ export const LegalAidDirectoryCard: React.FC<LegalAidDirectoryCardProps> = ({
             </span>
             <span className="text-xs font-mono text-mute">{t('legalAid.govIndia')}</span>
           </div>
-          <h4 className="text-lg font-bold text-navy flex items-center gap-2">
-            <Scale className="w-5 h-5 text-cyan shrink-0" />
+          <h4 className="text-lg font-bold text-navy flex items-center gap-2.5">
+            <RotatingScalesEmblem />
             {t('legalAid.freeAidTitle')}
           </h4>
           <p className="text-xs text-mute">

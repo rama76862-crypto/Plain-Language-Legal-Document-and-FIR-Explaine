@@ -6,33 +6,19 @@ import {
   getExtraction,
   patchExtraction,
   deleteDocument,
+  compareDocuments,
+  ApiClientError,
 } from "../../lib/api";
-import { config } from "../../lib/config";
-import type { Clause, DocumentCreateResponse } from "../../lib/types";
+import type { Clause, DocumentCreateResponse, CompareResponse } from "../../lib/types";
 import { GlassCard, Button } from "../../design/primitives";
+import { useT } from "../../lib/i18n";
 
-type Evidence = {
-  document_id: string;
-  clause_id: string;
-  quote: string;
-  source_ref: { page_number: number | null; paragraph_index: number | null };
-};
-type Comparison = {
-  unchanged_passages: number;
-  changes: Array<{
-    change_id: string;
-    change_type: string;
-    before: Evidence | null;
-    after: Evidence | null;
-    why_review: string;
-  }>;
-  limitations: string[];
-};
 export function ComparePanel({
   onNavigateEvidence,
 }: {
   onNavigateEvidence: (id: string) => void;
 }) {
+  const { t } = useT();
   const { documentId, sessionToken, revision, inputLanguage, documentType } =
     useSession();
   const [file, setFile] = useState<File | null>(null);
@@ -41,9 +27,11 @@ export function ComparePanel({
   const [clauses, setClauses] = useState<Clause[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [comparison, setComparison] = useState<Comparison | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [comparison, setComparison] = useState<CompareResponse | null>(null);
   const second = useRef<DocumentCreateResponse | null>(null);
   const abort = useRef<AbortController | null>(null);
+
   useEffect(() => {
     setFile(null);
     setConsent(false);
@@ -60,6 +48,7 @@ export function ComparePanel({
         void deleteDocument(doc.document_id, doc.session_token).catch(() => {});
     };
   }, [documentId]);
+
   async function extract() {
     if (!file || !consent) return;
     setBusy(true);
@@ -97,24 +86,33 @@ export function ComparePanel({
           break;
         }
         if (meta.status === "failed")
-          throw new Error("Revised document extraction failed.");
+          throw new Error(t("compare.extractionFailed"));
         await new Promise((resolve) => setTimeout(resolve, 700));
         if (controller.signal.aborted) return;
       }
-      if (!ready) throw new Error("Extraction is not ready. Try again later.");
+      if (!ready) throw new Error(t("compare.extractionNotReady"));
       const extracted = await getExtraction(
         uploaded.document_id,
         uploaded.session_token,
         controller.signal,
       );
       if (!controller.signal.aborted) setClauses(extracted.clauses);
-    } catch (e) {
-      if (!controller.signal.aborted)
-        setError(e instanceof Error ? e.message : "Extraction unavailable.");
+    } catch (e: unknown) {
+      if (!controller.signal.aborted) {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        const msg =
+          e instanceof ApiClientError
+            ? e.message
+            : e instanceof Error
+            ? e.message
+            : t("compare.extractionUnavailable");
+        setError(msg || t("compare.extractionUnavailable"));
+      }
     } finally {
       if (!controller.signal.aborted) setBusy(false);
     }
   }
+
   async function compare() {
     const b = second.current;
     if (!b || !reviewed || !documentId || !sessionToken) return;
@@ -123,57 +121,114 @@ export function ComparePanel({
     const controller = new AbortController();
     abort.current = controller;
     try {
-      const corrected = await patchExtraction(b.document_id, b.session_token, {
-        expected_revision: b.revision,
-        corrections: clauses.map((c) => ({
-          clause_id: c.clause_id,
-          text: c.reviewed_text,
-        })),
-        input_language: inputLanguage,
-        document_type: documentType,
-      }, controller.signal);
-      b.revision = corrected.revision;
-      const response = await fetch(
-        `${config.apiBaseUrl}/documents/${encodeURIComponent(documentId)}/compare`,
+      const corrected = await patchExtraction(
+        b.document_id,
+        b.session_token,
         {
-          method: "POST",
-          signal: controller.signal,
-          headers: {
-            "Content-Type": "application/json",
-            "X-Session-Token": sessionToken,
-            "X-Compare-Session-Token": b.session_token,
-          },
-          body: JSON.stringify({
-            document_b_id: b.document_id,
-            expected_revision_a: revision,
-            expected_revision_b: corrected.revision,
-          }),
+          expected_revision: b.revision,
+          corrections: clauses.map((c) => ({
+            clause_id: c.clause_id,
+            text: c.reviewed_text,
+          })),
+          input_language: inputLanguage,
+          document_type: documentType,
         },
+        controller.signal
       );
-      const data = await response.json();
-      if (!response.ok)
-        throw new Error(data.error?.message ?? "Comparison unavailable.");
+      b.revision = corrected.revision;
+
+      const data = await compareDocuments(
+        documentId,
+        sessionToken,
+        b.document_id,
+        b.session_token,
+        revision,
+        corrected.revision,
+        controller.signal
+      );
       if (!controller.signal.aborted) setComparison(data);
-    } catch (e) {
-      if (!controller.signal.aborted) setError(e instanceof Error ? e.message : "Comparison failed.");
+    } catch (e: unknown) {
+      if (!controller.signal.aborted) {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        const msg =
+          e instanceof ApiClientError
+            ? e.message
+            : e instanceof Error
+            ? e.message
+            : t("compare.comparisonFailed");
+        setError(msg || t("compare.comparisonFailed"));
+      }
     } finally {
       if (!controller.signal.aborted) setBusy(false);
     }
   }
+
+  const handleCopySummary = async () => {
+    if (!comparison) return;
+    const lines: string[] = [];
+    lines.push(`# ${t("compare.title")}\n`);
+    lines.push(
+      t("compare.changesSummary", {
+        changes: comparison.changes.length,
+        unchanged: comparison.unchanged_passages,
+      }) + "\n"
+    );
+
+    comparison.changes.forEach((c, idx) => {
+      const changeTypeLabel =
+        c.change_type === "modified"
+          ? t("compare.modified")
+          : c.change_type === "added"
+          ? t("compare.added")
+          : c.change_type === "removed"
+          ? t("compare.removed")
+          : c.change_type;
+      lines.push(`### Change ${idx + 1}: ${changeTypeLabel}`);
+      lines.push(
+        `- **${t("compare.beforeA")}**: ${
+          c.before
+            ? `"${c.before.quote}" (${c.before.clause_id})`
+            : t("compare.noMatchingPassage")
+        }`
+      );
+      lines.push(
+        `- **${t("compare.afterB")}**: ${
+          c.after
+            ? `"${c.after.quote}" (${c.after.clause_id})`
+            : t("compare.noMatchingPassage")
+        }`
+      );
+      if (c.why_review) {
+        lines.push(`- **Review**: ${c.why_review}`);
+      }
+      lines.push("");
+    });
+
+    if (comparison.limitations.length > 0) {
+      lines.push(`## Limitations\n`);
+      comparison.limitations.forEach((text) => lines.push(`- ${text}`));
+    }
+
+    try {
+      await navigator.clipboard.writeText(lines.join("\n"));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    } catch {
+      // clipboard fallback
+    }
+  };
+
   return (
     <div className="space-y-4">
       <GlassCard className="p-5 space-y-4">
-        <h3 className="text-lg font-bold">Compare document versions</h3>
-        <p className="text-xs text-mute">
-          The current reviewed document is version A. Upload and review version
-          B to compare exact before/after passages. This detects wording
-          differences; a human must assess their legal meaning.
-        </p>
+        <h3 className="text-lg font-bold text-navy">{t("compare.title")}</h3>
+        <p className="text-xs text-mute">{t("compare.sub")}</p>
         <input
-          aria-label="Revised document"
+          aria-label={t("compare.fileAriaLabel")}
           type="file"
           accept=".pdf,.docx"
           disabled={busy}
+          className="text-xs text-navy file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue/10 file:text-blue hover:file:bg-blue/20 cursor-pointer"
           onChange={(e) => {
             setFile(e.target.files?.[0] ?? null);
             setComparison(null);
@@ -181,34 +236,35 @@ export function ComparePanel({
             setReviewed(false);
           }}
         />
-        <label className="flex gap-2 text-sm">
+        <label className="flex items-start gap-2 text-sm text-navy cursor-pointer">
           <input
             type="checkbox"
+            className="mt-1 rounded border-line"
             checked={consent}
             disabled={busy}
             onChange={(e) => setConsent(e.target.checked)}
           />
-          I consent to temporary processing/storage of the revised document. On
-          a hosted server, I also consent to Groq processing with limited
-          identifier masking; provider retention policies apply.
+          <span>{t("compare.consent")}</span>
         </label>
-        <Button disabled={busy || !file || !consent} onClick={extract}>
-          Extract revised document
-        </Button>
+        <div>
+          <Button disabled={busy || !file || !consent} onClick={extract}>
+            {t("compare.extractButton")}
+          </Button>
+        </div>
         {error && (
-          <p role="alert" className="text-error">
+          <p role="alert" className="text-xs text-error font-medium">
             {error}
           </p>
         )}
-        {busy && <p role="status">Processing the actual request…</p>}
+        {busy && <p role="status" className="text-xs text-mute font-mono">{t("compare.busy")}</p>}
         {clauses.length > 0 && (
           <>
             <div className="max-h-96 overflow-auto space-y-3">
               {clauses.map((c, i) => (
-                <label key={c.clause_id} className="block text-xs">
-                  Revised clause {i + 1}
+                <label key={c.clause_id} className="block text-xs text-mute">
+                  {t("compare.clauseLabel", { index: i + 1 })}
                   <textarea
-                    className="block w-full p-3 rounded border border-line bg-paper text-ink"
+                    className="block w-full p-3 rounded border border-line bg-paper text-navy mt-1 focus:ring-1 focus:ring-blue focus:outline-hidden"
                     rows={4}
                     maxLength={10000}
                     disabled={busy}
@@ -228,67 +284,96 @@ export function ComparePanel({
                 </label>
               ))}
             </div>
-            <label className="flex gap-2 text-sm">
+            <label className="flex items-center gap-2 text-sm text-navy cursor-pointer">
               <input
                 type="checkbox"
+                className="rounded border-line"
                 checked={reviewed}
                 disabled={busy}
                 onChange={(e) => setReviewed(e.target.checked)}
               />
-              I checked the revised extraction against its original file.
+              <span>{t("compare.reviewConfirm")}</span>
             </label>
-            <Button disabled={busy || !reviewed} onClick={compare}>
-              Compare reviewed versions
-            </Button>
+            <div>
+              <Button disabled={busy || !reviewed} onClick={compare}>
+                {t("compare.compareButton")}
+              </Button>
+            </div>
           </>
         )}
       </GlassCard>
       {comparison && (
         <GlassCard className="p-5 space-y-4">
-          <h3 className="font-bold">
-            {comparison.changes.length} source changes ·{" "}
-            {comparison.unchanged_passages} unchanged passages
-          </h3>
-          {comparison.changes.map((change) => (
-            <div
-              key={change.change_id}
-              className="p-4 border border-line rounded space-y-3"
-            >
-              <h4 className="font-semibold capitalize">{change.change_type}</h4>
-              <div className="grid md:grid-cols-2 gap-3">
-                {(["before", "after"] as const).map((side) => (
-                  <div key={side} className="p-3 bg-bg2 rounded">
-                    <strong>
-                      {side === "before" ? "Before · A" : "After · B"}
-                    </strong>
-                    <blockquote className="text-sm whitespace-pre-wrap mt-2">
-                      {change[side]?.quote ?? "No matching source passage"}
-                    </blockquote>
-                    {change[side] && (
-                      <p className="text-xs mt-2">
-                        {change[side]!.clause_id} ·{" "}
-                        {change[side]!.source_ref.page_number
-                          ? `Page ${change[side]!.source_ref.page_number}`
-                          : `Paragraph ${change[side]!.source_ref.paragraph_index}`}
-                      </p>
-                    )}
-                    {side === "before" && change.before && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() =>
-                          onNavigateEvidence(change.before!.clause_id)
-                        }
-                      >
-                        Open source A
-                      </Button>
-                    )}
-                  </div>
-                ))}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-line pb-3">
+            <h3 className="font-bold text-navy">
+              {t("compare.changesSummary", {
+                changes: comparison.changes.length,
+                unchanged: comparison.unchanged_passages,
+              })}
+            </h3>
+            <Button size="sm" variant="secondary" onClick={handleCopySummary}>
+              {copied ? t("compare.copiedToast") : t("compare.copySummary")}
+            </Button>
+          </div>
+          {comparison.changes.map((change) => {
+            const changeTypeLabel =
+              change.change_type === "modified"
+                ? t("compare.modified")
+                : change.change_type === "added"
+                ? t("compare.added")
+                : change.change_type === "removed"
+                ? t("compare.removed")
+                : change.change_type;
+
+            return (
+              <div
+                key={change.change_id}
+                className="p-4 border border-line rounded-lg space-y-3 bg-paper/50"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-blue/10 text-blue">
+                    {changeTypeLabel}
+                  </span>
+                </div>
+                <div className="grid md:grid-cols-2 gap-3">
+                  {(["before", "after"] as const).map((side) => (
+                    <div key={side} className="p-3 bg-bg2/60 border border-line rounded">
+                      <strong className="text-xs font-semibold text-navy">
+                        {side === "before" ? t("compare.beforeA") : t("compare.afterB")}
+                      </strong>
+                      <blockquote className="text-xs text-navy/90 whitespace-pre-wrap mt-2 font-serif italic border-l-2 border-line pl-2">
+                        {change[side]?.quote ?? t("compare.noMatchingPassage")}
+                      </blockquote>
+                      {change[side] && (
+                        <p className="text-[11px] font-mono text-mute mt-2">
+                          {change[side]!.clause_id} ·{" "}
+                          {change[side]!.source_ref.page_number
+                            ? t("compare.pageLabel", { page: change[side]!.source_ref.page_number })
+                            : t("compare.paraLabel", { para: change[side]!.source_ref.paragraph_index ?? 1 })}
+                        </p>
+                      )}
+                      {side === "before" && change.before && (
+                        <div className="mt-2">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() =>
+                              onNavigateEvidence(change.before!.clause_id)
+                            }
+                          >
+                            {t("compare.openSourceA")}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {change.why_review && (
+                  <p className="text-xs text-mute">{change.why_review}</p>
+                )}
               </div>
-              <p className="text-xs text-mute">{change.why_review}</p>
-            </div>
-          ))}
+            );
+          })}
           {comparison.limitations.map((text) => (
             <p key={text} className="text-xs text-mute">
               {text}
@@ -299,3 +384,4 @@ export function ComparePanel({
     </div>
   );
 }
+export default ComparePanel;
