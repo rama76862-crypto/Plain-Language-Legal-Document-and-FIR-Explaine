@@ -55,7 +55,7 @@ export const ExtractionReviewList: React.FC<ExtractionReviewListProps> = ({
   const [confirmedChecked, setConfirmedChecked] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'all' | 'needs_review' | 'ocr' | 'edited'>('all');
 
-  const textCount = clauses.filter((c) => c.extraction_method === 'text').length;
+  const textCount = clauses.filter((c) => c.extraction_method !== 'ocr').length;
   const ocrCount = clauses.filter((c) => c.extraction_method === 'ocr').length;
   const reviewRequiredCount = clauses.filter((c) => c.review_required).length;
   const editedCount = Object.keys(corrections).length;

@@ -75,7 +75,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
         res.status >= 500
       );
     }
-    return {} as T;
+    throw new ApiClientError(502, 'INVALID_RESPONSE', 'The API returned an unexpected response. Check the backend URL and connection.', true);
   }
 
   const data = await res.json();
@@ -205,9 +205,19 @@ export async function getDocument(
   }
 }
 
-/**
- * 4. GET /documents/{id}/extraction
- */
+/** Explicit user-requested retention extension; polling never calls this. */
+export async function keepDocumentAlive(documentId: string, sessionToken: string): Promise<DocumentSummary> {
+  try {
+    const res = await fetch(`${config.apiBaseUrl}/documents/${encodeURIComponent(documentId)}/keep-alive`, {
+      method: 'POST', headers: { 'X-Session-Token': sessionToken }, cache: 'no-store',
+    });
+    return await handleResponse<DocumentSummary>(res);
+  } catch (err) {
+    return catchNetworkError(err);
+  }
+}
+
+/** GET /documents/{id}/extraction */
 export async function getExtraction(
   documentId: string,
   sessionToken: string,

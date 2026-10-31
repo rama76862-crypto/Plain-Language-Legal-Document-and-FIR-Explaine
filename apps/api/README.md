@@ -122,6 +122,7 @@ See `contracts/README.md` for published integration decisions and `contracts/v1-
 | GET | `/health` | Extraction/OCR/model readiness independently, cleanup counts |
 | POST | `/documents` | Multipart `file`, `input_language`, `document_type`; 202 |
 | GET | `/documents/{id}` | Status/revision/warnings/expiry/review state |
+| POST | `/documents/{id}/keep-alive` | Explicit authenticated user-requested retention extension; returns metadata |
 | GET | `/documents/{id}/extraction` | Clauses; 409 while extracting; safe parser error on failure |
 | PATCH | `/documents/{id}/extraction` | Expected revision + corrections + confirmed language/type |
 | GET | `/documents/{id}/source` | Authenticated original, attachment, correct MIME, no-store |
@@ -138,7 +139,7 @@ Active analysis is de-duplicated by document/revision/output language. Terminal 
 
 ## Retention, deletion and shutdown
 
-Default inactivity retention is 30 minutes. Automatic metadata/extraction/analysis polling does not extend it. Explicit review, analysis, question and source requests extend it. Background computation does not extend it. Metadata exposes a real UTC `expires_at`; no reset endpoint is added.
+Default inactivity retention is 30 minutes. Automatic metadata/extraction/analysis polling does not extend it. Explicit review, analysis, question, source and keep-alive requests extend it. Background computation does not extend it. Metadata exposes a real UTC `expires_at`. POST `/documents/{id}/keep-alive` requires the session token and cannot revive an expired session; the frontend invokes it only from the explicit retention-extension button.
 
 DELETE/expiry tombstones first, clears in-memory private state, cancels pending work and discards late outputs. Every known BE2 analysis ID (including old revisions/languages) is scheduled for cleanup. Local Windows file-sharing failures and private HTTP failures retain metadata-only retry work. Five attempts, with 2/4/8/16-second minimum backoff plus maintenance scheduling; private cleanup batches are at most four. Pending/exhausted counts appear in health. **204 confirms public deletion, not verified downstream erasure.** Exhausted cleanup requires operator action/restart review. No private text/token/credential is logged.
 

@@ -38,7 +38,7 @@ export type DeadlineStatus = 'explicit' | 'needs_information' | 'needs_review';
 
 export type DetectorType = 'rule' | 'model' | 'classifier' | 'extraction';
 
-export type ExtractionMethod = 'text' | 'ocr';
+export type ExtractionMethod = 'text' | 'docx' | 'ocr';
 
 export type ErrorCode =
   | 'FILE_TOO_LARGE'

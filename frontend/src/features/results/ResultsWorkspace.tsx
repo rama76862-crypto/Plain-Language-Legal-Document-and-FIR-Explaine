@@ -26,6 +26,7 @@ import {
 import type { ResultsWorkspaceProps, OutputLanguage } from '../../lib/types';
 import { ResultProvider, useResult, ResultTab } from './ResultContext';
 import { useT } from '../../lib/i18n';
+import { useSession } from '../../lib/session';
 import { OverviewSummaryPanel } from './OverviewSummaryPanel';
 import { ClauseExplanationList } from './ClauseExplanationList';
 import { AttentionPanel } from './AttentionPanel';
@@ -424,12 +425,15 @@ const ResultsWorkspaceInner: React.FC<ResultsWorkspaceProps> = ({
 };
 
 export const ResultsWorkspace: React.FC<ResultsWorkspaceProps> = (props) => {
+  const { documentType } = useSession();
   return (
     <ResultProvider
+      key={props.documentId}
       documentId={props.documentId}
       sessionToken={props.sessionToken}
       revision={props.revision}
       initialOutputLanguage={props.outputLanguage}
+      documentType={documentType}
       onDeleted={props.onDeleted}
     >
       <ResultsWorkspaceInner {...props} />

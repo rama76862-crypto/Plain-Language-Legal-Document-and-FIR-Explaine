@@ -63,7 +63,7 @@ export const ShredDissolve: React.FC<{ onDone?: () => void }> = ({ onDone }) => 
     const startTime = performance.now();
 
     const render = (time: number) => {
-      const elapsed = time - startTime;
+      const elapsed = Math.max(0, time - startTime);
       ctx.clearRect(0, 0, width, height);
 
       // Expanding cyan shockwave ring

@@ -47,7 +47,7 @@ export function ComparePanel({
       if (doc)
         void deleteDocument(doc.document_id, doc.session_token).catch(() => {});
     };
-  }, [documentId]);
+  }, [documentId, revision]);
 
   async function extract() {
     if (!file || !consent) return;
@@ -72,6 +72,10 @@ export function ComparePanel({
         controller.signal,
         consent,
       );
+      if (controller.signal.aborted) {
+        void deleteDocument(uploaded.document_id, uploaded.session_token).catch(() => {});
+        return;
+      }
       second.current = uploaded;
       const deadline = Date.now() + 120000;
       let ready = false;

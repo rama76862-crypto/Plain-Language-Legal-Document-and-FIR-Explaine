@@ -7,6 +7,7 @@ The React/Vite frontend talks only to the public BE1 /api/v1 routes through the 
 ~~~powershell
 npm --prefix frontend ci
 npm --prefix frontend run build
+npm --prefix frontend test
 npm --prefix frontend run i18n:check
 node --experimental-strip-types frontend/scripts/check-health.mjs
 ~~~
@@ -16,5 +17,7 @@ The production build is served at http://127.0.0.1:8000/ by the configured local
 Features: consent, upload, source/output language and type selection, actual extraction/analysis polling, correction/review, revision handling, cancellation/retry, source view, clause explanations, attention flags, deadlines, local grounded questions with in-memory history, backend JSON/MD/HTML review reports, print layout, legal-aid links, deletion and server-expiry display.
 
 The backend owns result content and review status. Missing models/readiness produce real errors. New revisions/languages invalidate stale results. Session identifiers and text stay in React memory; refresh requires starting again. Exported copies remain on the user device.
+
+Session deadlines are synchronized using authenticated metadata reads, which do not extend retention. The existing “keep session” action explicitly posts to `/documents/{id}/keep-alive`. A separate API origin must be configured with `WEB_ORIGIN` matching the frontend origin; comparison authorizes both documents using the two session-token headers.
 
 See ../FULL-FEATURE-VERIFICATION.md for observed acceptance checks and limits. Some technical copy is still English. Human language/legal review, actual judge documents, production hosting and broader device/load verification remain open.

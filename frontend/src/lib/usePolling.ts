@@ -10,6 +10,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 
+const DEFAULT_BACKOFF = [1500, 3000, 5000];
+
 interface PollingOptions<T> {
   intervalMs?: number;
   backoff?: number[];
@@ -25,7 +27,7 @@ export function usePolling<T>(
 ) {
   const {
     intervalMs = 1500,
-    backoff = [1500, 3000, 5000],
+    backoff = DEFAULT_BACKOFF,
     shouldStop,
     onSuccess,
     onError,
@@ -39,9 +41,14 @@ export function usePolling<T>(
   const timeoutIdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const failureCountRef = useRef<number>(0);
   const isStoppedRef = useRef<boolean>(!enabled);
+  const generationRef = useRef(0);
+  // Inline callbacks change on each render; they must not restart the request loop.
+  const callbacksRef = useRef({ shouldStop, onSuccess, onError, backoff });
+  callbacksRef.current = { shouldStop, onSuccess, onError, backoff };
 
   const stop = useCallback(() => {
     isStoppedRef.current = true;
+    generationRef.current += 1;
     setIsPolling(false);
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -60,17 +67,19 @@ export function usePolling<T>(
       abortControllerRef.current.abort();
     }
     const ac = new AbortController();
+    const generation = generationRef.current;
     abortControllerRef.current = ac;
 
     try {
       const data = await pollFn(ac.signal);
+      if (ac.signal.aborted || isStoppedRef.current || generation !== generationRef.current) return;
 
       // Successful request resets failure count
       failureCountRef.current = 0;
       setConnectionLost(false);
-      onSuccess?.(data);
+      callbacksRef.current.onSuccess?.(data);
 
-      if (shouldStop(data)) {
+      if (callbacksRef.current.shouldStop(data)) {
         stop();
         return;
       }
@@ -80,36 +89,41 @@ export function usePolling<T>(
         timeoutIdRef.current = setTimeout(tick, intervalMs);
       }
     } catch (err: unknown) {
-      if (ac.signal.aborted) return;
+      if (ac.signal.aborted || isStoppedRef.current || generation !== generationRef.current) return;
 
       failureCountRef.current += 1;
-      onError?.(err);
+      callbacksRef.current.onError?.(err);
+      if (isStoppedRef.current) return;
+      const delays = callbacksRef.current.backoff;
 
-      if (failureCountRef.current >= backoff.length) {
+      if (failureCountRef.current >= delays.length) {
         // Exceeded maximum backoff tries -> pause and notify UI
         setConnectionLost(true);
         setIsPolling(false);
         return;
       }
 
-      const nextDelay = backoff[failureCountRef.current - 1] || backoff[backoff.length - 1];
+      const nextDelay = delays[failureCountRef.current - 1] || delays[delays.length - 1];
       if (!isStoppedRef.current) {
         timeoutIdRef.current = setTimeout(tick, nextDelay);
       }
     }
-  }, [pollFn, intervalMs, backoff, shouldStop, onSuccess, onError, stop]);
+  }, [pollFn, intervalMs, stop]);
 
   const retry = useCallback(() => {
+    stop();
     isStoppedRef.current = false;
     failureCountRef.current = 0;
     setConnectionLost(false);
     setIsPolling(true);
     tick();
-  }, [tick]);
+  }, [tick, stop]);
 
   useEffect(() => {
     if (enabled) {
       isStoppedRef.current = false;
+      failureCountRef.current = 0;
+      setConnectionLost(false);
       setIsPolling(true);
       tick();
     } else {

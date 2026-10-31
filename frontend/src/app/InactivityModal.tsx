@@ -8,7 +8,7 @@
 import React from 'react';
 import { Modal, Button } from '../design/primitives';
 import { useSession } from '../lib/session';
-import { getDocument } from '../lib/api';
+import { keepDocumentAlive } from '../lib/api';
 import { useT } from '../lib/i18n';
 import { ShieldAlert } from 'lucide-react';
 
@@ -18,7 +18,6 @@ export const InactivityModal: React.FC = () => {
     sessionToken,
     inactivityRemainingSeconds,
     setServerExpiresAt,
-    resetInactivityTimer,
     resetSession,
   } = useSession();
   const { t } = useT();
@@ -27,11 +26,10 @@ export const InactivityModal: React.FC = () => {
   const isExpiring = Boolean(documentId && inactivityRemainingSeconds <= 120 && inactivityRemainingSeconds > 0);
 
   const handleExtend = async () => {
-    resetInactivityTimer();
     if (documentId && sessionToken) {
       try {
         // Authenticated request to server extends TTL and returns new expires_at
-        const doc = await getDocument(documentId, sessionToken);
+        const doc = await keepDocumentAlive(documentId, sessionToken);
         if (doc.expires_at) {
           setServerExpiresAt(doc.expires_at);
         }

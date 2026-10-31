@@ -11,7 +11,7 @@
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
 import type { DocumentStatus, DocumentType, Language, OutputLanguage } from './types';
 import { config } from './config';
-import { deleteDocument } from './api';
+import { deleteDocument, getDocument, ApiClientError } from './api';
 
 interface SessionState {
   documentId: string | null;
@@ -184,6 +184,28 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     [documentId, sessionToken, sourceBlobUrl, resetInactivityTimer]
   );
 
+  // Review, questions and analysis can extend retention on the server. Read the
+  // actual deadline without extending it so an active session is not wiped early.
+  useEffect(() => {
+    if (!documentId || !sessionToken) return;
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout>;
+    const syncExpiry = async () => {
+      try {
+        const doc = await getDocument(documentId, sessionToken, controller.signal);
+        if (!controller.signal.aborted && doc.expires_at) setServerExpiresAt(doc.expires_at);
+      } catch (error) {
+        if (!controller.signal.aborted && error instanceof ApiClientError && error.status === 404) {
+          await resetSession(false);
+          return;
+        }
+      }
+      if (!controller.signal.aborted) timer = setTimeout(syncExpiry, 15000);
+    };
+    void syncExpiry();
+    return () => { controller.abort(); clearTimeout(timer); };
+  }, [documentId, sessionToken, setServerExpiresAt, resetSession]);
+
   // Inactivity countdown ticker synchronized with server expires_at
   useEffect(() => {
     if (!documentId) return;
@@ -192,17 +214,10 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setInactivityRemainingSeconds((prev) => {
         if (serverExpiresAt) {
           const serverSecs = Math.max(0, Math.floor((new Date(serverExpiresAt).getTime() - Date.now()) / 1000));
-          if (serverSecs <= 1) {
-            clearInterval(interval);
-            resetSession(true);
-            return 0;
-          }
           return serverSecs;
         }
 
         if (prev <= 1) {
-          clearInterval(interval);
-          resetSession(true);
           return 0;
         }
         return prev - 1;
@@ -211,6 +226,18 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     return () => clearInterval(interval);
   }, [documentId, serverExpiresAt, resetSession]);
+
+  useEffect(() => {
+    if (!documentId || !sessionToken || inactivityRemainingSeconds > 0) return;
+    const controller = new AbortController();
+    // Recheck before deleting: a user request may just have extended the server TTL.
+    void getDocument(documentId, sessionToken, controller.signal).then(doc => {
+      if (!controller.signal.aborted && doc.expires_at) setServerExpiresAt(doc.expires_at);
+    }).catch(() => {
+      if (!controller.signal.aborted) void resetSession(true);
+    });
+    return () => controller.abort();
+  }, [documentId, sessionToken, inactivityRemainingSeconds, setServerExpiresAt, resetSession]);
 
   // Only reset local timer on activity if no authoritative server expiry is bound
   useEffect(() => {

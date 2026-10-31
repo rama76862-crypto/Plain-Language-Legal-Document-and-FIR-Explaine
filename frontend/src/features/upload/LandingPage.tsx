@@ -73,7 +73,7 @@ export const LandingPage: React.FC = () => {
 
   const handleExtractSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedFile || !healthData || !processingConsent || (hostedMode&&!externalConsent)) return;
+    if (!selectedFile || !healthData?.extraction_ready || !processingConsent || (hostedMode&&!externalConsent)) return;
 
     setIsSubmitting(true);
     setUploadError(null);
@@ -226,7 +226,7 @@ export const LandingPage: React.FC = () => {
                     variant="primary"
                     size="lg"
                     className="w-full text-base font-bold shadow-pop btn-sweep"
-                    disabled={!selectedFile || !healthData || isSubmitting || !processingConsent || (hostedMode&&!externalConsent)}
+                    disabled={!selectedFile || !healthData?.extraction_ready || isSubmitting || !processingConsent || (hostedMode&&!externalConsent)}
                     isLoading={isSubmitting}
                   >
                     {isSubmitting

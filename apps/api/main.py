@@ -145,7 +145,7 @@ def create_app(settings: Settings | None = None, ml_client=None, extractor=None)
     app.state.analysis_tasks = analysis_tasks
     app.add_middleware(CORSMiddleware, allow_origins=[settings.web_origin],
                        allow_methods=['GET','POST','PATCH','DELETE'],
-                       allow_headers=['Content-Type','X-Session-Token'], expose_headers=['X-Request-ID'])
+                       allow_headers=['Content-Type','X-Session-Token','X-Compare-Session-Token'], expose_headers=['X-Request-ID'])
     # One MB multipart overhead, while actual file bytes retain the exact configured limit.
     app.add_middleware(UploadBodyLimit,max_bytes=(settings.max_upload_mb+1)*1024*1024)
 
@@ -325,6 +325,15 @@ def create_app(settings: Settings | None = None, ml_client=None, extractor=None)
     @app.get('/api/v1/documents/{document_id}',tags=['documents'],response_model=Metadata)
     async def get_document(document_id: str, x_session_token: Token=None):
         record=await store.get(document_id,x_session_token,touch=False)
+        async with record.lock:
+            if not alive(record):
+                raise ApiError('NOT_FOUND','Document not found.',404)
+            return metadata(record)
+
+    @app.post('/api/v1/documents/{document_id}/keep-alive',tags=['documents'],response_model=Metadata)
+    async def keep_document_alive(document_id: str, x_session_token: Token=None):
+        # Only an explicit user action extends retention; metadata polling never does.
+        record=await store.get(document_id,x_session_token)
         async with record.lock:
             if not alive(record):
                 raise ApiError('NOT_FOUND','Document not found.',404)

@@ -7,7 +7,7 @@
  * - Gracefully handles cancel, session deletion, and low scan quality warnings
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSession } from '../../lib/session';
 import { useT } from '../../lib/i18n';
@@ -44,6 +44,8 @@ export const ExtractionScreen: React.FC = () => {
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [showErrorOverlay, setShowErrorOverlay] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const completionAbortRef = useRef<AbortController | null>(null);
+  useEffect(() => () => completionAbortRef.current?.abort(), []);
 
   // Elapsed time counter
   useEffect(() => {
@@ -69,7 +71,7 @@ export const ExtractionScreen: React.FC = () => {
 
       return await getDocument(documentId, sessionToken, signal);
     },
-    [documentId, sessionToken, filename, documentType, inputLanguage, elapsedSeconds]
+    [documentId, sessionToken]
   );
 
   const handleExtractionComplete = useCallback(
@@ -83,15 +85,20 @@ export const ExtractionScreen: React.FC = () => {
       }
 
       if (!documentId || !sessionToken) return;
+      completionAbortRef.current?.abort();
+      const controller = new AbortController();
+      completionAbortRef.current = controller;
 
       try {
-        // 1. Fetch authenticated binary source blob
-        const blob = await fetchSourceBlob(documentId, sessionToken);
+        // Load both authenticated resources before navigating to review.
+        const [blob, ext] = await Promise.all([
+          fetchSourceBlob(documentId, sessionToken, controller.signal),
+          getExtraction(documentId, sessionToken, controller.signal),
+        ]);
+        if (controller.signal.aborted) return;
         const blobUrl = URL.createObjectURL(blob);
         setSourceBlobUrl(blobUrl);
 
-        // 2. Fetch extracted clauses
-        const ext = await getExtraction(documentId, sessionToken);
         if (ext.warnings && ext.warnings.length > 0) {
           setWarnings(ext.warnings);
         }
@@ -99,13 +106,14 @@ export const ExtractionScreen: React.FC = () => {
         // 3. Proceed to review screen
         navigate('/workspace?step=review');
       } catch (err: unknown) {
+        if (controller.signal.aborted) return;
         const msg = err instanceof Error ? err.message : 'Failed to retrieve extracted clauses';
         setErrorMessage(msg);
         setErrorCode('EXTRACTION_FAILED');
         setShowErrorOverlay(true);
       }
     },
-    [documentId, sessionToken, setDocumentStatus, setSourceBlobUrl, setWarnings, navigate]
+    [documentId, sessionToken, setDocumentStatus, setSourceBlobUrl, setWarnings, setServerExpiresAt, navigate]
   );
 
   const { connectionLost, retry, stop } = usePolling<DocumentSummary>(pollDoc, {

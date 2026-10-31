@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "../../lib/session";
 import { useResult } from "./ResultContext";
 import { verifySource, ApiClientError } from "../../lib/api";
@@ -18,6 +18,12 @@ export function SourceVerificationPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const abort = useRef<AbortController | null>(null);
+  useEffect(() => {
+    setConsent(false);
+    setBusy(false);
+    setError("");
+    return () => abort.current?.abort();
+  }, [documentId, result?.analysis_id]);
 
   const check = verificationResult;
 

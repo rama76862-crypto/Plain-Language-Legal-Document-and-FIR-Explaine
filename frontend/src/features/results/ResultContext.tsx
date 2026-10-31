@@ -107,9 +107,24 @@ export const ResultProvider: React.FC<ResultProviderProps> = ({
   const [isCancelling, setIsCancelling] = useState(false);
   const [qaHistory, setQaHistory] = useState<QuestionHistoryEntry[]>([]);
   const [checkedObligations, setCheckedObligations] = useState<Set<string>>(new Set());
-  const [verificationResult, setVerificationResult] = useState<VerifySourceResponse | null>(null);
+  const [verificationResult, setVerificationResultState] = useState<VerifySourceResponse | null>(null);
   const [prefilledQuestion, setPrefilledQuestion] = useState<string | null>(null);
-  const [actionPack, setActionPack] = useState<ActionPackResponse | null>(null);
+  const [actionPack, setActionPackState] = useState<ActionPackResponse | null>(null);
+  const resultBinding = [documentId, revision, result?.analysis_id, result?.output_language].join(':');
+  const currentResultBinding = useRef(resultBinding);
+  currentResultBinding.current = resultBinding;
+  const setVerificationResult = useCallback((value: VerifySourceResponse | null) => {
+    if (currentResultBinding.current === resultBinding) setVerificationResultState(value);
+  }, [resultBinding]);
+  const setActionPack = useCallback((value: ActionPackResponse | null) => {
+    if (currentResultBinding.current === resultBinding) setActionPackState(value);
+  }, [resultBinding]);
+  useEffect(() => {
+    setCheckedObligations(new Set());
+    setVerificationResultState(null);
+    setActionPackState(null);
+    setPrefilledQuestion(null);
+  }, [resultBinding]);
   const historyBinding = [documentId, revision, analysisId, outputLanguage].join(":");
   const currentHistoryBinding = useRef(historyBinding);
   currentHistoryBinding.current = historyBinding;
@@ -180,18 +195,16 @@ export const ResultProvider: React.FC<ResultProviderProps> = ({
       setPrefilledQuestion(null);
       setActionPack(null);
       clearPollTimer();
+      hasAutoStarted.current = false;
     }
   }, [revision]);
 
   // Clean up on unmount
   useEffect(() => {
     return () => {
+      activeKeyRef.current = '';
       clearPollTimer();
       abortControllerRef.current?.abort();
-      setCheckedObligations(new Set());
-      setVerificationResult(null);
-      setPrefilledQuestion(null);
-      setActionPack(null);
     };
   }, []);
 
