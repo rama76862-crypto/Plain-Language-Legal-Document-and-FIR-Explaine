@@ -10,6 +10,7 @@ ERRORS = {
     'MODEL_TIMEOUT': (504, True), 'INVALID_MODEL_OUTPUT': (502, False),
     'NOT_FOUND': (404, False), 'REVISION_CONFLICT': (409, False),
     'ANALYSIS_NOT_READY': (409, True), 'UNSUPPORTED_LANGUAGE': (422, False),
+    'MODEL_CONTEXT_LIMIT': (422, False),
 }
 _QUESTION_FIELDS = (
     'document_id', 'analysis_id', 'document_revision', 'question',
@@ -75,6 +76,7 @@ class RealMLClient:
                 'UNSUPPORTED_LANGUAGE':'This language path is not supported by the local model.',
                 'REVISION_CONFLICT':'The private analysis revision is stale.',
                 'ANALYSIS_NOT_READY':'The private analysis is not ready.',
+                'MODEL_CONTEXT_LIMIT':'The question is too long for the local model. Ask a shorter question about one clause.',
             }.get(code, 'The local ML service returned an invalid response.'), status, retryable)
         if response.status_code == 204:
             return None

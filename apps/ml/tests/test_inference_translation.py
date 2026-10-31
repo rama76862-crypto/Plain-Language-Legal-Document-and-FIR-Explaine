@@ -9,7 +9,7 @@ import httpx
 import pytest
 
 from apps.ml.inference.artifacts import MODEL_NAME
-from apps.ml.inference.generator import GenerationBusy, GenerationError, LocalGenerator
+from apps.ml.inference.generator import GenerationBusy, GenerationError, GenerationContextLimit, LocalGenerator
 from apps.ml.service.contracts import ClauseInput, GenerationRequest, GenerationResult
 from apps.ml.translation.local_translator import LocalTranslator, assess_protected_text
 from apps.ml.translation.language_matrix_smoke import (
@@ -79,6 +79,20 @@ def test_generator_omits_token_count_when_server_does_not_supply_it() -> None:
                 GenerationRequest(system_prompt="system", user_prompt="user")
             )
         assert result.output_tokens is None
+
+    asyncio.run(run())
+
+
+def test_generator_identifies_context_overflow_without_exposing_error_text() -> None:
+    async def handle(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(400, json={'error': {'message': 'request (4519 tokens) exceeds the available context size (4096 tokens); private source'}})
+
+    async def run() -> None:
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+            with pytest.raises(GenerationContextLimit) as caught:
+                await LocalGenerator(client=client).generate(GenerationRequest(system_prompt='Synthetic', user_prompt='Synthetic'))
+            assert caught.value.code == 'MODEL_CONTEXT_LIMIT'
+            assert 'private source' not in str(caught.value)
 
     asyncio.run(run())
 

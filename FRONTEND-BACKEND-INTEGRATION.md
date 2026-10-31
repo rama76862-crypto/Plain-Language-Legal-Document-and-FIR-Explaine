@@ -26,3 +26,13 @@ The pulled branch already had the API routes and frontend client. This change re
 The local application is available at `http://127.0.0.1:8000/` after the normal launcher starts. Development Vite uses the existing `/api` proxy. Deploy the frontend build and backend together when using the new retention route.
 
 These checks establish technical integration on synthetic inputs, not legal or translation accuracy. Generated results remain `needs_review`. Hosted inference and optional external source verification were not exercised in this change. Existing npm audit findings in the Vite/React Router dependencies remain; this integration does not upgrade those major versions.
+
+## Ask repair — 31 October 2026
+
+The reported network error was masking a model rejection. The local model log recorded a 4,519-token request exceeding its 4,096-token context. Questions previously included full retrieved clauses plus duplicated generated results/evidence, and repair prompts repeated the output schema. The frontend mapped the resulting model error to a generic API connectivity message.
+
+Questions now use a compact answer schema and ranked, exact source excerpts bounded to 3,000 UTF-8 bytes, with a separate bound for admitted references. Prior generated results are excluded from the prompt. Windowed answers retain exact source quotes and disclose `question_context_limited`; missing information still returns insufficient evidence. Numeric clause questions prioritize the requested source clause. The repair prompt also stays compact. Questions that themselves exceed model capacity receive an actionable `MODEL_CONTEXT_LIMIT` error, without exposing upstream error text.
+
+The Ask form preserves backend error codes/messages and retryability, reuses question IDs for retries, uses the existing UUID fallback and rejects late cancelled responses. No UI styling or layout changed; the CSS artifact remains `index-EtJUO9dJ.css`.
+
+Validation: **142 ML tests**, **51 API/adapter tests**, **10 frontend tests**, production build, translation parity and health-contract checks passed. A real five-long-clause DOCX completed **5/5** analysis; fee and numbered-clause questions returned HTTP 200 with source evidence and identical retry results. An unrelated question returned insufficient evidence. In the browser, Ask displayed “The monthly fee is INR 1500.” with exact document evidence, and no console errors were recorded. All live probe documents were authored synthetic data.

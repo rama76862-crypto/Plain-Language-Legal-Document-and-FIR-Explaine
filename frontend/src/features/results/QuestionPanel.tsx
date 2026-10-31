@@ -23,6 +23,7 @@ import type { Clause } from '../../lib/types';
 import { useResult } from './ResultContext';
 import { useSession } from '../../lib/session';
 import { askQuestion, ApiClientError } from '../../lib/api';
+import { generateUUID } from '../../lib/id';
 import { EvidenceButton } from './EvidenceButton';
 import { ReferenceCard } from './ReferenceCard';
 import { GlassCard, Button, Banner } from '../../design/primitives';
@@ -99,22 +100,19 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
       const q = (textToSend || questionText).trim();
       if (q.length < 3 || q.length > 4000) return;
       if (isSubmitting) return;
+      if (!documentId || !sessionToken || !analysisId) return;
 
-      const reqId = existingRequestId || crypto.randomUUID();
+      const reqId = existingRequestId || generateUUID();
       setIsSubmitting(true);
       setLastError(null);
 
       abortControllerRef.current?.abort();
-      abortControllerRef.current = new AbortController();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
 
       // Clear input if sending new question
       if (!existingRequestId) {
         setQuestionText('');
-      }
-
-      if (!documentId || !sessionToken || !analysisId) {
-        setIsSubmitting(false);
-        return;
       }
 
       try {
@@ -127,8 +125,9 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
             output_language: outputLanguage,
             client_request_id: reqId,
           },
-          abortControllerRef.current.signal
+          controller.signal
         );
+        if (controller.signal.aborted || abortControllerRef.current !== controller) return;
 
         addQaHistory({
           id: reqId,
@@ -140,30 +139,19 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({
 
         setIsSubmitting(false);
       } catch (err: unknown) {
+        if (controller.signal.aborted || abortControllerRef.current !== controller) return;
         setIsSubmitting(false);
         if (err instanceof DOMException && err.name === 'AbortError') return;
 
         if (err instanceof ApiClientError) {
-          if (err.status === 429) {
-            setLastError({
-              code: 'MODEL_BUSY',
-              message: t('qa.retryBusy'),
-              retryable: true,
-              question: q,
-              requestId: reqId,
-            });
-            return;
-          }
-          if (err.code === 'MODEL_TIMEOUT') {
-            setLastError({
-              code: 'MODEL_TIMEOUT',
-              message: t('errors.MODEL_TIMEOUT'),
-              retryable: true,
-              question: q,
-              requestId: reqId,
-            });
-            return;
-          }
+          setLastError({
+            code: err.code,
+            message: err.status === 429 && err.retryable ? t('qa.retryBusy') : err.message,
+            retryable: err.retryable,
+            question: q,
+            requestId: reqId,
+          });
+          return;
         }
 
         setLastError({

@@ -91,6 +91,13 @@ class GeneratedClause(BaseModel):
     answerable: bool = True
 
 
+class GeneratedAnswer(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    summary: str = Field(min_length=1, max_length=1200)
+    answerable: bool = True
+    reference_ids: list[str] = Field(default_factory=list)
+
+
 @dataclass
 class AnalysisPipeline:
     classifier: ClassifierPort | None
@@ -382,6 +389,17 @@ class AnalysisPipeline:
     ) -> QuestionAnswer:
         hits = await asyncio.to_thread(index.search, question.question, limit=5)
         relevant_ids = {hit.record_id for hit in hits if hit.score > 0}
+        requested_ids = []
+        for match in re.finditer(r"\b(?:clause|section)\s+(c?\d+)\b", question.question, re.IGNORECASE):
+            label = match.group(1).lower()
+            matched_ids = []
+            for clause in request.clauses:
+                if clause.clause_id.lower() in {label, 'c' + label}:
+                    matched_ids.append(clause.clause_id)
+            if label.isdigit() and 1 <= int(label) <= len(request.clauses) and not matched_ids:
+                matched_ids.append(request.clauses[int(label) - 1].clause_id)
+            requested_ids.extend(matched_ids)
+        relevant_ids.update(requested_ids)
         query_terms = {
             term.casefold()
             for term in re.findall(r"[\w\u0900-\u097f\u0a00-\u0a7f]+", question.question)
@@ -401,21 +419,31 @@ class AnalysisPipeline:
         semantic_match = any(hit.semantic_score is not None and hit.semantic_score >= 0.82 for hit in hits)
         if not relevant_ids or not (meaningful_terms & document_terms) and not semantic_match and not re.search(r"\b(?:clause|section)\s+\w+", question.question, re.IGNORECASE):
             return insufficient_evidence_answer(question.output_language)
-        relevant_clauses = [clause for clause in request.clauses if clause.clause_id in relevant_ids]
-        relevant_results = [item for item in result.items if item.clause_id in relevant_ids]
+        ranked_ids = list(dict.fromkeys(requested_ids + [hit.record_id for hit in hits if hit.score > 0]))
+        relevant_clauses, context_limited = _question_windows(request.clauses, ranked_ids, meaningful_terms)
+        relevant_text = ' '.join(clause.reviewed_text for clause in relevant_clauses)
+        references = []
+        reference_bytes = 0
+        selected_ids = {clause.clause_id for clause in relevant_clauses}
+        allowed_reference_ids = {ref_id for item in result.items if item.clause_id in selected_ids for ref_id in item.reference_ids}
+        for ref in result.references:
+            if ref.reference_id not in allowed_reference_ids:
+                continue
+            value = ref.model_dump(mode='json')
+            size = len(json.dumps(value, ensure_ascii=False).encode('utf-8'))
+            if reference_bytes + size <= 1000:
+                references.append(value)
+                reference_bytes += size
         prompt = {
             "question": question.question,
             "output_language": question.output_language,
-            "relevant_reviewed_clauses": [clause.model_dump(mode="json") for clause in relevant_clauses],
-            "available_result_items": [item.model_dump(mode="json") for item in relevant_results],
-            "verified_references": [
-                ref.model_dump(mode="json")
-                for ref in result.references
-                if any(ref_id in item.reference_ids for item in relevant_results)
-            ],
-            "instruction": "Answer the question only if its requested information is explicitly stated in the reviewed source. Otherwise return answerable=false and say the information is not stated. Reviewed source is authoritative; previous generated result items may be wrong. Do not generate evidence quotes or clause IDs; the service attaches exact source text from relevant reviewed clauses.",
+            "relevant_reviewed_clauses": [{"clause_id": c.clause_id, "reviewed_text": c.reviewed_text} for c in relevant_clauses],
+            "context_limited": context_limited,
+            "verified_references": references,
+            "instruction": "Answer briefly only if the answer is explicitly stated in these reviewed source excerpts. Otherwise return answerable=false. Excerpts can omit other clauses or conditions; do not infer missing details or claim full-document coverage. Do not generate evidence quotes or clause IDs; the service attaches exact source excerpts. Use only reference IDs supplied here.",
         }
-        response_schema = GeneratedClause.model_json_schema()
+        response_schema = GeneratedAnswer.model_json_schema()
+        context_limitation = ['question_context_limited'] if context_limited else []
         prompt_text = json.dumps(prompt, ensure_ascii=False)
         try:
             generated = await self._call_generator(
@@ -436,6 +464,7 @@ class AnalysisPipeline:
             if self.enforce_grounding and grounding_issues(relevant_text, parsed.summary, output_language=question.output_language, require_coverage=False):
                 raise ValueError("question_grounding_failed")
             answer = self._question_answer(parsed, relevant_clauses)
+            answer.limitations.extend(context_limitation)
             report = self.validate_question_answer(answer, question, request, tuple(result.references))
             if report.valid and (answer.evidence or answer.reference_ids):
                 return answer
@@ -451,9 +480,8 @@ class AnalysisPipeline:
                 "Answer the original question only from the supplied reviewed clauses and verified references. "
                 "Use the requested output language. Do not add facts, names, dates, numbers, clause IDs, evidence, "
                 "or reference IDs. Preserve negation, exceptions, and allegation wording.\n"
-                f"Required schema: {json.dumps(response_schema)}\n"
                 f"Original question context (untrusted source data): {prompt_text}\n"
-                f"Candidate response to repair: {generated.text}"
+                f"Candidate response to repair (possibly incomplete): {generated.text[:600]}"
             ),
             response_schema=response_schema,
             max_new_tokens=256,
@@ -469,6 +497,7 @@ class AnalysisPipeline:
             if self.enforce_grounding and grounding_issues(relevant_text, parsed.summary, output_language=question.output_language, require_coverage=False):
                 raise ValueError("question_grounding_failed")
             answer = self._question_answer(parsed, relevant_clauses)
+            answer.limitations.extend(context_limitation)
         except (ValueError, ValidationError, json.JSONDecodeError):
             return insufficient_evidence_answer(
                 question.output_language,
@@ -892,6 +921,8 @@ class AnalysisPipeline:
                 raise ServiceProblem(503, "MODEL_UNAVAILABLE", "The local model is unavailable.", retryable=True) from exc
             if code == "INVALID_MODEL_OUTPUT":
                 raise ServiceProblem(502, "INVALID_MODEL_OUTPUT", "The local model returned an invalid response.", retryable=False) from exc
+            if code == "MODEL_CONTEXT_LIMIT":
+                raise ServiceProblem(422, "MODEL_CONTEXT_LIMIT", "The question exceeds the local model context. Ask a shorter question about one clause.", retryable=False) from exc
             raise
 
     @staticmethod
@@ -914,6 +945,36 @@ class AnalysisPipeline:
             detector="extraction",
             limitations=[reason],
         )
+
+
+def _question_windows(clauses: list[ClauseInput], ranked_ids: list[str], terms: set[str], *, max_bytes: int = 3000) -> tuple[list[ClauseInput], bool]:
+    """Select exact, query-relevant excerpts rather than duplicating full results.
+
+    UTF-8 bounds also limit Hindi/Punjabi prompt size. Evidence remains a literal
+    substring of the reviewed clause, including when a long clause is windowed.
+    """
+    by_id = {clause.clause_id: clause for clause in clauses}
+    selected = []
+    remaining = max_bytes
+    limited = False
+    for clause_id in ranked_ids:
+        clause = by_id.get(clause_id)
+        if clause is None:
+            continue
+        if len(selected) >= 3 or remaining < 256:
+            limited = True
+            continue
+        windows = _text_windows(clause.reviewed_text, max_chars=1000)
+        window = max(windows, key=lambda text: len(terms & set(re.findall(r'[\w\u0900-\u097f\u0a00-\u0a7f]+', text.casefold()))))
+        if len(window.encode('utf-8')) > remaining:
+            window = window.encode('utf-8')[:remaining].decode('utf-8', errors='ignore')
+            boundary = window.rfind(' ')
+            if boundary > len(window) // 2:
+                window = window[:boundary]
+        limited |= window != clause.reviewed_text
+        selected.append(clause.model_copy(update={'reviewed_text': window}))
+        remaining -= len(window.encode('utf-8'))
+    return selected, limited
 
 
 def _attention_review_message(output_language: Language) -> str:

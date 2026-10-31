@@ -8,7 +8,7 @@ let server, usePolling, ResultProvider, useResult, SessionProvider, useSession, 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 const json = value => new Response(JSON.stringify(value), { headers: { 'Content-Type': 'application/json' } });
 before(async () => {
-  server = await createServer({ configFile: false, server: { middlewareMode: true },
+  server = await createServer({ configFile: false, server: { middlewareMode: true, hmr: false, ws: false },
     optimizeDeps: { noDiscovery: true, include: [] }, appType: 'custom' });
   ({ usePolling } = await server.ssrLoadModule('/src/lib/usePolling.ts'));
   ({ ResultProvider, useResult } = await server.ssrLoadModule('/src/features/results/ResultContext.tsx'));

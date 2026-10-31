@@ -37,6 +37,10 @@ class GenerationInvalidResponse(GenerationError):
     retryable = False
 
 
+class GenerationContextLimit(GenerationInvalidResponse):
+    code = "MODEL_CONTEXT_LIMIT"
+
+
 def _validate_loopback_url(base_url: str) -> str:
     parsed = urlsplit(base_url)
     if parsed.scheme not in {"http", "https"} or not parsed.hostname:
@@ -121,6 +125,13 @@ class LocalGenerator:
             if response.status_code >= 500:
                 raise GenerationUnavailable("local model server returned an error")
             if response.status_code >= 400:
+                # Do not forward or log arbitrary model-server error text.
+                try:
+                    message = response.json().get('error', {}).get('message', '').lower()
+                except (ValueError, AttributeError, TypeError):
+                    message = ''
+                if response.status_code == 400 and 'context' in message and ('exceed' in message or 'too large' in message):
+                    raise GenerationContextLimit('local model context limit exceeded')
                 raise GenerationInvalidResponse(
                     f"local model rejected the request (HTTP {response.status_code})"
                 )

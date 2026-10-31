@@ -280,6 +280,20 @@ def test_private_error_mapping_does_not_leak_upstream_text(status,code):
     run(scenario())
 
 
+def test_question_context_limit_is_actionable_and_does_not_leak_upstream_text():
+    async def scenario():
+        client = RealMLClient(Settings(), httpx.MockTransport(lambda request: httpx.Response(422,
+            json={'error': {'code': 'MODEL_CONTEXT_LIMIT', 'message': 'PRIVATE-CONTENT'}})))
+        with pytest.raises(ApiError) as caught:
+            await client.question({**payload(), 'question': 'Synthetic question', 'client_request_id': 'synthetic-context-limit'})
+        assert caught.value.code == 'MODEL_CONTEXT_LIMIT'
+        assert caught.value.status == 422 and not caught.value.retryable
+        assert 'shorter question' in caught.value.message
+        assert 'PRIVATE-CONTENT' not in caught.value.message
+        await client.close()
+    run(scenario())
+
+
 def test_timeout_and_connection_failure_are_finite_and_not_fixture_fallback():
     async def scenario():
         calls = 0
